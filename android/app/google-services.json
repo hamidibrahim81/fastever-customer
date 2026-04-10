@@ -1,0 +1,162 @@
+{
+  "project_info": {
+    "project_number": "580111714111",
+    "project_id": "fastevergo",
+    "storage_bucket": "fastevergo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580111714111:android:bed2f88ed03dbb3b46f58a",
+        "android_client_info": {
+          "package_name": "com.example.delivery_partner_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDorPLBJEcKeZLVdOqVWgZnKT2MtYQdZoM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "580111714111-1rnudtvpjd5f86a7afc5vv92vr9l3d7l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fastevergoV1"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580111714111:android:83e1657ce667980d46f58a",
+        "android_client_info": {
+          "package_name": "com.example.fastevergo_v1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDorPLBJEcKeZLVdOqVWgZnKT2MtYQdZoM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "580111714111-1rnudtvpjd5f86a7afc5vv92vr9l3d7l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fastevergoV1"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580111714111:android:3fd49b7144ca097446f58a",
+        "android_client_info": {
+          "package_name": "com.example.restaurant_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDorPLBJEcKeZLVdOqVWgZnKT2MtYQdZoM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "580111714111-1rnudtvpjd5f86a7afc5vv92vr9l3d7l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fastevergoV1"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580111714111:android:4b08fa2ef39e29c846f58a",
+        "android_client_info": {
+          "package_name": "com.fastever.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580111714111-dmoathrnt2h26mosfuah5ivtsd9jmg3q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fastever.customer",
+            "certificate_hash": "f9fa72f463db5cb1d391a20d4c60d4e06b695419"
+          }
+        },
+        {
+          "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDorPLBJEcKeZLVdOqVWgZnKT2MtYQdZoM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580111714111-rho9teoo4avmgvkdtikdj1dboe7uc3st.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "580111714111-1rnudtvpjd5f86a7afc5vv92vr9l3d7l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fastevergoV1"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

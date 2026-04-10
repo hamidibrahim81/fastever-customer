@@ -1,0 +1,142 @@
+name: fastevergo_v1
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+4
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
+  geolocator: ^14.0.2
+  geocoding: ^4.0.0
+  carousel_slider: ^5.0.0
+  provider: ^6.0.5
+  path_provider: ^2.0.15
+  lottie: ^3.0.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1  # ✅ Kept this one
+  google_maps_flutter: ^2.6.0
+  location: ^8.0.1
+  google_maps_webservice: ^0.0.20-nullsafety.5
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  google_fonts: ^8.0.2
+  uuid: ^4.5.1
+  video_player: ^2.6.1
+  chewie: ^1.8.0
+  flutter_launcher_icons: ^0.14.4
+  url_launcher: ^6.2.5  # Add this line
+  intl: ^0.20.2
+  firebase_messaging: ^15.2.1
+  flutter_local_notifications: ^18.0.1
+  google_places_flutter: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.4  # ✅ Added splash screen package
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # images
+    - assets/logo.json
+
+    
+  
+    - assets/images/arabian.jpeg
+    - assets/images/indian.jpeg
+    - assets/images/biriyani.jpeg
+    - assets/images/shawarma.jpeg
+    - assets/images/burger.jpeg
+    - assets/images/parotta.jpeg
+    - assets/images/cakes.jpeg
+    - assets/images/dosa.jpeg
+    - assets/images/momos.jpeg
+    - assets/images/shake.jpeg
+    - assets/images/icecream.jpeg
+    - assets/images/juice.jpeg
+    - assets/images/chinese.jpeg
+    - assets/images/bigd1.jpeg
+    - assets/images/bigd2.jpeg
+    - assets/images/combod1.jpeg
+    - assets/images/combod2.jpeg
+
+    # animations
+    - assets/animations/order_success.json
+    - assets/animations/m3.json
+  
+
+    # instahub
+
+    - assets/instahub/s1.png
+    - assets/instahub/s2.png
+    - assets/instahub/s3.png
+    - assets/instahub/s4.png
+    - assets/instahub/s5.png
+    - assets/instahub/s6.png
+    - assets/instahub/s7.png
+    - assets/instahub/s8.png
+
+    # icons
+    - assets/icons/fv.jpeg
+    - assets/icons/de.jpeg
+    - assets/icons/ms.jpeg
+    - assets/icons/gs.jpeg
+    - assets/icons/bs.jpeg
+    - assets/icons/b.jpeg
+    - assets/icons/he.jpeg
+    - assets/icons/bk.jpeg
+    - assets/icons/pc.jpeg
+
+
+
+    # other images
+    - assets/img/btn1.jpeg
+    - assets/img/btn2.jpeg
+    - assets/img/btn3.jpeg
+    - assets/img/btn4.jpeg
+    
+
+    # menu
+    - assets/icons/fv.jpeg
+    - assets/icons/de.jpeg
+    - assets/icons/ms.jpeg
+    - assets/icons/gs.jpeg
+    - assets/icons/bs.jpeg
+    - assets/icons/b.jpeg
+    - assets/icons/he.jpeg
+    - assets/icons/bk.jpeg
+    - assets/icons/pc.jpeg
+
+# ✅ App icon config
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo2.png"
+  adaptive_icon_background: "#000000"  # Changed to Pure Black
+  adaptive_icon_foreground: "assets/logo2.png"
+
+flutter_native_splash:
+  color: "#000000"   # Changed to Pure Black background
+  image: assets/logo3.png
+  android: true
+  ios: true
+
+  android_12:
+    color: "#000000"
+    image: assets/logo3.png
+
+# FORCES THE BUILD TO IGNORE VERSION CONFLICTS
+dependency_overrides:
+  http: ^1.1.0

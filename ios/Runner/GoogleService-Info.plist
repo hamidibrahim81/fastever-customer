@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>580111714111-h14n4ecf14uesriivqi1i11hn52dh3pf.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.580111714111-h14n4ecf14uesriivqi1i11hn52dh3pf</string>
+	<key>API_KEY</key>
+	<string>AIzaSyBjknIZg2k-KcROzTPjjnV_2yQTXJgTTH4</string>
+	<key>GCM_SENDER_ID</key>
+	<string>580111714111</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.fastever.customer</string>
+	<key>PROJECT_ID</key>
+	<string>fastevergo</string>
+	<key>STORAGE_BUCKET</key>
+	<string>fastevergo.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:580111714111:ios:81d74b00950a450146f58a</string>
+</dict>
+</plist>
