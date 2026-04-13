@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart'; 
-import 'dart:async'; // ✅ Added for the Timer
-import '../home/home_screen.dart';
+import 'dart:async';
 
+import '../home/home_screen.dart';
+import '../profile/profile_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -18,10 +21,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String _verificationId = "";
   bool _otpSent = false;
-  bool _isLoading = false;
+  
+  // States for polished feedback
+  bool _isLoading = false; 
+  bool _otpRequestLocked = false;
+  bool _isSendingOtp = false;
+  bool _isVerifyingOtp = false;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Timer variables
   Timer? _timer;
   int _secondsRemaining = 30;
   bool _canResend = false;
@@ -35,12 +43,12 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _phoneController.dispose();
     _otpController.dispose();
-    _timer?.cancel(); // ✅ Cancel timer on dispose
+    _timer?.cancel(); 
     super.dispose();
   }
 
-  // Timer Logic
   void _startTimer() {
+    if (!mounted) return;
     setState(() {
       _secondsRemaining = 30;
       _canResend = false;
@@ -48,14 +56,14 @@ class _LoginScreenState extends State<LoginScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining == 0) {
-        setState(() {
-          _canResend = true;
-          _timer?.cancel();
-        });
+        if (mounted) {
+          setState(() {
+            _canResend = true;
+            _timer?.cancel();
+          });
+        }
       } else {
-        setState(() {
-          _secondsRemaining--;
-        });
+        if (mounted) setState(() => _secondsRemaining--);
       }
     });
   }
@@ -68,75 +76,75 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _sendOTP() async {
+    if (_otpRequestLocked) return;
+
     if (_phoneController.text.isEmpty || _phoneController.text.length != 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text("Please enter a valid 10-digit Indian number.")),
-      );
+      _showError("Please enter a valid 10-digit number.");
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isSendingOtp = true;
+      _otpRequestLocked = true;
+    });
     FocusScope.of(context).unfocus();
-
-    final fullPhoneNumber = "+91${_phoneController.text.trim()}";
 
     try {
       await _auth.verifyPhoneNumber(
-        phoneNumber: fullPhoneNumber,
+        phoneNumber: "+91${_phoneController.text.trim()}",
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // ✅ AUTO-FILL LOGIC
+          // Automatic handling for some Android devices / Instant verification
           if (credential.smsCode != null) {
-            setState(() {
-              _otpController.text = credential.smsCode!;
-            });
-            await _signInWithCredential(credential);
+            if (mounted) {
+              setState(() {
+                _otpController.text = credential.smsCode!;
+                _isVerifyingOtp = true; // Show loading on button during auto-verify
+              });
+            }
           }
+          await _signInWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
-          setState(() => _isLoading = false);
-          String msg = e.message ?? "Verification Failed";
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(backgroundColor: Colors.red, content: Text(msg)),
-          );
+          if (mounted) setState(() { _isLoading = false; _isSendingOtp = false; _otpRequestLocked = false; });
+          _showError(e.message ?? "Verification Failed");
         },
         codeSent: (String verificationId, int? resendToken) {
-          setState(() {
-            _verificationId = verificationId;
-            _otpSent = true;
-            _isLoading = false;
-          });
-          _startTimer(); // ✅ Start 30s countdown
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                backgroundColor: Colors.green, content: Text("OTP Sent Successfully!")),
-          );
+          if (mounted) {
+            setState(() {
+              _verificationId = verificationId;
+              _otpSent = true;
+              _isLoading = false;
+              _isSendingOtp = false;
+              _otpRequestLocked = false;
+            });
+            _startTimer();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(backgroundColor: Colors.green, content: Text("OTP Sent Successfully!")),
+            );
+          }
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          if (mounted) {
-            setState(() => _verificationId = verificationId);
-          }
+          if (mounted) setState(() => _verificationId = verificationId);
         },
         timeout: const Duration(seconds: 30),
       );
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      if (mounted) setState(() { _isLoading = false; _isSendingOtp = false; _otpRequestLocked = false; });
+      _showError("Error: $e");
     }
   }
 
   Future<void> _verifyOTP() async {
     if (_otpController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter the full 6-digit OTP.")),
-      );
+      _showError("Please enter the full 6-digit OTP.");
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isVerifyingOtp = true;
+    });
     FocusScope.of(context).unfocus();
 
     PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -153,201 +161,245 @@ class _LoginScreenState extends State<LoginScreen> {
       User? user = userCredential.user;
 
       if (user != null) {
-        // ✅ Version 4: Removed Firestore profile check to reduce friction
-        if (!mounted) return;
+        final prefs = await SharedPreferences.getInstance();
+        
+        // We only care about the name now
+        bool isProfileComplete = prefs.getBool('profile_${user.uid}') ?? false;
 
-        // ✅ Redirect directly to HomeScreen for all users
+        if (!isProfileComplete) {
+          final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          // Logic Updated: Only check for the 'name' field
+          if (doc.exists && (doc.data()?['name'] != null && doc.data()?['name'].toString().trim().isNotEmpty == true)) {
+            isProfileComplete = true;
+            await prefs.setBool('profile_${user.uid}', true);
+          }
+        }
+
+        if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => isProfileComplete ? const HomeScreen() : const ProfileScreen()),
           (route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(backgroundColor: Colors.red, content: Text(e.message ?? "Login Failed")),
-      );
+      if (mounted) setState(() { _isLoading = false; _isVerifyingOtp = false; });
+      _showError(e.message ?? "Login Failed");
     } catch (e) {
-      setState(() => _isLoading = false);
-      debugPrint("Login Error: $e");
+      if (mounted) setState(() { _isLoading = false; _isVerifyingOtp = false; });
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(backgroundColor: Colors.redAccent, content: Text(msg)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 40),
-                      const Text(
-                        "Let's Sign you in.",
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Welcome to KEEVO.\nYou've been missed!",
-                        style: TextStyle(fontSize: 24, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 50),
-
-                      if (!_otpSent) ...[
-                        const Text("Phone Number", style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          maxLength: 10,
-                          style: const TextStyle(fontSize: 18, letterSpacing: 1.0),
-                          decoration: InputDecoration(
-                            prefixIcon: const Padding(
-                              padding: EdgeInsets.all(15),
-                              child: Text("+91", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            ),
-                            hintText: "Enter Phone Number",
-                            counterText: "",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _sendOTP,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: _isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text("Get OTP", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ] else ...[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text("Enter OTP", style: TextStyle(fontWeight: FontWeight.w600)),
-                            TextButton(
-                              onPressed: () => setState(() {
-                                _otpSent = false;
-                                _otpController.clear();
-                                _timer?.cancel();
-                              }), 
-                              child: const Text("Change Number", style: TextStyle(color: Colors.blueAccent))
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _otpController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 24, letterSpacing: 4.0, fontWeight: FontWeight.bold),
-                          decoration: InputDecoration(
-                            hintText: "• • • • • •",
-                            counterText: "",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        // ⏳ TIMER & RESEND UI
-                        Center(
-                          child: _canResend
-                              ? TextButton(
-                                  onPressed: _isLoading ? null : _sendOTP,
-                                  child: const Text("Resend OTP", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                                )
-                              : Text(
-                                  "Resend OTP in $_secondsRemaining seconds",
-                                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                                ),
-                        ),
-                        const SizedBox(height: 15),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _verifyOTP,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: _isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text("Verify & Login", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10.0, bottom: 10.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "By continuing, you agree to our",
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          GestureDetector(
-                            onTap: () => _launchURL(_termsUrl),
-                            child: const Text("Terms", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
-                          ),
-                          const Text("  •  ", style: TextStyle(color: Colors.grey)),
-                          GestureDetector(
-                            onTap: () => _launchURL(_privacyUrl),
-                            child: const Text("Privacy", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
-                          ),
-                          const Text("  •  ", style: TextStyle(color: Colors.grey)),
-                          GestureDetector(
-                            onTap: () => _launchURL(_shippingUrl),
-                            child: const Text("Shipping", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                          const SizedBox(height: 40),
+                          const Text("Let's Sign you in.", 
+                            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          const SizedBox(height: 10),
+                          const Text("Welcome to FASTO.\nYou've been missed!", 
+                            style: TextStyle(fontSize: 24, color: Colors.grey, height: 1.2)),
+                          const SizedBox(height: 50),
+
+                          AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 400),
+                            firstChild: _buildPhoneInput(),
+                            secondChild: _buildOtpInput(),
+                            crossFadeState: _otpSent ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      GestureDetector(
-                        onTap: () => _launchURL(_refundUrl),
-                        child: const Text(
-                          "Refund & Cancellation Policy",
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  _buildFooter(),
+                ],
               ),
+            ),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneInput() {
+    return AutofillGroup( // Added for better iOS/Android integration
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Phone Number", style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            autofillHints: const [AutofillHints.telephoneNumber],
+            maxLength: 10,
+            style: const TextStyle(fontSize: 18, letterSpacing: 1.0),
+            decoration: InputDecoration(
+              prefixIcon: const Padding(
+                padding: EdgeInsets.all(15),
+                child: Text("+91", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              hintText: "Enter Phone Number",
+              counterText: "",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              onPressed: (_isSendingOtp || _otpRequestLocked) ? null : _sendOTP,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                disabledBackgroundColor: Colors.black54,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _isSendingOtp
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Get OTP", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOtpInput() {
+    return AutofillGroup( // Added for iOS Auto-fill from SMS
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Enter OTP", style: TextStyle(fontWeight: FontWeight.w600)),
+              TextButton(
+                onPressed: () {
+                  if (mounted) {
+                    setState(() {
+                      _otpSent = false;
+                      _otpController.clear();
+                      _timer?.cancel();
+                      _otpRequestLocked = false;
+                    });
+                  }
+                },
+                child: const Text("Change Number", style: TextStyle(color: Colors.blueAccent)),
+              )
             ],
           ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _otpController,
+            keyboardType: TextInputType.number,
+            autofillHints: const [AutofillHints.oneTimeCode],
+            maxLength: 6,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 24, letterSpacing: 4.0, fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              hintText: "• • • • • •",
+              counterText: "",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+          ),
+          const SizedBox(height: 15),
+          Center(
+            child: _canResend
+                ? TextButton(
+                    onPressed: (_isSendingOtp || _otpRequestLocked) ? null : _sendOTP,
+                    child: const Text("Resend OTP", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                  )
+                : Text("Resend OTP in $_secondsRemaining seconds", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          ),
+          const SizedBox(height: 15),
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              onPressed: _isVerifyingOtp ? null : _verifyOTP,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                disabledBackgroundColor: Colors.black54,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _isVerifyingOtp
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Verify & Login", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(
+          children: [
+            const Text("By continuing, you agree to our", style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(height: 4),
+            Wrap( // Using Wrap for better overflow handling on smaller screens
+              alignment: WrapAlignment.center,
+              children: [
+                _link("Terms", _termsUrl),
+                const Text("  •  ", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                _link("Privacy", _privacyUrl),
+                const Text("  •  ", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                _link("Shipping", _shippingUrl),
+              ],
+            ),
+            const SizedBox(height: 4),
+            _link("Refund & Cancellation Policy", _refundUrl),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _link(String label, String url) {
+    return GestureDetector(
+      onTap: () => _launchURL(url),
+      child: Text(label, 
+        style: const TextStyle(
+          fontSize: 11, 
+          fontWeight: FontWeight.bold, 
+          decoration: TextDecoration.underline,
+          color: Colors.black87
+        )
       ),
     );
   }

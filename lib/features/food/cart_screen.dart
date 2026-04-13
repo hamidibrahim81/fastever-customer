@@ -125,7 +125,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<bool> _isStockAvailable() async {
     final cart = Provider.of<CartProvider>(context, listen: false);
-    setState(() => _isCheckingStock = true);
+    if (mounted) setState(() => _isCheckingStock = true);
     try {
       for (var item in cart.items.values) {
         final doc = await _firestore
@@ -139,16 +139,16 @@ class _CartScreenState extends State<CartScreen> {
           int currentStock = parseInt(doc.data()?['stock']);
           if (item.quantity > currentStock) {
             _showSnackBar("Sorry, only $currentStock left for ${item.name}", color: Colors.red);
-            setState(() => _isCheckingStock = false);
+            if (mounted) setState(() => _isCheckingStock = false);
             return false;
           }
         }
       }
-      setState(() => _isCheckingStock = false);
+      if (mounted) setState(() => _isCheckingStock = false);
       return true;
     } catch (e) {
       debugPrint("Stock check error: $e");
-      setState(() => _isCheckingStock = false);
+      if (mounted) setState(() => _isCheckingStock = false);
       return false;
     }
   }
@@ -193,7 +193,7 @@ class _CartScreenState extends State<CartScreen> {
         }
       }
       Position pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      if (mounted) currentPosition = pos;
+      if (mounted) setState(() => currentPosition = pos);
     } catch (e) {
       debugPrint("Error getting device location: $e");
     }
@@ -324,6 +324,7 @@ class _CartScreenState extends State<CartScreen> {
       "id": item.id, "image": item.image, "restaurantId": item.restaurantId,
     }).toList();
 
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -331,8 +332,8 @@ class _CartScreenState extends State<CartScreen> {
           items: cartItems, subtotal: subtotal, discount: discount,
           total: subtotal + breakdown.totalFee - discount, address: selectedAddress,
           payment: selectedPayment, 
-          deliveryFee: breakdown.deliveryCharge, // Passed separately
-          platformFee: breakdown.platformFee,   // Passed separately
+          deliveryFee: breakdown.deliveryCharge, 
+          platformFee: breakdown.platformFee,   
           appliedCouponCode: appliedCoupon,
           deliveryLatitude: deliveryLat, deliveryLongitude: deliveryLon,
           deliveryInstructions: _instructionController.text.trim(),
@@ -342,8 +343,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void _showAddressSelectionScreen() async {
-    // UPDATED: Navigates to ManageAddressScreen for the new selection flow
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) =>  ManageAddressScreen()));
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) =>  const ManageAddressScreen()));
     if (result != null && result is Map<String, dynamic>) {
       final double newLat = parseDouble(result['lat']);
       final double newLon = parseDouble(result['lng']);
@@ -611,7 +611,7 @@ class _CartScreenState extends State<CartScreen> {
             elevation: 0,
           ),
           child: _isCheckingStock 
-              ? const CircularProgressIndicator(color: Colors.white)
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
               : Text(currentDeliveryPosition == null ? "Select Address" : "Place Order • ₹${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ),
       ),

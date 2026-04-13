@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ✅ Added this import
+import 'package:firebase_auth/firebase_auth.dart'; 
 import '../food/cart/cart_provider.dart';
 import '../food/cart/cart_bar.dart';
 import 'active_order_bottom_bar.dart';
@@ -15,7 +15,7 @@ class ComboScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIX: Get userId directly from Firebase Auth, not CartProvider
+    // Get userId directly from Firebase Auth
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
     if (userId == null) {
@@ -25,7 +25,7 @@ class ComboScreen extends StatelessWidget {
     }
 
     // ⭐ ADJUSTED PADDING FOR CART BAR VISIBILITY ⭐
-    const double cartBarHeightPadding = 100.0; 
+    const double cartBarHeightPadding = 110.0; 
 
     return Scaffold(
       appBar: AppBar(
@@ -89,8 +89,11 @@ class ComboScreen extends StatelessWidget {
                   final String comboName = data['name'] ?? 'Combo Deal';
                   final String restaurantName =
                       data['restaurant'] ?? data['restaurantName'] ?? 'Unknown Restaurant';
+                  
+                  // Safe double parsing
                   final double price = (data['price'] ?? 0).toDouble();
                   final double offerPrice = (data['offerPrice'] ?? price).toDouble();
+                  
                   final String restaurantId =
                       data['restaurantId'] ?? 'ASygXN0cjM3IlxayGZ1C'; 
 

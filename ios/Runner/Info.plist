@@ -45,8 +45,6 @@
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
-        <string>UIInterfaceOrientationLandscapeLeft</string>
-        <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
     <key>UISupportedInterfaceOrientations~ipad</key>
@@ -68,26 +66,13 @@
     <key>io.flutter.embedded_views_preview</key>
     <true/>
 
-    <!-- 🔐 LOCATION PERMISSIONS (CRITICAL) -->
+    <!-- 🔐 LOCATION PERMISSION (ONLY REQUIRED ONE) -->
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>We use your location to show nearby stores and enable fast delivery services.</string>
+    <string>We use your location to show nearby restaurants and enable fast delivery.</string>
 
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Your location helps us provide accurate delivery tracking and better service.</string>
-
-    <!-- 🔔 PUSH NOTIFICATIONS (IMPORTANT) -->
+    <!-- 🔔 PUSH NOTIFICATIONS -->
     <key>FirebaseAppDelegateProxyEnabled</key>
     <true/>
-
-    <key>NSUserNotificationUsageDescription</key>
-    <string>We send notifications to update you about your orders and delivery status.</string>
-
-    <!-- 🌐 INTERNET SECURITY (ONLY if using HTTP APIs) -->
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <true/>
-    </dict>
 
     <!-- 📱 STATUS BAR -->
     <key>UIStatusBarHidden</key>

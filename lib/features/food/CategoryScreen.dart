@@ -55,7 +55,7 @@ class FoodItemModel {
     this.isInstaHub = false,
   });
 
-  // 🔴 CHANGE: Use factory to create from the merged Map
+  //  factory to create from the merged Map
   factory FoodItemModel.fromMap(Map<String, dynamic> data) {
     return FoodItemModel(
       id: data['id'] ?? '', // ID extracted from DocumentSnapshot.id
@@ -85,7 +85,7 @@ class CategoryScreen extends StatefulWidget {
 
 class _CategoryScreenState extends State<CategoryScreen> {
   final ScrollController _scrollController = ScrollController();
-  // 🔴 CHANGE: State now holds Maps with merged restaurant data
+  // State now holds Maps with merged restaurant data
   List<Map<String, dynamic>> _documents = []; 
   bool _isLoading = true;
   bool _hasMore = true;
@@ -178,13 +178,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
         return;
       }
 
-      // 2. 🔹 Collect all unique restaurant IDs
+      // 2. Collect all unique restaurant IDs
       final restaurantIds = newDocs
           .map((d) => (d.data() as Map<String, dynamic>)['restaurantId'] ?? d.reference.parent.parent?.id)
           .whereType<String>()
           .toSet();
 
-      // 3. 🔹 Fetch restaurant details once per batch
+      // 3. Fetch restaurant details once per batch
       final restaurantSnapshots = await Future.wait(
         restaurantIds.map((id) => FirebaseFirestore.instance
             .collection('restaurants')
@@ -192,13 +192,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
             .get()),
       );
 
-      // 4. 🔹 Build restaurant data map
+      // 4. Build restaurant data map
       final restaurantMap = {
         for (var doc in restaurantSnapshots)
           if (doc.exists) doc.id: doc.data()
       };
 
-      // 5. 🔹 Merge restaurant data into a new list of maps
+      // 5. Merge restaurant data into a new list of maps
       final List<Map<String, dynamic>> mergedDataList = [];
       for (var doc in newDocs) {
         final data = Map<String, dynamic>.from(doc.data() as Map); 
@@ -236,7 +236,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
       // ✅ Step 2: Sort the combined list by distance (closest first)
       _documents.addAll(mergedDataList);
-      _documents.sort((a, b) => a['distance'].compareTo(b['distance']));
+      _documents.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
 
       if (mounted) {
         setState(() {
@@ -473,7 +473,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           restaurantId: restaurantId,
           image: imageUrl,
           qty: newQuantity,
-          isInstaHub: food['isInstaHub'] ?? false,
+          isInstaHub: food['isInstaHub'] == true,
         );
       }
     }

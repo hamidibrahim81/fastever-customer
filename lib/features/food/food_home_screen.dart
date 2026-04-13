@@ -206,13 +206,10 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // --- END: GATE LOGIC ---
-
   // --- START: Double-Tap-to-Exit / Search Clear Logic ---
   void _handlePop(bool didPop, dynamic result) {
     if (didPop) return;
 
-    // 1. If search is active, clear search first
     if (_searchQuery.isNotEmpty) {
       setState(() {
         _searchController.clear();
@@ -221,7 +218,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
       return;
     }
 
-    // 2. Double tap logic
     const duration = Duration(milliseconds: 2000);
     final now = DateTime.now();
 
@@ -229,7 +225,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
       _lastPressed = now;
       _showSnackBar("Press back again to exit");
     } else {
-      // 3. Explicitly navigate back to main Home Screen to prevent black screen
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       } else {
@@ -237,7 +232,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
       }
     }
   }
-  // --- END: Double-Tap-to-Exit Logic ---
 
   Widget _buildSearchBar() {
     return TextField(
@@ -294,7 +288,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
             final itemDoc = snapshot.data!.docs[index];
             final itemData = itemDoc.data() as Map<String, dynamic>;
 
-            // ✅ HIDE IF STOCK IS 0
             if (parseInt(itemData['stock']) <= 0) return const SizedBox.shrink();
 
             return FutureBuilder<DocumentSnapshot>(
@@ -305,7 +298,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 }
                 final restaurantData = restaurantSnapshot.data?.data() as Map<String, dynamic>?;
                 
-                // ✅ HIDE IF RESTAURANT IS CLOSED
                 final status = restaurantData?['status'] ?? 'open';
                 if (status != 'open') return const SizedBox.shrink();
 
@@ -374,7 +366,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
               child: Text('No restaurants match your search.'));
         }
 
-        // ✅ ONLY SHOW OPEN RESTAURANTS
         final filteredDocs = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return (data['status'] ?? 'open') == 'open';
@@ -798,18 +789,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, IconData icon, Color color) {
-    return Chip(
-      label: Text(label),
-      avatar: Icon(icon, color: color, size: 18),
-      backgroundColor: color.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: color.withOpacity(0.3)),
-      ),
-    );
-  }
-
   Widget _buildCategories() {
     return SizedBox(
       height: 100,
@@ -1010,7 +989,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 return const Center(child: Text('No nearby restaurants found.'));
               }
 
-              // ✅ ONLY SHOW OPEN RESTAURANTS
               final filteredDocs = docs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 final status = data['status'] ?? 'open';
@@ -1114,7 +1092,6 @@ class _FoodCardState extends State<_FoodCard> {
   void _changeQuantity(int newQuantity) {
     if (newQuantity < 0) return;
 
-    // ✅ ADDED: CLIENT-SIDE STOCK LIMIT VALIDATION
     final int stockAvailable = parseInt(itemData['stock'], defaultValue: 0);
     if (newQuantity > stockAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1123,14 +1100,11 @@ class _FoodCardState extends State<_FoodCard> {
           duration: const Duration(seconds: 2),
         ),
       );
-      return; // Exit without updating quantity
+      return; 
     }
 
     final cart = Provider.of<CartProvider>(context, listen: false);
-    
-    // ✅ Capture the unique Firestore Document ID
     final itemId = widget.itemDoc.id; 
-
     final restaurantId = widget.itemDoc.reference.parent.parent?.id ?? '';
     final price = parseDouble(itemData['price'], defaultValue: 0.0);
 
@@ -1138,13 +1112,13 @@ class _FoodCardState extends State<_FoodCard> {
       cart.removeItem(itemId);
     } else {
       cart.updateItem(
-        id: itemId, // 🔥 Passing the ID to the cart
+        id: itemId, 
         name: itemData['name'] ?? 'Unknown',
         price: price,
         restaurantId: restaurantId,
         image: imageUrl,
         qty: newQuantity,
-        isInstaHub: itemData['isInstaHub'] ?? false,
+        isInstaHub: (itemData['isInstaHub'] == true),
       );
     }
   }
@@ -1475,7 +1449,6 @@ class _RestaurantCardState extends State<_RestaurantCard>
         });
       }
     } catch (e) {
-      debugPrint('Error fetching images for restaurant ${widget.restaurantId}: $e');
       if (!mounted) return;
       setState(() {
         _isLoadingImages = false;

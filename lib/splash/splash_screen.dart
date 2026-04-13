@@ -16,20 +16,26 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-
   Timer? _navigationTimer;
+  bool _navigated = false; // Guard to prevent double navigation
 
   @override
   void initState() {
     super.initState();
+    // Start a fallback timer (4s) in case Lottie fails to trigger onLoaded
+    _startNavigationTimer(const Duration(seconds: 4));
   }
 
   void _startNavigationTimer(Duration duration) {
+    _navigationTimer?.cancel(); // Cancel any previous timer
     _navigationTimer = Timer(duration, () => _navigateNext());
   }
 
-  // 🛡️ ADVANCED SAFETY NAVIGATION LOGIC (UNCHANGED)
+  // 🛡️ ADVANCED SAFETY NAVIGATION LOGIC
   void _navigateNext() async {
+    if (_navigated) return; // Prevent multiple executions
+    _navigated = true;
+
     final user = FirebaseAuth.instance.currentUser;
     Widget nextScreen;
 
@@ -55,7 +61,8 @@ class _SplashScreenState extends State<SplashScreen> {
         }
       } catch (e) {
         debugPrint('Splash Timeout/Error: $e');
-        nextScreen = const HomeScreen();
+        // FIX: Redirect to Login on error for security/safety
+        nextScreen = const LoginScreen();
       }
     }
 
@@ -86,7 +93,12 @@ class _SplashScreenState extends State<SplashScreen> {
           width: 260,
           repeat: false,
           onLoaded: (composition) {
+            // Lottie loaded successfully, use its duration
             _startNavigationTimer(composition.duration);
+          },
+          errorBuilder: (context, error, stackTrace) {
+            // If Lottie fails, the initState timer will handle navigation
+            return const SizedBox.shrink();
           },
         ),
       ),
