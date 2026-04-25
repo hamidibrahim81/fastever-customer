@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 
-    <!-- App Basic Info -->
+    <!-- ================= BASIC APP INFO ================= -->
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
 
@@ -20,7 +20,7 @@
     <string>6.0</string>
 
     <key>CFBundleName</key>
-    <string>fastever</string>
+    <string>FASTever</string>
 
     <key>CFBundlePackageType</key>
     <string>APPL</string>
@@ -34,14 +34,14 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
 
-    <!-- Launch Screen -->
+    <!-- ================= LAUNCH SCREEN ================= -->
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
 
     <key>UIMainStoryboardFile</key>
     <string>Main</string>
 
-    <!-- Orientation -->
+    <!-- ================= ORIENTATION ================= -->
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
@@ -55,26 +55,26 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
-    <!-- Performance -->
+    <!-- ================= PERFORMANCE ================= -->
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true/>
 
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
 
-    <!-- Flutter + Google Maps -->
+    <!-- ================= FLUTTER ================= -->
     <key>io.flutter.embedded_views_preview</key>
     <true/>
 
-    <!-- 🔐 LOCATION PERMISSION (ONLY REQUIRED ONE) -->
+    <!-- ================= LOCATION (ONLY REQUIRED ONE) ================= -->
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>We use your location to show nearby restaurants and enable fast delivery.</string>
 
-    <!-- 🔔 PUSH NOTIFICATIONS -->
+    <!-- ================= PUSH NOTIFICATIONS ================= -->
     <key>FirebaseAppDelegateProxyEnabled</key>
     <true/>
 
-    <!-- 📱 STATUS BAR -->
+    <!-- ================= STATUS BAR ================= -->
     <key>UIStatusBarHidden</key>
     <false/>
 
