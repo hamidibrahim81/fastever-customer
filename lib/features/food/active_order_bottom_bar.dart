@@ -7,58 +7,48 @@ import 'package:url_launcher/url_launcher.dart';
 class ActiveOrderBottomBar extends StatelessWidget {
   const ActiveOrderBottomBar({super.key});
 
-  // ✅ PRESERVED: Your original calculation logic
+  // ✅ MATCHED: Dynamic time calculation from Track Screen
   String _calculateRemainingTime(Map<String, dynamic> data) {
-    if (data['status'] == 'delivered') return "Delivered";
+    final String status = (data['status'] ?? 'pending').toLowerCase();
+    if (status == 'delivered') return "Delivered";
 
-    DateTime createdAt =
-        (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
-    DateTime now = DateTime.now();
-    int minutesPassed = now.difference(createdAt).inMinutes;
-    int transitTime =
-        int.tryParse(data['deliveryPartnerETA']?.toString() ?? "10") ?? 10;
+    final created = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final elapsedMins = DateTime.now().difference(created).inMinutes;
 
-    if (data['status'] == 'out_for_delivery') {
-      return transitTime <= 1 ? "1 min" : "$transitTime mins";
+    int baseMins = 40; // Default
+
+    if (status == 'accepted') {
+      baseMins = 35;
+    } else if (status.contains('accepted') || status.contains('preparing') || status == 'ready') {
+      baseMins = 25;
+    } else if (status.contains('out_for_delivery') || status.contains('picked')) {
+      int transit = int.tryParse(data['deliveryPartnerETA']?.toString() ?? "12") ?? 12;
+      return transit <= 1 ? "1 min" : "$transit mins";
     }
 
-    int basePrepTime = 15;
-    int calculatedPrepTime = basePrepTime;
-
-    if (minutesPassed >= basePrepTime) {
-      int extraLags = ((minutesPassed - basePrepTime) / 5).floor() + 1;
-      calculatedPrepTime += (extraLags * 5);
-    }
-
-    int remaining = (calculatedPrepTime + transitTime) - minutesPassed;
+    int remaining = baseMins - elapsedMins;
     return remaining <= 0 ? "Arriving shortly" : "$remaining mins";
   }
 
+  // ✅ MATCHED: Pretty Status strings from Track Screen
   String _prettyStatus(String status) {
     final s = status.toLowerCase().trim();
     switch (s) {
-      case 'confirmed':
-        return "Confirmed";
-      case 'restaurant_accepted':
-        return "Restaurant Accepted";
-      case 'preparing_food':
-      case 'preparing':
-        return "Preparing Food";
+      case 'accepted':
+        return "Order Accepted";
       case 'ready':
-      case 'ready_for_delivery':
-        return "Ready for Pickup";
-      case 'partner_taked_food':
-      case 'partner_picked':
-      case 'picked':
-        return "Partner Picked Food";
+        return "Your Food is Ready";
+      case 'partner_accepted':
+        return "Partner Assigned";
+      case 'arrived_at_pickup':
+        return "Partner at Restaurant";
       case 'out_for_delivery':
+      case 'on_the_way':
         return "On the Way";
-      case 'arrived':
-        return "Arrived";
       case 'delivered':
         return "Delivered";
       default:
-        return status.replaceAll('_', ' ').toUpperCase();
+        return status.toUpperCase().replaceAll('_', ' ');
     }
   }
 
@@ -83,7 +73,6 @@ class ActiveOrderBottomBar extends StatelessWidget {
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
-        // ✅ UI LOGIC: Animated appear/disappear to prevent "flicker" lag
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -95,7 +84,7 @@ class ActiveOrderBottomBar extends StatelessWidget {
 
         return TweenAnimationBuilder(
           duration: const Duration(milliseconds: 500),
-          tween: Tween<double>(begin: 1.0, end: 0.0), // Slide up from bottom
+          tween: Tween<double>(begin: 1.0, end: 0.0),
           builder: (context, double value, child) {
             return Transform.translate(
               offset: Offset(0, value * 100),
@@ -108,10 +97,9 @@ class ActiveOrderBottomBar extends StatelessWidget {
     );
   }
 
-  // ✅ NEW: Professional UI Widget for the Bottom Bar
   Widget _buildPremiumBar(
       BuildContext context, String orderId, String status, String time) {
-    bool isOut = status == 'out_for_delivery';
+    bool isOut = status.contains('out') || status.contains('picked');
 
     return SafeArea(
       child: StreamBuilder<DocumentSnapshot>(
@@ -122,19 +110,23 @@ class ActiveOrderBottomBar extends StatelessWidget {
         builder: (context, snap) {
           final live = (snap.data?.data() as Map<String, dynamic>?) ?? {};
           final String partnerName =
-              (live['deliveryPartnerName'] ?? live['driverName'] ?? "")
-                  .toString();
+              (live['deliveryPartnerName'] ?? live['driverName'] ?? "").toString();
           final String partnerPhone =
-              (live['deliveryPartnerPhone'] ?? live['driverPhone'] ?? "")
-                  .toString();
+              (live['deliveryPartnerPhone'] ?? live['driverPhone'] ?? "").toString();
 
           return GestureDetector(
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TrackOrderScreen(orderId: orderId),
+                ),
+              );
+            },
             child: Container(
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 15),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               decoration: BoxDecoration(
-                // Premium Dark Theme matching the Logo vibe
                 gradient: const LinearGradient(
                   colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D)],
                   begin: Alignment.topLeft,
@@ -152,11 +144,8 @@ class ActiveOrderBottomBar extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Pulse Animation Icon Section
                   _buildLiveIcon(isOut),
                   const SizedBox(width: 15),
-
-                  // Information Column
                   Expanded(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -190,21 +179,10 @@ class ActiveOrderBottomBar extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          if (partnerPhone.isNotEmpty)
-                            Text(
-                              partnerPhone,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.55),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                         ],
                       ],
                     ),
                   ),
-
-                  // Call Button (shows only if phone exists)
                   if (partnerPhone.isNotEmpty)
                     GestureDetector(
                       onTap: () => _callPartner(partnerPhone),
@@ -267,7 +245,6 @@ class ActiveOrderBottomBar extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Pulsing background effect
         Container(
           width: 38,
           height: 38,

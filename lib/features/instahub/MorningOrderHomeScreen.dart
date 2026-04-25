@@ -29,7 +29,7 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
   // -------------------------------------
 
   // --- ADS RUNNER CONTROLLERS ---
-  final PageController _adsPageController = PageController(viewportFraction: 0.9);
+  final PageController _adsPageController = PageController(viewportFraction: 1.0);
   int _currentAdsPage = 0;
   Timer? _adsTimer;
   late AnimationController _pulseController;
@@ -129,42 +129,33 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
             "Morning Service",
             style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 22),
           ),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: const Color(0xFFB71C1C), // Matching Red Background Top
+          foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(10),
+            child: Container(
+              height: 10,
+              color: const Color(0xFFB71C1C),
+            ),
+          ),
         ),
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ✅ 1. Top Heading
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                child: Text(
-                  "Morning Service",
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-
-              // ✅ 2. Ads Runner (morn_ads)
-              _buildAdsRunner(),
-
-              const SizedBox(height: 10),
-
-              // ✅ 3. My Orders Button
-              _buildMyOrdersButtonOnly(),
+              
+              // ✅ INTEGRATED SECTION (RED BACKGROUND)
+              _buildUnifiedHeaderSection(),
 
               const SizedBox(height: 24),
 
-              // ✅ 4. Shop by Category Section (Premium Red Background)
-              _buildAttractiveCategorySection(),
+              // ✅ MY ORDERS BUTTON (White Styled, moved here)
+              _buildMyOrdersButtonOnly(),
 
               const SizedBox(height: 30),
+              
               _buildFirestoreSection(
                 title: "🔥 Daily Must-Haves",
                 color: Colors.red.shade50,
@@ -244,6 +235,38 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
     );
   }
 
+  // ------------------ UNIFIED HEADER SECTION ------------------
+
+  Widget _buildUnifiedHeaderSection() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFB71C1C), // Royal Premium Red
+            Color(0xFF7F0000), // Deep Dark Red
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Ads Runner (Top)
+          _buildAdsRunner(),
+
+          const SizedBox(height: 24),
+
+          // 2. Shop by Category Header and Grid
+          _buildAttractiveCategoryContent(),
+          
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
   // ------------------ UPDATED WIDGETS ------------------
 
   Widget _buildAdsRunner() {
@@ -263,10 +286,11 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
           builder: (context, child) {
             return Container(
               height: 170,
+              margin: const EdgeInsets.only(top: 10),
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.deepOrange.withOpacity(0.15 * _pulseController.value),
+                    color: Colors.black.withOpacity(0.2 * _pulseController.value),
                     blurRadius: 15 * _pulseController.value,
                     spreadRadius: 2 * _pulseController.value,
                   )
@@ -280,12 +304,13 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
             itemBuilder: (context, index) {
               final ad = adsDocs[index % adsDocs.length].data() as Map<String, dynamic>;
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Image.network(
                     ad['imageUrl'],
                     fit: BoxFit.cover,
+                    width: double.infinity,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.grey[200],
                       child: const Icon(Icons.broken_image, color: Colors.grey),
@@ -302,7 +327,7 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
 
   Widget _buildMyOrdersButtonOnly() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -318,7 +343,7 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
             border: Border.all(color: Colors.grey.shade200),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
@@ -326,18 +351,18 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
           ),
           child: Row(
             children: [
-              const Icon(Icons.shopping_bag_outlined, color: Colors.deepOrange),
+              const Icon(Icons.shopping_bag_outlined, color: Color(0xFFB71C1C)),
               const SizedBox(width: 12),
               Text(
                 "My Orders",
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
-                  color: Colors.black87,
+                  color: const Color(0xFFB71C1C),
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFB71C1C)),
             ],
           ),
         ),
@@ -345,20 +370,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
     );
   }
 
-  Widget _buildAttractiveCategorySection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16), 
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFB71C1C), // Royal Premium Red
-            Color(0xFF7F0000), // Deep Dark Red
-          ],
-        ),
-      ),
+  Widget _buildAttractiveCategoryContent() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -492,6 +506,7 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Use Expanded for image area
               Expanded(
                 flex: 4,
                 child: ClipRRect(
@@ -504,6 +519,7 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen> with Si
                   ),
                 ),
               ),
+              // Use Expanded for details area
               Expanded(
                 flex: 6,
                 child: Padding(

@@ -953,7 +953,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
               _showSnackBar("Currently not available, coming soon!",
                   color: Colors.orange);
             },
-            title: const Text("UPI / Wallets"),
+            title: const Text(""),
             controlAffinity: ListTileControlAffinity.trailing,
             activeColor: Colors.orange,
             contentPadding: EdgeInsets.zero,
@@ -965,7 +965,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
               _showSnackBar("Currently not available, coming soon!",
                   color: Colors.orange);
             },
-            title: const Text("Credit / Debit Card"),
+            title: const Text(""),
             controlAffinity: ListTileControlAffinity.trailing,
             activeColor: Colors.orange,
             contentPadding: EdgeInsets.zero,

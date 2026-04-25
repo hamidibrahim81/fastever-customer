@@ -217,7 +217,18 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         "timestamp": timestamp,
         "userId": user.uid,
         "fcmToken": fcmToken,
-        "restaurantId": primaryRestaurantId, 
+        "restaurantId": primaryRestaurantId,
+        "userName": userName,
+        "userPhone": userPhone,
+        "address": address,
+        "deliveryInstructions": deliveryInstructions,
+        "location": location,
+        "deliveryFee": deliveryFee,
+        "items": deliveryItems, 
+        "total": totalAmount,
+        "payment": payment,
+        "createdAt": createdDate,
+        "subtotal": subtotal,
       };
 
       batch.set(statusRef, statusData);

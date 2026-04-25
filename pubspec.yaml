@@ -119,6 +119,8 @@ flutter:
     - assets/icons/bk.jpeg
     - assets/icons/pc.jpeg
 
+    - assets/animations/waiting.json
+
 # ✅ App icon config
 flutter_launcher_icons:
   android: true

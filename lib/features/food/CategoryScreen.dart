@@ -479,6 +479,25 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
 
     Widget _quantityButton() {
+      // ✅ SOLD OUT CHECK: If stock is 0 or less, show Sold Out badge
+      if (stockAvailable <= 0) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Text(
+            "SOLD OUT",
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        );
+      }
+
       if (quantityInCart > 0) {
         return Container(
           // ✅ INCREASED CONTAINER SIZE & PADDING
@@ -530,7 +549,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     return GestureDetector(
       onTap: () {
-        if (restaurantId.isNotEmpty && context.mounted) {
+        // ✅ ONLY ALLOW NAVIGATION IF NOT SOLD OUT
+        if (stockAvailable > 0 && restaurantId.isNotEmpty && context.mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -553,18 +573,24 @@ class _CategoryScreenState extends State<CategoryScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  width: 110,
-                  height: 110,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      width: 110,
-                      height: 110,
-                      color: Colors.white,
+                child: ColorFiltered(
+                  // ✅ DESATURATE IMAGE IF SOLD OUT
+                  colorFilter: stockAvailable <= 0 
+                    ? const ColorFilter.mode(Colors.grey, BlendMode.saturation) 
+                    : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: 110,
+                    height: 110,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Shimmer.fromColors(
+                      baseColor: Colors.grey.shade300,
+                      highlightColor: Colors.grey.shade100,
+                      child: Container(
+                        width: 110,
+                        height: 110,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -575,9 +601,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(foodName,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: stockAvailable <= 0 ? Colors.grey : Colors.black, // ✅ DIM TEXT IF SOLD OUT
                             overflow: TextOverflow.ellipsis)),
                     const SizedBox(height: 4),
                     if (restaurantName != null && restaurantName.isNotEmpty && restaurantName != 'Unknown Restaurant')
@@ -629,7 +656,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: primaryColor)),
+                                color: stockAvailable <= 0 ? Colors.grey : primaryColor)), // ✅ DIM PRICE IF SOLD OUT
                         _quantityButton(),
                       ],
                     ),

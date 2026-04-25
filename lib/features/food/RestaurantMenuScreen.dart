@@ -236,7 +236,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
   }
 
   String _getDistance(double resLat, double resLon) {
-    if (widget.userPosition == null) return "0.0 km";
+    if (widget.userPosition == null) return "Detecting...";
     double distanceInMeters = Geolocator.distanceBetween(
       widget.userPosition!.latitude,
       widget.userPosition!.longitude,
@@ -264,7 +264,8 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
           if (!snapshot.hasData) return _buildShimmerHeader();
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           final name = data["name"] ?? widget.restaurantName ?? "Unnamed Restaurant";
-          final image = data["imageUrl"] ?? "";
+          // Updated to handle common field name variations to ensure image displays
+          final image = (data["imageUrl"] ?? data["imageURL"] ?? "").toString();
           final rating = data["rating"]?.toString() ?? "0.0";
           final cuisine = data["cuisine"] ?? "";
           final lat = parseDouble(data['latitude']);
@@ -277,12 +278,27 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                 expandedHeight: 220,
                 pinned: true,
                 elevation: 0,
+                backgroundColor: const Color(0xFF1A1E43),
                 flexibleSpace: FlexibleSpaceBar(
                   background: ColorFiltered(
                     colorFilter: _isRestaurantOpen 
                         ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
                         : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
-                    child: CachedNetworkImage(imageUrl: image, fit: BoxFit.cover),
+                    child: (image.isNotEmpty && image.startsWith('http')) 
+                        ? CachedNetworkImage(
+                            imageUrl: image, 
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Shimmer.fromColors(
+                                baseColor: Colors.grey.shade300,
+                                highlightColor: Colors.grey.shade100,
+                                child: Container(color: Colors.white),
+                            ),
+                            errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 50, color: Colors.white),
+                          )
+                        : Container(
+                            color: Colors.grey[300], 
+                            child: const Center(child: Icon(Icons.restaurant, size: 50, color: Colors.white))
+                          ),
                   ),
                 ),
               ),
@@ -411,7 +427,18 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                 borderRadius: BorderRadius.circular(12),
                 child: ColorFiltered(
                   colorFilter: isOutOfStock ? const ColorFilter.mode(Colors.grey, BlendMode.saturation) : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
-                  child: CachedNetworkImage(imageUrl: imageUrl, height: 90, width: 90, fit: BoxFit.cover),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl, 
+                    height: 90, 
+                    width: 90, 
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Shimmer.fromColors(
+                        baseColor: Colors.grey.shade300,
+                        highlightColor: Colors.grey.shade100,
+                        child: Container(color: Colors.white, height: 90, width: 90),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(Icons.fastfood, size: 40, color: Colors.grey)
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -453,7 +480,6 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
     }
   }
 
-  // (Rest of the helper widgets like _buildShimmerHeader, _buildEmptyState, _buildClosedOverlayMessage etc. from original code)
   Widget _buildClosedOverlayMessage() {
     return Center(
       child: Column(

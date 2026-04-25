@@ -306,12 +306,25 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: _FoodCard(
-                    key: ValueKey(itemDoc.id),
-                    itemDoc: itemDoc,
-                    restaurantName: restaurantName,
-                    restaurantRating: restaurantRating,
-                    isSearchCard: true,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RestaurantMenuScreen(
+                            restaurantId: itemDoc.reference.parent.parent!.id,
+                            userPosition: _currentPosition,
+                          ),
+                        ),
+                      );
+                    },
+                    child: _FoodCard(
+                      key: ValueKey(itemDoc.id),
+                      itemDoc: itemDoc,
+                      restaurantName: restaurantName,
+                      restaurantRating: restaurantRating,
+                      isSearchCard: true,
+                    ),
                   ),
                 );
               },
@@ -394,6 +407,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
               rating: rating,
               distance: distance,
               deliveryTime: deliveryTime,
+              userPosition: _currentPosition,
             );
           }).toList(),
         );
@@ -897,7 +911,6 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
           stream: FirebaseFirestore.instance
               .collectionGroup('menu')
               .where('tags', arrayContains: 'pops')
-              .where("stock", isGreaterThan: 0)
               .snapshots(),
           builder: (context, popularFoodsSnapshot) {
             if (popularFoodsSnapshot.connectionState ==
@@ -916,46 +929,47 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
               return const Center(child: Text('No popular foods found.'));
             }
 
-            final halfLength = (filteredItems.length / 2).ceil();
-            final firstRow = filteredItems.take(halfLength).toList();
-            final secondRow = filteredItems.skip(halfLength).toList();
-
             return SizedBox(
-              height: 480,
-              child: SingleChildScrollView(
+              height: 220, // Adjusted height for single horizontal row
+              child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Column(
-                      children: [
-                        Row(
-                          children: firstRow.map((itemDoc) {
-                            return _FoodCard(
-                              key: ValueKey(itemDoc.id),
-                              itemDoc: itemDoc,
-                              restaurantName: "",
-                              restaurantRating: 0,
-                              isSearchCard: false,
-                            );
-                          }).toList(),
+                itemCount: filteredItems.length,
+                itemBuilder: (context, index) {
+                  final itemDoc = filteredItems[index];
+                  
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: itemDoc.reference.parent.parent!.get(),
+                    builder: (context, resSnap) {
+                      if (!resSnap.hasData) return const SizedBox(width: 160);
+                      
+                      final resData = resSnap.data!.data() as Map<String, dynamic>;
+                      final resName = resData['name'] ?? 'Unknown';
+                      final resRating = parseDouble(resData['rating'], defaultValue: 4.0);
+
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RestaurantMenuScreen(
+                                restaurantId: itemDoc.reference.parent.parent!.id,
+                                userPosition: _currentPosition,
+                              ),
+                            ),
+                          );
+                        },
+                        child: _FoodCard(
+                          key: ValueKey(itemDoc.id),
+                          itemDoc: itemDoc,
+                          restaurantName: resName,
+                          restaurantRating: resRating,
+                          isSearchCard: false,
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: secondRow.map((itemDoc) {
-                            return _FoodCard(
-                              key: ValueKey(itemDoc.id),
-                              itemDoc: itemDoc,
-                              restaurantName: "",
-                              restaurantRating: 0,
-                              isSearchCard: false,
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      );
+                    },
+                  );
+                },
               ),
             );
           },
@@ -1024,6 +1038,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                     rating: rating,
                     distance: distance,
                     deliveryTime: deliveryTime,
+                    userPosition: _currentPosition,
                   );
                 }).toList(),
               );
@@ -1090,9 +1105,11 @@ class _FoodCardState extends State<_FoodCard> {
   }
 
   void _changeQuantity(int newQuantity) {
+    final int stockAvailable = parseInt(itemData['stock'], defaultValue: 0);
+    if (stockAvailable <= 0) return; // Block all actions if stock is 0
+
     if (newQuantity < 0) return;
 
-    final int stockAvailable = parseInt(itemData['stock'], defaultValue: 0);
     if (newQuantity > stockAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1168,9 +1185,12 @@ class _FoodCardState extends State<_FoodCard> {
   }
 
   Widget _buildPopularFoodCard() {
+    final int stock = parseInt(itemData['stock'], defaultValue: 0);
+    final bool isSoldOut = stock <= 0;
+
     return Container(
       width: 160,
-      margin: const EdgeInsets.only(right: 12),
+      margin: const EdgeInsets.only(right: 12, bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1182,96 +1202,119 @@ class _FoodCardState extends State<_FoodCard> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
+      child: AbsorbPointer(
+        absorbing: isSoldOut, // Blocks all clicks if stock is 0
+        child: Opacity(
+          opacity: isSoldOut ? 0.7 : 1.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  height: 90,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(color: Colors.white, height: 90),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      height: 90,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Shimmer.fromColors(
+                        baseColor: Colors.grey.shade300,
+                        highlightColor: Colors.grey.shade100,
+                        child: Container(color: Colors.white, height: 90),
+                      ),
+                      errorWidget: (context, url, error) => Image.network(
+                        "https://via.placeholder.com/150",
+                        height: 90,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                  errorWidget: (context, url, error) => Image.network(
-                    "https://via.placeholder.com/150",
-                    height: 90,
-                    fit: BoxFit.cover,
-                  ),
+                  if (isSoldOut)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "SOLD OUT",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (isPopular && !isSoldOut)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          "Popular",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(itemData['name']?.toString() ?? 'N/A',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    if (widget.restaurantName != null) ...[
+                      const SizedBox(height: 2),
+                      Text(widget.restaurantName!,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade800),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("₹${parseDouble(itemData['price']).toStringAsFixed(0)}",
+                            style: const TextStyle(fontSize: 13, color: Colors.green)),
+                        if (widget.restaurantRating != null) 
+                          Row(
+                            children: [
+                              const Icon(Icons.star, color: Colors.orange, size: 12),
+                              const SizedBox(width: 2),
+                              Text(
+                                widget.restaurantRating!.toStringAsFixed(1),
+                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildQuantitySelector(),
+                  ],
                 ),
               ),
-              if (isPopular)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      "Popular",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(itemData['name']?.toString() ?? 'N/A',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                if (widget.restaurantName != null) ...[
-                  const SizedBox(height: 2),
-                  Text(widget.restaurantName!,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade800),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                ],
-                if (widget.restaurantRating != null) ...[
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.orange, size: 12),
-                      const SizedBox(width: 2),
-                      Text(
-                        widget.restaurantRating!.toStringAsFixed(1),
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 4),
-                Text("₹${parseDouble(itemData['price']).toStringAsFixed(0)}",
-                    style: const TextStyle(fontSize: 13, color: Colors.green)),
-                const SizedBox(height: 8),
-                _buildQuantitySelector(),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1390,6 +1433,7 @@ class _RestaurantCard extends StatefulWidget {
   final double distance;
   final int deliveryTime;
   final double rating;
+  final Position? userPosition;
 
   const _RestaurantCard({
     required this.restaurantId,
@@ -1397,6 +1441,7 @@ class _RestaurantCard extends StatefulWidget {
     required this.distance,
     required this.deliveryTime,
     required this.rating,
+    this.userPosition,
     Key? key,
   }) : super(key: key);
 
@@ -1492,7 +1537,10 @@ class _RestaurantCardState extends State<_RestaurantCard>
               context,
               MaterialPageRoute(
                 builder: (_) =>
-                    RestaurantMenuScreen(restaurantId: widget.restaurantId)),
+                    RestaurantMenuScreen(
+                      restaurantId: widget.restaurantId,
+                      userPosition: widget.userPosition,
+                    )),
             );
           },
           child: Column(
