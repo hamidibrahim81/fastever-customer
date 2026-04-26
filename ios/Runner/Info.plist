@@ -70,6 +70,10 @@
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>We use your location to show nearby restaurants and enable fast delivery.</string>
 
+    <!-- 🔴 ADDED THIS (REQUIRED BY APPLE) -->
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>FASTever uses your location to provide delivery tracking, nearby services, and better service experience.</string>
+
     <!-- ================= PUSH NOTIFICATIONS ================= -->
     <key>FirebaseAppDelegateProxyEnabled</key>
     <true/>
