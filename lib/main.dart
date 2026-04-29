@@ -27,7 +27,9 @@ import 'features/instahub/instahub_cart_provider.dart';
 // This must be a top-level function (outside any class)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );  
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
