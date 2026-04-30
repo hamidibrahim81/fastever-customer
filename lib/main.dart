@@ -128,6 +128,14 @@ class FASTeverGoApp extends StatelessWidget {
                 .doc('maintenance')
                 .snapshots(),
             builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return child!;
+              }
+
+              if (snapshot.hasError) {
+                return child!;
+              }
+
               if (snapshot.hasData && snapshot.data!.exists) {
                 final data = snapshot.data!.data() as Map<String, dynamic>?;
                 if (data != null && data['is_enabled'] == true) {
