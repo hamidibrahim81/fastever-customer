@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Added for persistence
+import 'package:shared_preferences/shared_preferences.dart'; // Persistence fix
 
 import '../features/auth/login_screen.dart';
 import '../features/home/home_screen.dart';
@@ -18,21 +18,23 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   Timer? _navigationTimer;
-  bool _navigated = false; 
+  bool _navigated = false; // Guard to prevent double navigation
 
   @override
   void initState() {
     super.initState();
+    // Start a fallback timer (4s) in case Lottie fails to trigger onLoaded
     _startNavigationTimer(const Duration(seconds: 4));
   }
 
   void _startNavigationTimer(Duration duration) {
-    _navigationTimer?.cancel(); 
+    _navigationTimer?.cancel(); // Cancel any previous timer
     _navigationTimer = Timer(duration, () => _navigateNext());
   }
 
+  // 🛡️ ADVANCED SAFETY NAVIGATION LOGIC
   void _navigateNext() async {
-    if (_navigated) return; 
+    if (_navigated) return; // Prevent multiple executions
     _navigated = true;
 
     final user = FirebaseAuth.instance.currentUser;
@@ -56,20 +58,24 @@ class _SplashScreenState extends State<SplashScreen> {
               .timeout(const Duration(seconds: 5));
 
           if (doc.exists) {
-            if (doc.data()?['name'] != null && doc.data()?['name'].toString().trim().isNotEmpty) {
-              // Update local cache so we don't have to fetch next time
+            // FIX: Handle nullability safely to avoid 'bool?' build error
+            final data = doc.data();
+            final String? name = data?['name']?.toString().trim();
+
+            if (name != null && name.isNotEmpty) {
+              // Update local cache so we don't have to fetch Firestore next time
               await prefs.setBool('profile_${user.uid}', true);
               nextScreen = const HomeScreen();
             } else {
               nextScreen = const ProfileScreen();
             }
           } else {
-            // User exists in Auth but not in Firestore: Send to Profile, NOT Login
+            // User exists in Auth but not in Firestore: Send to Profile
             nextScreen = const ProfileScreen();
           }
         } catch (e) {
           debugPrint('Splash Timeout/Error: $e');
-          // If we have a user but network fails, default to Home to avoid locking them out
+          // If logged in but network fails, go to Home to avoid locking user out
           nextScreen = const HomeScreen();
         }
       }
@@ -95,16 +101,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF000000), 
+      backgroundColor: const Color(0xFF000000), // 🔥 Black background
       body: Center(
         child: Lottie.asset(
           'assets/logo.json',
           width: 260,
           repeat: false,
           onLoaded: (composition) {
+            // Lottie loaded successfully, use its duration
             _startNavigationTimer(composition.duration);
           },
           errorBuilder: (context, error, stackTrace) {
+            // If Lottie fails, the initState timer will handle navigation
             return const SizedBox.shrink();
           },
         ),
