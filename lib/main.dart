@@ -55,9 +55,15 @@ void main() async {
   // ✅ INITIALIZE LOCAL NOTIFICATIONS (REQUIRED TO PREVENT CRASHES)
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const DarwinInitializationSettings initializationSettingsDarwin =
+      DarwinInitializationSettings();
+
   const InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
+    iOS: initializationSettingsDarwin,
   );
+
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   // ✅ SET UP BACKGROUND HANDLER
