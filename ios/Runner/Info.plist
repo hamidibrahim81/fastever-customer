@@ -34,7 +34,7 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
 
-    <!-- ================= FIREBASE URL SCHEMES ================= -->
+    <!-- ================= 🔥 FIXED FIREBASE URL SCHEMES ================= -->
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
@@ -42,14 +42,10 @@
             <string>Editor</string>
             <key>CFBundleURLSchemes</key>
             <array>
+                <!-- From GoogleService-Info.plist -->
                 <string>com.googleusercontent.apps.580111714111-h14n4ecf14uesriivqi1i11hn52dh3pf</string>
-            </array>
-        </dict>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
+
+                <!-- REQUIRED for Firebase Phone Auth -->
                 <string>app-1-580111714111-ios-3b1c2afd15c1f10046f58a</string>
             </array>
         </dict>
@@ -94,7 +90,10 @@
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>FASTever uses your location to provide delivery tracking, nearby services, and better service experience.</string>
 
-    <!-- ================= PUSH NOTIFICATIONS ================= -->
+    <!-- ================= NOTIFICATIONS ================= -->
+    <key>NSUserNotificationUsageDescription</key>
+    <string>FASTever uses notifications to send OTP, order updates, and important alerts.</string>
+
     <key>FirebaseAppDelegateProxyEnabled</key>
     <true/>
 
