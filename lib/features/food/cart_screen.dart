@@ -116,7 +116,11 @@ class _CartScreenState extends State<CartScreen> {
   Position? currentDeliveryPosition; 
 
   DeliverySettings? _deliverySettings;
-  late Future<FeeBreakdown> _cachedFeesFuture;
+  
+  // Safe Initializations for iOS Stability
+  Future<FeeBreakdown> _cachedFeesFuture = Future.value(FeeBreakdown.zero);
+  CartProvider? _cartProvider;
+  bool _isListenerAdded = false;
 
   final TextEditingController _couponController = TextEditingController();
   final TextEditingController _instructionController = TextEditingController();
@@ -124,7 +128,9 @@ class _CartScreenState extends State<CartScreen> {
   bool _isCheckingStock = false;
 
   Future<bool> _isStockAvailable() async {
-    final cart = Provider.of<CartProvider>(context, listen: false);
+    final cart = _cartProvider;
+    if (cart == null) return false;
+
     if (mounted) setState(() => _isCheckingStock = true);
     try {
       for (var item in cart.items.values) {
@@ -160,8 +166,18 @@ class _CartScreenState extends State<CartScreen> {
     if (user != null) {
       _loadSavedAddress(user.uid);
     }
-    _cachedFeesFuture = _calculateTotalFees();
-    Provider.of<CartProvider>(context, listen: false).addListener(_onCartChange);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_isListenerAdded) {
+      _cartProvider = Provider.of<CartProvider>(context, listen: false);
+      _cartProvider!.addListener(_onCartChange);
+      _isListenerAdded = true;
+      _cachedFeesFuture = _calculateTotalFees();
+    }
   }
 
   void _onCartChange() {
@@ -174,7 +190,9 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   void dispose() {
-    Provider.of<CartProvider>(context, listen: false).removeListener(_onCartChange);
+    if (_isListenerAdded && _cartProvider != null) {
+      _cartProvider!.removeListener(_onCartChange);
+    }
     _couponController.dispose();
     _instructionController.dispose(); 
     super.dispose();
@@ -237,10 +255,18 @@ class _CartScreenState extends State<CartScreen> {
         setState(() {
           selectedAddress = fullAddress.trim().isEmpty ? "No address saved yet" : fullAddress;
           if (savedLat != 0.0 && savedLon != 0.0) {
+            // ✅ Fix 1: iOS Stability optimized Position
             currentDeliveryPosition = Position(
-              latitude: savedLat, longitude: savedLon, timestamp: DateTime.now(),
-              accuracy: 0.0, altitude: 0.0, heading: 0.0, speed: 0.0,
-              speedAccuracy: 0.0, altitudeAccuracy: 0.0, headingAccuracy: 0.0,
+              latitude: savedLat, 
+              longitude: savedLon, 
+              timestamp: DateTime.now(),
+              accuracy: 1, 
+              altitude: 0, 
+              heading: 0, 
+              speed: 0,
+              speedAccuracy: 0, 
+              altitudeAccuracy: 1, 
+              headingAccuracy: 1,
             );
             _cachedFeesFuture = _calculateTotalFees();
           }
@@ -274,8 +300,9 @@ class _CartScreenState extends State<CartScreen> {
   Future<FeeBreakdown> _calculateTotalFees() async {
     await _loadDeliverySettings();
     if (_deliverySettings == null) return FeeBreakdown.zero;
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    if (cartProvider.items.isEmpty) return FeeBreakdown.zero;
+    
+    final cartProvider = _cartProvider;
+    if (cartProvider == null || cartProvider.items.isEmpty) return FeeBreakdown.zero;
 
     Position? userPos = currentDeliveryPosition ?? widget.userPosition;
     if (userPos == null) {
@@ -311,7 +338,12 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final cartProvider = _cartProvider;
+    if (cartProvider == null) {
+      _showSnackBar("Cart not ready. Please try again.", color: Colors.red);
+      return;
+    }
+
     final breakdown = await _cachedFeesFuture;
 
     if (!breakdown.isDeliveryAvailable) {
@@ -350,10 +382,19 @@ class _CartScreenState extends State<CartScreen> {
       if (mounted) {
         setState(() {
           selectedAddress = "${result['recipient_name'] ?? ''}\n${result['phone'] ?? ''}\n${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}\n${result['landmark'] ?? ''}\n${result['full_display_address'] ?? ''}";
+          
+          // ✅ Fix 1: iOS Stability optimized Position
           currentDeliveryPosition = Position(
-            latitude: newLat, longitude: newLon, timestamp: DateTime.now(),
-            accuracy: 0.0, altitude: 0.0, heading: 0.0, speed: 0.0,
-            speedAccuracy: 0.0, altitudeAccuracy: 0.0, headingAccuracy: 0.0,
+            latitude: newLat, 
+            longitude: newLon, 
+            timestamp: DateTime.now(),
+            accuracy: 1, 
+            altitude: 0, 
+            heading: 0, 
+            speed: 0,
+            speedAccuracy: 0, 
+            altitudeAccuracy: 1, 
+            headingAccuracy: 1,
           );
           _cachedFeesFuture = _calculateTotalFees();
         });
@@ -463,7 +504,9 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildCartItems(List<CartItem> items) {
-    final cart = Provider.of<CartProvider>(context, listen: false);
+    final cart = _cartProvider;
+    if (cart == null) return const SizedBox.shrink();
+
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade100)),
       child: ListView.separated(
@@ -592,7 +635,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildBottomCheckout(FeeBreakdown? breakdown) {
-    final cart = Provider.of<CartProvider>(context);
+    final cart = context.watch<CartProvider>(); 
     if (cart.isEmpty) return const SizedBox.shrink();
     final total = (breakdown?.totalFee ?? 0) + cart.totalAmount - discountAmount;
 

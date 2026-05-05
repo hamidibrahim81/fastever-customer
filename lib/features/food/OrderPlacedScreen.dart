@@ -39,7 +39,9 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       if (user == null) throw Exception("User not signed in");
 
       // --- 1. DATA PREPARATION ---
-      final List allItems = widget.orderData['items'] ?? [];
+      final List allItems = (widget.orderData['items'] is List)
+          ? List.from(widget.orderData['items'])
+          : [];
       
       // Extract numeric values safely
       final double deliveryFee = double.tryParse(widget.orderData['deliveryFee'].toString()) ?? 0.0;
@@ -56,7 +58,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       
       // Fallback: If root ID is missing, try to find it in the first item
       if ((primaryRestaurantId == "UNKNOWN" || primaryRestaurantId.isEmpty) && allItems.isNotEmpty) {
-        final firstItem = allItems.first as Map<String, dynamic>;
+        final firstItem = Map<String, dynamic>.from(allItems.first as Map);
         primaryRestaurantId = firstItem['restaurantId']?.toString() ?? "UNKNOWN";
       }
 
@@ -67,11 +69,12 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       // Group Items by Restaurant ID (for Split Orders)
       final Map<String, List<Map<String, dynamic>>> itemsByRestaurant = {};
       for (var item in allItems) {
-        final String rId = item['restaurantId']?.toString() ?? "UNKNOWN";
+        final itemMap = Map<String, dynamic>.from(item as Map);
+        final String rId = itemMap['restaurantId']?.toString() ?? "UNKNOWN";
         if (!itemsByRestaurant.containsKey(rId)) {
           itemsByRestaurant[rId] = [];
         }
-        itemsByRestaurant[rId]!.add(item as Map<String, dynamic>);
+        itemsByRestaurant[rId]!.add(itemMap);
       }
 
       // Common Data
@@ -79,7 +82,19 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       final createdDate = DateTime.now().toIso8601String();
       final address = widget.orderData['address'] ?? "N/A";
       final payment = widget.orderData['payment'] ?? "N/A";
-      final location = widget.orderData['location'] ?? {};
+
+      Map<String, dynamic> location = {};
+      
+      final lat = widget.orderData['deliveryLatitude'];
+      final lng = widget.orderData['deliveryLongitude'];
+
+      if (lat != null && lng != null) {
+        location = {
+          "geoPoint": GeoPoint(lat, lng),
+          "latitude": lat,
+          "longitude": lng,
+        };
+      }
 
       // Attempt to get Name/Phone from orderData first, then Auth user
       final String userName = widget.orderData['name'] ?? user.displayName ?? "Valued Customer";
@@ -107,6 +122,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         "deliveryInstructions": deliveryInstructions, 
         "payment": payment,
         "location": location,
+        "destinationLocation": location["geoPoint"],
         "appliedCouponCode": widget.orderData['appliedCouponCode'],
         "platform": "flutter_customer_app",
       };
@@ -153,6 +169,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
           "deliveryInstructions": deliveryInstructions, 
           "payment": payment,
           "location": location,
+          "destinationLocation": location["geoPoint"],
           "platform": "flutter_customer_app",
         };
 
@@ -166,7 +183,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       List<String> restaurantIds = itemsByRestaurant.keys.toList();
 
       List<Map<String, dynamic>> deliveryItems = allItems.map((item) {
-        final Map<String, dynamic> itemMap = item as Map<String, dynamic>;
+        final Map<String, dynamic> itemMap = Map<String, dynamic>.from(item as Map);
         return {
           ...itemMap,
           "restaurantName": itemMap['restaurantName'] ?? "Unknown Restaurant", 
@@ -185,7 +202,8 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         "userPhone": userPhone,      
         "address": address,          
         "deliveryInstructions": deliveryInstructions, 
-        "location": location,        
+        "location": location,
+        "destinationLocation": location["geoPoint"],        
         "restaurantIds": restaurantIds, 
         "deliveryFee": deliveryFee,
         "items": deliveryItems,  
@@ -203,8 +221,14 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       // STEP 5: CREATE ORDER STATUS ('order_status' collection)
       // ==============================================================================
 
-      final String? fcmToken = await FirebaseMessaging.instance.getToken();
-      debugPrint("🔥 FCM TOKEN: $fcmToken");
+      String? fcmToken;
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+        debugPrint("🔥 FCM TOKEN: $fcmToken");
+      } catch (e) {
+        debugPrint("⚠️ FCM TOKEN SKIPPED: $e");
+        fcmToken = "";
+      }
 
       final DocumentReference statusRef = FirebaseFirestore.instance
           .collection("order_status")
@@ -216,13 +240,14 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         "status": "pending",
         "timestamp": timestamp,
         "userId": user.uid,
-        "fcmToken": fcmToken,
+        "fcmToken": fcmToken ?? "no_token",
         "restaurantId": primaryRestaurantId,
         "userName": userName,
         "userPhone": userPhone,
         "address": address,
         "deliveryInstructions": deliveryInstructions,
         "location": location,
+        "destinationLocation": location["geoPoint"],
         "deliveryFee": deliveryFee,
         "items": deliveryItems, 
         "total": totalAmount,
@@ -251,7 +276,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       // STEP 5.7: ATOMIC STOCK DECREASE LOGIC
       // ==============================================================================
       for (var item in allItems) {
-        final Map<String, dynamic> itemMap = item as Map<String, dynamic>;
+        final Map<String, dynamic> itemMap = Map<String, dynamic>.from(item as Map);
         final String rId = itemMap['restaurantId']?.toString() ?? "";
         final String itemId = itemMap['id']?.toString() ?? ""; 
         final int qty = int.tryParse(itemMap['quantity'].toString()) ?? 0;
@@ -265,7 +290,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
               .collection('menu')
               .doc(itemId);
 
-          batch.update(stockRef, {'stock': FieldValue.increment(-qty)});
+          batch.set(stockRef, {'stock': FieldValue.increment(-qty)}, SetOptions(merge: true));
         }
       }
 
@@ -284,8 +309,9 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         });
       }
       
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("🔴 ERROR: $e");
+      debugPrint("🔴 STACK: $stack");
       if (mounted) {
         setState(() { isLoading = false; });
         final messenger = ScaffoldMessenger.of(context);
@@ -342,8 +368,8 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
     final discount = double.tryParse(widget.orderData['discount'].toString()) ?? 0.0;
     final total = double.tryParse(widget.orderData['total'].toString()) ?? 0.0;
 
-    final latitude = widget.orderData['location']?['latitude'];
-    final longitude = widget.orderData['location']?['longitude'];
+    final latitude = widget.orderData['deliveryLatitude'];
+    final longitude = widget.orderData['deliveryLongitude'];
 
     String addressDisplay = widget.orderData['address'] ?? 'N/A';
     if (latitude != null && longitude != null) {
