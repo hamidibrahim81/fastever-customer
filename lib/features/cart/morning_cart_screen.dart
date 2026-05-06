@@ -1,15 +1,15 @@
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'morning_cart_provider.dart';
-import 'package:fastevergo_v1/features/food/cart/AddressFlow.dart';
+
 import 'package:fastevergo_v1/features/food/coupon/coupon_service.dart';
 import 'package:fastevergo_v1/features/food/coupon/coupon_model.dart';
 import 'package:fastevergo_v1/features/instahub/confirmation_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:math' show max;
+
 // 👉 IMPORT THE NEW MANAGEMENT SCREEN
 import 'package:fastevergo_v1/features/food/cart/ManageAddressScreen.dart';
 
@@ -58,7 +58,7 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   double appliedDiscount = 0;
   String selectedTimeSlot = "5:00 AM - 6:00 AM";
 
-  Position? currentPosition;
+  
 
   // -------------------------
   // Delivery Fee Configuration
@@ -97,30 +97,28 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     _initCartScreen();
   }
 
-  /// Initializes the screen by loading necessary data in the correct sequence.
+  // -------------------------
+  // Updated Init Cart Screen
+  // -------------------------
   Future<void> _initCartScreen({bool isRefresh = false}) async {
     try {
       if (mounted) setState(() => _isFeeLoading = true);
+
       final user = _auth.currentUser;
-      
-      // Load rules and locations in parallel
+
       await Future.wait([
         _loadStoreLocationAndFees(),
         _loadServiceAreaRadius(),
       ]);
 
-      if (!isRefresh && user != null) await _loadSavedAddress(user.uid);
+      if (!isRefresh && user != null) {
+        await _loadSavedAddress(user.uid);
+      }
 
-      await _initUserLocation();
-
-      // Skip fallback if coords are 0.0 to prevent bad distance math
       if (_deliveryLat == 0.0) _deliveryLat = null;
       if (_deliveryLng == 0.0) _deliveryLng = null;
 
-      _deliveryLat ??= _storeLat;
-      _deliveryLng ??= _storeLng;
-
-      debugPrint("Delivery Coords after all loads: $_deliveryLat, $_deliveryLng");
+      debugPrint("Delivery Coords after address load: $_deliveryLat, $_deliveryLng");
 
       await _calculateDeliveryFee();
     } catch (e) {
@@ -226,41 +224,9 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   }
 
   // -------------------------
-  // Initialize User Location
-  // -------------------------
-  Future<void> _initUserLocation() async {
-    if (_deliveryLat != null && _deliveryLng != null && _deliveryLat != 0.0) return;
-
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-          debugPrint("⚠️ Location services disabled.");
-      }
-      
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
-        Position pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-        if (mounted) {
-          setState(() {
-            currentPosition = pos;
-            _deliveryLat = pos.latitude;
-            _deliveryLng = pos.longitude;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint("⚠️ Location error: $e");
-    }
-  }
-
-  // -------------------------
   // Address Selection
   // -------------------------
   void _showAddressSelectionScreen() async {
-    // 👉 UPDATED: Navigates to ManageAddressScreen for the new selection flow
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => ManageAddressScreen()),
@@ -270,7 +236,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
       if (mounted) {
         setState(() {
           _isFeeLoading = true; 
-          // MATCHING FOOD CART KEYS: 'lat' and 'lng'
           _deliveryLat = parseDouble(result['lat']);
           _deliveryLng = parseDouble(result['lng']);
           selectedAddress = "${result['recipient_name'] ?? ''}\n${result['phone'] ?? ''}\n${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}\n${result['landmark'] ?? ''}";
@@ -473,25 +438,37 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
       );
 
   Widget _buildAddress() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text("Delivery Address", style: TextStyle(fontWeight: FontWeight.bold)),
-              TextButton(onPressed: _showAddressSelectionScreen, child: Text("Change", style: TextStyle(color: Colors.orange.shade700))),
-            ]),
-            const SizedBox(height: 8),
-            Text(selectedAddress),
-            if (_deliveryLat != null && _deliveryLng != null && _deliveryLat != 0.0) ...[
-              const SizedBox(height: 8),
-              Text("Lat: ${_deliveryLat!.toStringAsFixed(6)}, Lng: ${_deliveryLng!.toStringAsFixed(6)}",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            ],
-          ],
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.location_on, color: Colors.orange),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            selectedAddress,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13),
+          ),
         ),
-      );
+        TextButton(
+          onPressed: _showAddressSelectionScreen,
+          child: const Text(
+            "Change",
+            style: TextStyle(
+              color: Colors.orange,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildDeliveryTimeSlot() => Container(
         padding: const EdgeInsets.all(16),
@@ -548,17 +525,48 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     );
   }
 
+  // -------------------------
+  // Updated Place Order Button
+  // -------------------------
   Widget _buildPlaceOrderButton(double subtotal) {
-    final bool coordsMissing = (_deliveryLat == null || _deliveryLat == 0.0) && !_isFeeLoading;
-    final bool isReady = !_isFeeLoading && !_isOutOfRange && !coordsMissing;
+    final bool noAddressSelected =
+        selectedAddress == "No address saved yet" ||
+        _deliveryLat == null ||
+        _deliveryLng == null ||
+        _deliveryLat == 0.0 ||
+        _deliveryLng == 0.0;
+
+    final bool isReady = !_isFeeLoading && !_isOutOfRange && !noAddressSelected;
+
     final total = subtotal - appliedDiscount + _calculatedDeliveryFee + _platformFee;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: ElevatedButton(
-        onPressed: isReady ? () => _navigateToOrderConfirmation(subtotal, appliedDiscount, _calculatedDeliveryFee + _platformFee) : null,
-        style: ElevatedButton.styleFrom(backgroundColor: isReady ? Colors.orange.shade700 : Colors.grey, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-        child: _isFeeLoading ? const CircularProgressIndicator(color: Colors.white) : Text("Place Order ₹${total.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        onPressed: isReady
+            ? () => _navigateToOrderConfirmation(
+                  subtotal,
+                  appliedDiscount,
+                  _calculatedDeliveryFee + _platformFee,
+                )
+            : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isReady ? Colors.orange.shade700 : Colors.grey,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: _isFeeLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(
+                noAddressSelected
+                    ? "Select Address"
+                    : "Place Order • ₹${total.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
