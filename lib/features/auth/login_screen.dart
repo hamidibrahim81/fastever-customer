@@ -217,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text("Let's Sign you in.", 
                             style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black87)),
                           const SizedBox(height: 10),
-                          const Text("Welcome to FASTO.\nYou've been missed!", 
+                          const Text("Welcome to FASTever.\nYou've been missed!", 
                             style: TextStyle(fontSize: 24, color: Colors.grey, height: 1.2)),
                           const SizedBox(height: 50),
 

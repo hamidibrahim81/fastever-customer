@@ -17,6 +17,7 @@ import '../food/food_home_screen.dart';
 import '../instahub/InstantOrderHomeScreen.dart'; 
 import '../instahub/MorningOrderHomeScreen.dart'; 
 import '../auth/login_screen.dart'; 
+import '../home_services/home_services_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -460,11 +461,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     {'title': 'Food Delivery', 'image': 'assets/instahub/s1.png', 'screen': const FoodHomeScreen(), 'isAvailable': true},
     {'title': 'Instant Shopping', 'image': 'assets/instahub/s2.png', 'screen': const InstantOrderHomeScreen(), 'isAvailable': true},
     {'title': 'Morning Orders', 'image': 'assets/instahub/s6.png', 'screen': const MorningOrderHomeScreen(), 'isAvailable': true},
-    {'title': 'Ride Service', 'image': 'assets/instahub/s3.png', 'screen': null, 'isAvailable': false},
-    {'title': 'Home Services', 'image': 'assets/instahub/s4.png', 'screen': null, 'isAvailable': false},
-    {'title': 'Book My Time', 'image': 'assets/instahub/s5.png', 'screen': null, 'isAvailable': false},
-    {'title': 'Sale / Rent', 'image': 'assets/instahub/s7.png', 'screen': null, 'isAvailable': false},
-    {'title': 'Travel', 'image': 'assets/instahub/s7.png', 'screen': null, 'isAvailable': false},
+    {'title': 'Home Services', 'image': 'assets/instahub/s4.png', 'screen': const HomeServicesScreen(), 'isAvailable': true},
   ];
 
   @override
@@ -514,7 +511,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: ListView(padding: EdgeInsets.zero, children: [
           const DrawerHeader(decoration: BoxDecoration(color: Color(0xFF333333)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
             Icon(Icons.fastfood, color: Colors.white, size: 48), SizedBox(height: 10),
-            Text('FASTO', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            Text('FASTever', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             Text('v1.0.0', style: TextStyle(color: Colors.white70, fontSize: 12)),
           ],),),
           ListTile(leading: const Icon(Icons.home), title: const Text('Home'), onTap: () => Navigator.pop(context)),
