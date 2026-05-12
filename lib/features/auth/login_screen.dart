@@ -167,8 +167,8 @@ class _LoginScreenState extends State<LoginScreen> {
         bool isProfileComplete = prefs.getBool('profile_${user.uid}') ?? false;
 
         if (!isProfileComplete) {
-          final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-          // Logic Updated: Only check for the 'name' field
+          final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get().timeout(const Duration(seconds: 8));
+          
           if (doc.exists && (doc.data()?['name'] != null && doc.data()?['name'].toString().trim().isNotEmpty == true)) {
             isProfileComplete = true;
             await prefs.setBool('profile_${user.uid}', true);
@@ -183,12 +183,33 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) setState(() { _isLoading = false; _isVerifyingOtp = false; });
+      if (mounted) {
+        setState(() {
+           _isLoading = false;
+           _isVerifyingOtp = false;
+        });
+      }
+
       _showError(e.message ?? "Login Failed");
-    } catch (e) {
-      if (mounted) setState(() { _isLoading = false; _isVerifyingOtp = false; });
+    }  catch (e) {
+       debugPrint("Login Error: $e");
+
+       if (!mounted) return;
+
+       setState(() {
+        _isLoading = false;
+        _isVerifyingOtp = false;
+       });
+
+       Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+       );  
     }
   }
+
+  
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(

@@ -5,6 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 
+// ✅ IMPORT AUTH GUARD
+import 'package:fastevergo_v1/utils/auth_guards.dart';
+
 import 'cart/cart_provider.dart';
 import 'RestaurantMenuScreen.dart';
 import 'cart/cart_bar.dart'; // <-- ADDED: Import CartBar
@@ -164,6 +167,9 @@ class _OfferItemCardState extends State<_OfferItemCard> {
   }
 
   void _changeQuantity(int newQuantity) {
+    // ✅ AUTH GUARD ADDED
+    if (!requireLoginGlobal("Please login to add items to cart")) return;
+
     if (newQuantity < 0) return;
 
     // ✅ ADDED: CLIENT-SIDE STOCK LIMIT VALIDATION

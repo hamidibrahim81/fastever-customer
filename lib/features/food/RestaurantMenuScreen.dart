@@ -6,6 +6,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'dart:async';
 
+// ✅ IMPORT AUTH GUARD
+import 'package:fastevergo_v1/utils/auth_guards.dart';
+
 import 'cart/cart_provider.dart';
 import 'cart/cart_bar.dart';
 import 'active_order_bottom_bar.dart'; 
@@ -251,7 +254,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
     super.build(context);
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: const Column(
+      bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ActiveOrderBottomBar(),
@@ -462,9 +465,13 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            InkWell(onTap: () => cart.reduceQuantity(itemId), child: const Icon(Icons.remove, size: 18, color: Colors.orange)),
+            InkWell(onTap: () {
+              if (!requireLoginGlobal("Please login to update cart")) return;
+              cart.reduceQuantity(itemId);
+            }, child: const Icon(Icons.remove, size: 18, color: Colors.orange)),
             Text(qty.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
             InkWell(onTap: () {
+              if (!requireLoginGlobal("Please login to update cart")) return;
               if (qty + 1 > stock) return;
               cart.addItem(id: itemId, name: name, price: price, restaurantId: restaurantId, image: imageUrl, qty: 1);
             }, child: const Icon(Icons.add, size: 18, color: Colors.orange)),
@@ -473,7 +480,10 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
       );
     } else {
       return ElevatedButton(
-        onPressed: () => cart.addItem(id: itemId, name: name, price: price, restaurantId: restaurantId, image: imageUrl, qty: 1),
+        onPressed: () {
+          if (!requireLoginGlobal("Please login to add items to cart")) return;
+          cart.addItem(id: itemId, name: name, price: price, restaurantId: restaurantId, image: imageUrl, qty: 1);
+        },
         style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, minimumSize: const Size(100, 36), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
         child: const Text("ADD"),
       );

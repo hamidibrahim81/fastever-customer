@@ -6,7 +6,7 @@ import 'package:video_player/video_player.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:url_launcher/url_launcher.dart'; 
-import 'dart:math';
+
 import 'package:firebase_messaging/firebase_messaging.dart'; 
 import 'package:carousel_slider/carousel_slider.dart';
 
@@ -278,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _loadServiceLocations() async {
     if (_serviceLocationsLoaded) return;
     try {
-      final snap = await FirebaseFirestore.instance.collection('service_areas').get();
+      final snap = await FirebaseFirestore.instance.collection('service_areas').get().timeout(const Duration(seconds: 10));
       _serviceLocations = snap.docs.map((d) {
         final data = d.data();
         return _ServiceLocation(
@@ -312,7 +312,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _isLoadingLocation = true;
       });
 
-      await _loadServiceLocations(); 
+      await _loadServiceLocations()
+          .timeout(const Duration(seconds: 10));
 
       bool canLocate = await _ensureLocationAvailable();
       if (!canLocate) {
@@ -393,10 +394,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     else { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not open link"))); }
   }
 
+  bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
+
+  void _goToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (r) => false);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      (r) => false,
+    );
   }
 
   Future<void> _deleteAccount() async {
@@ -436,7 +449,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     try {
                       final uid = user.uid;
                       await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-                      await user.delete();
+                      await user.reload();
+                      await FirebaseAuth.instance.currentUser?.delete();
                       if (mounted) setDialogState(() { isDeleting = false; isDeletedSuccess = true; });
                     } catch (e) {
                       if (mounted) {
@@ -449,7 +463,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ],
               if (isDeletedSuccess)
-                TextButton(onPressed: _logout, child: const Text("Back to Login")),
+                TextButton(
+                 onPressed: _logout,
+                 child: const Text("Back to Home"),
+              ),
             ],
           );
         },
@@ -519,8 +536,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ListTile(leading: const Icon(Icons.privacy_tip), title: const Text('Privacy Policy'), onTap: () => _launchURL('https://sites.google.com/view/fastever-privacy')),
           ListTile(leading: const Icon(Icons.description), title: const Text('Terms & Conditions'), onTap: () => _launchURL('https://sites.google.com/view/fastever-termsconditions/home')),
           const Divider(),
-          ListTile(leading: const Icon(Icons.delete_forever, color: Colors.red), title: const Text('Delete Account', style: TextStyle(color: Colors.red)), onTap: _deleteAccount),
-          ListTile(leading: const Icon(Icons.logout), title: const Text('Logout'), onTap: _logout),
+          if (_isLoggedIn) ...[
+            ListTile(
+              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+              onTap: _deleteAccount,
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: _logout,
+            ),
+          ] else ...[
+            ListTile(
+              leading: const Icon(Icons.login),
+              title: const Text('Login'),
+              onTap: _goToLogin,
+            ),
+          ],
         ],),
       ),
       appBar: AppBar(iconTheme: const IconThemeData(color: Colors.white), backgroundColor: const Color(0xFF333333), elevation: 0,

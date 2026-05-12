@@ -6,6 +6,9 @@ import 'package:shimmer/shimmer.dart';
 import 'package:geolocator/geolocator.dart'; // ✅ Added for distance calculation
 import 'dart:async';
 
+// ✅ IMPORT AUTH GUARD
+import 'package:fastevergo_v1/utils/auth_guards.dart';
+
 // Local imports
 import 'RestaurantMenuScreen.dart';
 import 'cart/cart_provider.dart';
@@ -38,7 +41,7 @@ class FoodItemModel {
   final String restaurantId;
   final String? restaurantName;
   final double? restaurantRating;
-  final double distance; // ✅ Added to show distance
+  final double distance; 
   final bool isVeg;
   final bool isInstaHub;
 
@@ -50,7 +53,7 @@ class FoodItemModel {
     required this.restaurantId,
     this.restaurantName,
     this.restaurantRating,
-    required this.distance, // ✅
+    required this.distance, 
     this.isVeg = false,
     this.isInstaHub = false,
   });
@@ -58,14 +61,14 @@ class FoodItemModel {
   //  factory to create from the merged Map
   factory FoodItemModel.fromMap(Map<String, dynamic> data) {
     return FoodItemModel(
-      id: data['id'] ?? '', // ID extracted from DocumentSnapshot.id
+      id: data['id'] ?? '', 
       name: data['name'] ?? 'Unnamed Dish',
       price: parseDouble(data['price']),
       imageUrl: data['imageUrl'] ?? 'https://via.placeholder.com/200',
-      restaurantId: data['restaurantId'] ?? '', // Corrected ID from merge
-      restaurantName: data['restaurantName'], // Merged field
-      restaurantRating: parseDouble(data['restaurantRating']), // Merged field
-      distance: parseDouble(data['distance']), // ✅ Merged distance field
+      restaurantId: data['restaurantId'] ?? '', 
+      restaurantName: data['restaurantName'], 
+      restaurantRating: parseDouble(data['restaurantRating']), 
+      distance: parseDouble(data['distance']), 
       isVeg: data['isVeg'] == true,
       isInstaHub: data['isInstaHub'] == true,
     );
@@ -85,7 +88,6 @@ class CategoryScreen extends StatefulWidget {
 
 class _CategoryScreenState extends State<CategoryScreen> {
   final ScrollController _scrollController = ScrollController();
-  // State now holds Maps with merged restaurant data
   List<Map<String, dynamic>> _documents = []; 
   bool _isLoading = true;
   bool _hasMore = true;
@@ -93,16 +95,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
   final int _documentLimit = 30;
   bool _isFetchingMore = false;
   bool _fetchError = false;
-  Position? _userPosition; // ✅ To calculate sorting
+  Position? _userPosition; 
 
   @override
   void initState() {
     super.initState();
-    _initData(); // ✅ Get location then load
+    _initData(); 
     _scrollController.addListener(_onScroll);
   }
 
-  // ✅ Step 1: Get User Location
   Future<void> _initData() async {
     try {
       _userPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
@@ -131,7 +132,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     if (mounted) {
       setState(() {
         _isLoading = true;
-        _documents = []; // Resetting list of maps
+        _documents = []; 
         _lastDocument = null;
         _hasMore = true;
         _fetchError = false;
@@ -140,9 +141,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
     await _loadMoreData();
   }
 
-  /// ------------------------------
-  /// Load More Data (with Restaurant Join & Sorting)
-  /// ------------------------------
   Future<void> _loadMoreData() async {
     if (!_hasMore || _isFetchingMore) return;
 
@@ -153,7 +151,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
 
     try {
-      // 1. Fetch menu items
       Query query = FirebaseFirestore.instance
           .collectionGroup("menu")
           .where("tags", arrayContains: widget.category.toLowerCase())
@@ -178,13 +175,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
         return;
       }
 
-      // 2. Collect all unique restaurant IDs
       final restaurantIds = newDocs
           .map((d) => (d.data() as Map<String, dynamic>)['restaurantId'] ?? d.reference.parent.parent?.id)
           .whereType<String>()
           .toSet();
 
-      // 3. Fetch restaurant details once per batch
       final restaurantSnapshots = await Future.wait(
         restaurantIds.map((id) => FirebaseFirestore.instance
             .collection('restaurants')
@@ -192,13 +187,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
             .get()),
       );
 
-      // 4. Build restaurant data map
       final restaurantMap = {
         for (var doc in restaurantSnapshots)
           if (doc.exists) doc.id: doc.data()
       };
 
-      // 5. Merge restaurant data into a new list of maps
       final List<Map<String, dynamic>> mergedDataList = [];
       for (var doc in newDocs) {
         final data = Map<String, dynamic>.from(doc.data() as Map); 
@@ -210,15 +203,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
         double dist = 0.0;
         if (restaurantId.isNotEmpty && restaurantMap.containsKey(restaurantId)) {
           final restData = restaurantMap[restaurantId]!;
-          
-          // ✅ CHECK STATUS: Skip this item if restaurant is not "open"
           final String status = restData['status'] ?? 'open';
           if (status != 'open') continue;
 
           data['restaurantName'] = restData['name'] ?? 'Restaurant Unknown';
           data['restaurantRating'] = parseDouble(restData['rating']); 
 
-          // ✅ Calculate Distance if location is available
           if (_userPosition != null) {
             dist = Geolocator.distanceBetween(
               _userPosition!.latitude, _userPosition!.longitude,
@@ -226,15 +216,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
             ) / 1000;
           }
         } else {
-           // If restaurant data doesn't exist, we skip the item
-           continue;
+            continue;
         }
         
-        data['distance'] = dist; // ✅ Add distance to map
+        data['distance'] = dist; 
         mergedDataList.add(data);
       }
 
-      // ✅ Step 2: Sort the combined list by distance (closest first)
       _documents.addAll(mergedDataList);
       _documents.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
 
@@ -258,9 +246,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
-  /// ------------------------------
-  /// Build UI
-  /// ------------------------------
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
@@ -314,7 +299,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                     quantityInCart,
                                     foodItem.restaurantName, 
                                     foodItem.restaurantRating, 
-                                    foodItem.distance, // ✅ Added distance
+                                    foodItem.distance, 
                                   );
                                 },
                               );
@@ -332,9 +317,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  /// ------------------------------
-  /// UI Helper Widgets
-  /// ------------------------------
   Widget _buildBottomLoader(Color color) => Padding(
         padding: const EdgeInsets.all(16.0),
         child: Center(
@@ -430,9 +412,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ),
       );
 
-  /// ------------------------------
-  /// Food Card Builder
-  /// ------------------------------
   Widget _buildFoodItemCard(
     BuildContext context,
     Map<String, dynamic> food,
@@ -449,13 +428,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final imageUrl = food['imageUrl'] ?? "https://via.placeholder.com/200";
     final foodName = food['name'] ?? "Unnamed Dish";
     final foodPrice = parseDouble(food['price']);
-    final int stockAvailable = parseInt(food['stock'], defaultValue: 0); // ✅ STOCK VARIABLE
+    final int stockAvailable = parseInt(food['stock'], defaultValue: 0);
 
     void _updateCart(int newQuantity) {
+      if (!requireLoginGlobal("Please login to add items to cart")) return;
+
       if (newQuantity <= 0) {
         cart.removeItem(itemId);
       } else {
-        // ✅ STOCK LIMIT VALIDATION
         if (newQuantity > stockAvailable) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -479,7 +459,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
 
     Widget _quantityButton() {
-      // ✅ SOLD OUT CHECK: If stock is 0 or less, show Sold Out badge
       if (stockAvailable <= 0) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -500,7 +479,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
       if (quantityInCart > 0) {
         return Container(
-          // ✅ INCREASED CONTAINER SIZE & PADDING
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -511,7 +489,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                // ✅ INCREASED ICON SIZE (24)
                 icon: const Icon(Icons.remove, color: Colors.red, size: 24),
                 onPressed: () => _updateCart(quantityInCart - 1),
               ),
@@ -519,10 +496,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Text('$quantityInCart',
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)), // ✅ INCREASED FONT
+                        fontSize: 18, fontWeight: FontWeight.bold)), 
               ),
               IconButton(
-                // ✅ INCREASED ICON SIZE (24)
                 icon: Icon(Icons.add, color: primaryColor, size: 24),
                 onPressed: () => _updateCart(quantityInCart + 1),
               ),
@@ -534,9 +510,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         onPressed: () => _updateCart(1),
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          // ✅ INCREASED BUTTON SIZE
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           minimumSize: const Size(120, 46),
           elevation: 0,
         ),
@@ -549,7 +523,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     return GestureDetector(
       onTap: () {
-        // ✅ ONLY ALLOW NAVIGATION IF NOT SOLD OUT
         if (stockAvailable > 0 && restaurantId.isNotEmpty && context.mounted) {
           Navigator.push(
             context,
@@ -568,13 +541,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(12.0), // ✅ INCREASED PADDING
+          padding: const EdgeInsets.all(12.0), 
           child: Row(
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: ColorFiltered(
-                  // ✅ DESATURATE IMAGE IF SOLD OUT
                   colorFilter: stockAvailable <= 0 
                     ? const ColorFilter.mode(Colors.grey, BlendMode.saturation) 
                     : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
@@ -604,7 +576,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: stockAvailable <= 0 ? Colors.grey : Colors.black, // ✅ DIM TEXT IF SOLD OUT
+                            color: stockAvailable <= 0 ? Colors.grey : Colors.black, 
                             overflow: TextOverflow.ellipsis)),
                     const SizedBox(height: 4),
                     if (restaurantName != null && restaurantName.isNotEmpty && restaurantName != 'Unknown Restaurant')
@@ -648,7 +620,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8), // ✅ EXTRA SPACING
+                    const SizedBox(height: 8), 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -656,7 +628,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: stockAvailable <= 0 ? Colors.grey : primaryColor)), // ✅ DIM PRICE IF SOLD OUT
+                                color: stockAvailable <= 0 ? Colors.grey : primaryColor)), 
                         _quantityButton(),
                       ],
                     ),
@@ -669,4 +641,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
     );
   }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+  final TabBar _tabBar;
+  @override double get minExtent => _tabBar.preferredSize.height;
+  @override double get maxExtent => _tabBar.preferredSize.height;
+  @override Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(color: Colors.white, child: _tabBar);
+  }
+  @override bool shouldRebuild(_SliverAppBarDelegate oldDelegate) => false;
 }

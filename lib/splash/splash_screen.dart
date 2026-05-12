@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Persistence fix
 
-import '../features/auth/login_screen.dart';
+
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
 
@@ -42,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Widget nextScreen;
 
     if (user == null) {
-      nextScreen = const LoginScreen();
+      nextScreen = const HomeScreen();
     } else {
       // 1. Check local cache first for instant loading
       bool isProfileComplete = prefs.getBool('profile_${user.uid}') ?? false;

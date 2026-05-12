@@ -23,8 +23,12 @@ import 'features/food/cart/cart_provider.dart';
 import 'features/cart/morning_cart_provider.dart';
 import 'features/instahub/instahub_cart_provider.dart';
 
+// ✅ STEP 1: DEFINE GLOBAL KEYS
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 // ✅ STEP 1: BACKGROUND MESSAGE HANDLER
-// This must be a top-level function (outside any class)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
@@ -35,9 +39,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 // ✅ STEP 2: NOTIFICATION CHANNEL SETUP
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
-  'high_importance_channel', // id
-  'High Importance Notifications', // title
-  description: 'This channel is used for order updates.', // description
+  'high_importance_channel', 
+  'High Importance Notifications', 
+  description: 'This channel is used for order updates.', 
   importance: Importance.max,
 );
 
@@ -102,11 +106,15 @@ class FASTeverGoApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) {
             final user = FirebaseAuth.instance.currentUser;
-            return InstahubCartProvider(userId: user?.uid ?? "guest_user");
+            // ✅ Only use Real UID or a safe guest string to prevent Permission Spam
+            return InstahubCartProvider(userId: user?.uid ?? "is_guest");
           },
         ),
       ],
       child: MaterialApp(
+        // ✅ STEP 2: ASSIGN GLOBAL KEYS
+        navigatorKey: appNavigatorKey,
+        scaffoldMessengerKey: appScaffoldMessengerKey,
         title: 'FASTeverGo',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -126,38 +134,9 @@ class FASTeverGoApp extends StatelessWidget {
             ),
           ),
         ),
-        // ✅ DYNAMIC STATUS GATE: Controls Maintenance vs Inauguration Mode
+        // ✅ REINFORCED DYNAMIC GATE: Moves StreamBuilder out of primary builder to stabilize keys
         builder: (context, child) {
-          return StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('app_settings')
-                .doc('maintenance')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return child!;
-              }
-
-              if (snapshot.hasError) {
-                return child!;
-              }
-
-              if (snapshot.hasData && snapshot.data!.exists) {
-                final data = snapshot.data!.data() as Map<String, dynamic>?;
-                if (data != null && data['is_enabled'] == true) {
-                  return AppStatusGate(
-                    status: data['status'] ?? "maintenance",
-                    title: data['title'] ?? "Maintenance in Progress",
-                    message: data['message'] ?? "We're fine-tuning FASTever to serve you better.",
-                    targetDate: data['date_time'] ?? "2026-02-15 10:00:00", // Format for timer
-                    email: data['support_email'] ?? "bloohostgroup.official@gmail.com",
-                    whatsapp: data['support_wa'] ?? "7356103498",
-                  ); 
-                }
-              }
-              return child!;
-            },
-          );
+          return MaintenanceGateWrapper(child: child!);
         },
         home: const SplashScreen(),
         routes: {
@@ -167,6 +146,38 @@ class FASTeverGoApp extends StatelessWidget {
           '/service-check': (context) => const ServiceCheckScreen(),
         },
       ),
+    );
+  }
+}
+
+// ✅ SEPARATE WRAPPER COMPONENT: Stabilizes the GlobalKeys by isolating the stream
+class MaintenanceGateWrapper extends StatelessWidget {
+  final Widget child;
+  const MaintenanceGateWrapper({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('app_settings')
+          .doc('maintenance')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          if (data != null && data['is_enabled'] == true) {
+            return AppStatusGate(
+              status: data['status'] ?? "maintenance",
+              title: data['title'] ?? "Maintenance in Progress",
+              message: data['message'] ?? "We're fine-tuning FASTever.",
+              targetDate: data['date_time'] ?? "2026-02-15 10:00:00", 
+              email: data['support_email'] ?? "bloohostgroup.official@gmail.com",
+              whatsapp: data['support_wa'] ?? "7356103498",
+            ); 
+          }
+        }
+        return child;
+      },
     );
   }
 }
@@ -205,7 +216,6 @@ class _AppStatusGateState extends State<AppStatusGate> {
   }
 
   void _startCountdown() {
-    // Requires format: YYYY-MM-DD HH:MM:SS
     final DateTime target = DateTime.tryParse(widget.targetDate) ?? DateTime.now();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final now = DateTime.now();
@@ -290,7 +300,6 @@ class _AppStatusGateState extends State<AppStatusGate> {
                 style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.5),
               ),
               const SizedBox(height: 35),
-              // Countdown Label
               Text(isInauguration ? "Launching In" : "Back Online In", 
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
               const SizedBox(height: 10),
@@ -306,7 +315,6 @@ class _AppStatusGateState extends State<AppStatusGate> {
                 ),
               ),
               const SizedBox(height: 50),
-              // Support Section
               const Text("Support Team:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
               const SizedBox(height: 20),
               Row(

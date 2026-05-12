@@ -13,6 +13,9 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
+// ✅ IMPORT AUTH GUARDS
+import 'package:fastevergo_v1/utils/auth_guards.dart'; 
+
 import '../profile/profile_screen2.dart';
 import 'RestaurantMenuScreen.dart';
 import 'CategoryScreen.dart';
@@ -592,6 +595,9 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 ),
                 InkWell(
                   onTap: () {
+                    // ✅ LOGIN GUARD ADDED
+                    if (!requireLoginGlobal("Please login to access profile")) return;
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const ProfileScreen2()),
@@ -1105,6 +1111,9 @@ class _FoodCardState extends State<_FoodCard> {
   }
 
   void _changeQuantity(int newQuantity) {
+    // ✅ LOGIN GUARD ADDED
+    if (!requireLoginGlobal("Please login to add items to cart")) return;
+
     final int stockAvailable = parseInt(itemData['stock'], defaultValue: 0);
     if (stockAvailable <= 0) return; // Block all actions if stock is 0
 

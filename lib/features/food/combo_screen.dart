@@ -6,6 +6,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart'; 
+// ✅ IMPORT AUTH GUARD
+import 'package:fastevergo_v1/utils/auth_guards.dart';
 import '../food/cart/cart_provider.dart';
 import '../food/cart/cart_bar.dart';
 import 'active_order_bottom_bar.dart';
@@ -17,12 +19,6 @@ class ComboScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get userId directly from Firebase Auth
     final userId = FirebaseAuth.instance.currentUser?.uid;
-
-    if (userId == null) {
-      return const Scaffold(
-        body: Center(child: Text("Please sign in to view combo deals")),
-      );
-    }
 
     // ⭐ ADJUSTED PADDING FOR CART BAR VISIBILITY ⭐
     const double cartBarHeightPadding = 110.0; 
@@ -236,6 +232,8 @@ class ComboCard extends StatelessWidget {
                                 IconButton(
                                   icon: const Icon(Icons.remove, size: 18),
                                   onPressed: () {
+                                    // ✅ AUTH GUARD
+                                    if (!requireLoginGlobal("Please login to update cart")) return;
                                     cart.reduceQuantity(id);
                                   },
                                 ),
@@ -249,6 +247,8 @@ class ComboCard extends StatelessWidget {
                                 IconButton(
                                   icon: const Icon(Icons.add, size: 18),
                                   onPressed: () {
+                                    // ✅ AUTH GUARD
+                                    if (!requireLoginGlobal("Please login to update cart")) return;
                                     cart.addItem(
                                       id: id,
                                       name: comboName,
@@ -271,6 +271,8 @@ class ComboCard extends StatelessWidget {
                               ),
                             ),
                             onPressed: () {
+                              // ✅ AUTH GUARD
+                              if (!requireLoginGlobal("Please login to add combo deals")) return;
                               cart.addItem(
                                 id: id,
                                 name: comboName,

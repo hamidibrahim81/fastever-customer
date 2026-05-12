@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'cleaning_service_form.dart'; // This assumes the form is in the same folder
 
+// ✅ IMPORT GLOBAL AUTH GUARD
+import 'package:fastevergo_v1/utils/auth_guards.dart';
+
 class HomeServicesScreen extends StatelessWidget {
   const HomeServicesScreen({super.key});
 
@@ -38,6 +41,8 @@ class HomeServicesScreen extends StatelessWidget {
           // Cleaning Service Card
           GestureDetector(
             onTap: () {
+              // ✅ FIXED: Using Global Auth Guard
+              if (!requireLoginGlobal("Please login to book a cleaning service")) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const CleaningServiceForm()),
