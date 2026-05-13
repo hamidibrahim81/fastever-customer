@@ -489,19 +489,17 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 SliverToBoxAdapter(
                   child: _buildTopSection(),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 10)),
                 if (isSearching)
                   SliverToBoxAdapter(
                     child: _buildCombinedSearchResults(),
                   )
                 else ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: _buildSectionTitle("Categories"),
-                    ),
-                  ),
+                  // ✅ CATEGORIES MOVED UP with Split Background Look
                   SliverToBoxAdapter(child: _buildCategories()),
+                  
+                  // ✅ ADS MOVED DOWN (Below Categories)
+                  SliverToBoxAdapter(child: _buildAdsCarousel()),
+                  
                   SliverToBoxAdapter(child: _buildTwoImageOffers()),
                   SliverToBoxAdapter(
                     child: Padding(
@@ -540,7 +538,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
           end: Alignment.bottomRight,
           colors: [
             Color(0xFF1A1E43),
-            Color(0xFF242B73),
+            Color(0xFF1A1E43),
           ],
         ),
       ),
@@ -595,9 +593,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 ),
                 InkWell(
                   onTap: () {
-                    // ✅ LOGIN GUARD ADDED
                     if (!requireLoginGlobal("Please login to access profile")) return;
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const ProfileScreen2()),
@@ -612,14 +608,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
             ),
             const SizedBox(height: 16),
             _buildSearchBar(),
-            const SizedBox(height: 16),
-            if (_searchQuery.isEmpty)
-              Column(
-                children: [
-                  const SizedBox(height: 8),
-                  _buildAdsCarousel(),
-                ],
-              ),
+            const SizedBox(height: 10), // Clean end to search section
           ],
         ),
       ),
@@ -637,7 +626,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
           return Shimmer.fromColors(
               baseColor: Colors.grey.shade300,
               highlightColor: Colors.grey.shade100,
-              child: Container(height: 280, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))
+              child: Container(height: 180, margin: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))
           );
         }
         
@@ -651,34 +640,38 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
 
         if (imageUrls.isEmpty) return const SizedBox.shrink();
 
-        return CarouselSlider(
-          options: CarouselOptions(
-            autoPlay: true,
-            height: 180,
-            viewportFraction: 1.1,
-            enlargeCenterPage: true,
-            enlargeFactor: 0.3,
-            autoPlayInterval: const Duration(seconds: 4),
-          ),
-          items: imageUrls
-              .map((item) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: CachedNetworkImage(
-                        imageUrl: item,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        placeholder: (context, url) => Shimmer.fromColors(
-                            baseColor: Colors.grey.shade300,
-                            highlightColor: Colors.grey.shade100,
-                            child: Container(color: Colors.white),
-                        ),
-                        errorWidget: (context, url, error) => const Icon(Icons.error),
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: CarouselSlider(
+            options: CarouselOptions(
+              autoPlay: true,
+              height: 180,
+              viewportFraction: 0.92,
+              enlargeCenterPage: true,
+              enlargeFactor: 0.2,
+              autoPlayInterval: const Duration(seconds: 4),
+            ),
+            items: imageUrls
+                .map((item) => Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, spreadRadius: 1)
+                        ],
                       ),
-                    ),
-                  ))
-              .toList(),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: CachedNetworkImage(
+                          imageUrl: item,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                          errorWidget: (context, url, error) => const Icon(Icons.error),
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
         );
       },
     );
@@ -797,7 +790,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color.fromARGB(221, 129, 20, 20),
+              color: Color(0xFF1A1E43),
             ),
           ),
           TextButton(
@@ -810,27 +803,39 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
   }
 
   Widget _buildCategories() {
-    return SizedBox(
-      height: 100,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          _buildCategoryItem("Arabian", 'assets/images/arabian.jpeg'),
-          _buildCategoryItem("Indian", 'assets/images/indian.jpeg'),
-          _buildCategoryItem("Biriyani", 'assets/images/biriyani.jpeg'),
-          _buildCategoryItem("Shawarma", 'assets/images/shawarma.jpeg'),
-          _buildCategoryItem("Burger", 'assets/images/burger.jpeg'),
-          _buildCategoryItem("Parotta", 'assets/images/parotta.jpeg'),
-          _buildCategoryItem("Cakes", 'assets/images/cakes.jpeg'),
-          _buildCategoryItem("Dosa", 'assets/images/dosa.jpeg'),
-          _buildCategoryItem("Momos", 'assets/images/momos.jpeg'),
-          _buildCategoryItem("Shake", 'assets/images/shake.jpeg'),
-          _buildCategoryItem("Icecream", 'assets/images/icecream.jpeg'),
-          _buildCategoryItem("Juice", 'assets/images/juice.jpeg'),
-          _buildCategoryItem("Chinese", 'assets/images/chinese.jpeg'),
-        ],
-      ),
+    return Stack(
+      children: [
+        // ✅ BACKGROUND SPLIT: Exact same as edited-image_4.png
+        Column(
+          children: [
+            Container(height: 50, color: const Color(0xFF1A1E43)), // Top half Blue
+            Container(height: 70, color: Colors.white),           // Bottom half White
+          ],
+        ),
+        // The Category Scroll List
+        SizedBox(
+          height: 120,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              _buildCategoryItem("Arabian", 'assets/images/arabian.jpeg'),
+              _buildCategoryItem("Indian", 'assets/images/indian.jpeg'),
+              _buildCategoryItem("Biriyani", 'assets/images/biriyani.jpeg'),
+              _buildCategoryItem("Shawarma", 'assets/images/shawarma.jpeg'),
+              _buildCategoryItem("Burger", 'assets/images/burger.jpeg'),
+              _buildCategoryItem("Parotta", 'assets/images/parotta.jpeg'),
+              _buildCategoryItem("Cakes", 'assets/images/cakes.jpeg'),
+              _buildCategoryItem("Dosa", 'assets/images/dosa.jpeg'),
+              _buildCategoryItem("Momos", 'assets/images/momos.jpeg'),
+              _buildCategoryItem("Shake", 'assets/images/shake.jpeg'),
+              _buildCategoryItem("Icecream", 'assets/images/icecream.jpeg'),
+              _buildCategoryItem("Juice", 'assets/images/juice.jpeg'),
+              _buildCategoryItem("Chinese", 'assets/images/chinese.jpeg'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -845,12 +850,26 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.only(right: 15, top: 12), // Adjusted for alignment
         child: Column(
           children: [
+            // Circular image with white border and shadow
             Container(
-              width: 70,
-              height: 70,
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+                border: Border.all(color: Colors.white, width: 2.5), 
+              ),
               child: ClipOval(
                 child: Image.asset(
                   imagePath,
@@ -864,8 +883,15 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(name, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 8),
+            Text(
+              name, 
+              style: const TextStyle(
+                fontSize: 12, 
+                fontWeight: FontWeight.bold,
+                color: Colors.black87
+              )
+            ),
           ],
         ),
       ),
@@ -936,7 +962,7 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
             }
 
             return SizedBox(
-              height: 220, // Adjusted height for single horizontal row
+              height: 220,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1111,11 +1137,10 @@ class _FoodCardState extends State<_FoodCard> {
   }
 
   void _changeQuantity(int newQuantity) {
-    // ✅ LOGIN GUARD ADDED
     if (!requireLoginGlobal("Please login to add items to cart")) return;
 
     final int stockAvailable = parseInt(itemData['stock'], defaultValue: 0);
-    if (stockAvailable <= 0) return; // Block all actions if stock is 0
+    if (stockAvailable <= 0) return; 
 
     if (newQuantity < 0) return;
 
@@ -1212,7 +1237,7 @@ class _FoodCardState extends State<_FoodCard> {
         ],
       ),
       child: AbsorbPointer(
-        absorbing: isSoldOut, // Blocks all clicks if stock is 0
+        absorbing: isSoldOut, 
         child: Opacity(
           opacity: isSoldOut ? 0.7 : 1.0,
           child: Column(
