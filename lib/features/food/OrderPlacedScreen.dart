@@ -161,7 +161,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
           "total": rTotal,    
           "subtotal": rTotal,
           "deliveryFee": 0, 
-          "discount": 0,       
+          "discount": 0,      
           "status": "pending",
           "timestamp": timestamp,
           "createdAt": createdDate,
@@ -300,6 +300,25 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
 
       await batch.commit(); 
       debugPrint("✅ Batch Committed successfully with stock updates");
+
+      // ✅ SAVE USED COUPON AFTER SUCCESSFUL ORDER
+      final String? usedCoupon =
+          widget.orderData['appliedCouponCode']?.toString().trim();
+
+      if (usedCoupon != null && usedCoupon.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('usedCoupons')
+            .doc(usedCoupon.toUpperCase())
+            .set({
+          'couponCode': usedCoupon.toUpperCase(),
+          'orderId': masterRef.id,
+          'usedAt': FieldValue.serverTimestamp(),
+        });
+
+        debugPrint("✅ Coupon marked as used: ${usedCoupon.toUpperCase()}");
+      }
 
       if (mounted) {
         Provider.of<CartProvider>(context, listen: false).clearCart();

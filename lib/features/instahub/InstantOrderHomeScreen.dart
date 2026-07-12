@@ -198,11 +198,6 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                       _buildSyncedCategorySystem(),
                       const SizedBox(height: 20),
                       _buildAdsRunner(), 
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _buildMorningBanner(),
-                      ),
                       const SizedBox(height: 32),
                       _buildBigDealsSection(),
                       const SizedBox(height: 32),
@@ -238,7 +233,7 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       children: [
         Container(
           width: double.infinity,
-          height: 160, 
+          height: 340, 
           decoration: const BoxDecoration(
             color: _primaryColor,
             borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
@@ -248,6 +243,12 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 16), child: _buildSearchBar()),
+            
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: _buildMorningBanner(),
+            ),
+
             Padding(padding: const EdgeInsets.only(left: 20, bottom: 8), child: Text("Shop by Category", style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1))),
             SizedBox(
               height: 140, 
@@ -271,20 +272,29 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 5))],
                             border: Border.all(color: Colors.white24, width: 2),
                           ),
-                          child: ClipOval(child: Image.asset(cat["image"], fit: BoxFit.cover)),
+                          child: ClipOval(
+                            child: Image.asset(
+                              cat["image"], 
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(child: Icon(Icons.shopping_bag_outlined, color: Colors.grey));
+                              },
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 10), 
                         SizedBox(
                           width: 75,
                           child: Text(
                             cat["name"],
                             textAlign: TextAlign.center,
                             maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.montserrat(
                               fontSize: 10, 
                               fontWeight: FontWeight.w800, 
-                              color: Colors.black87,
-                              height: 1.1,
+                              color: Colors.white, 
+                              height: 1.2,
                             ),
                           ),
                         ),
@@ -360,7 +370,7 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 120,
+          height: 110, 
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
@@ -371,10 +381,10 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.white, size: 28),
+              Icon(icon, color: Colors.white, size: 26),
               const Spacer(),
-              Text(title, style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-              Text(subtitle, style: GoogleFonts.montserrat(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, height: 1)),
+              Text(title, style: GoogleFonts.inter(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(subtitle, style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, height: 1)),
             ],
           ),
         ),

@@ -17,6 +17,7 @@ class ConfirmationScreen extends StatefulWidget {
   final String address;
   final String payment;
   final String deliveryTime;
+  final DateTime deliveryDate; // <-- NEW: Added deliveryDate
   final double? latitude; // <-- NEW: Added Latitude
   final double? longitude; // <-- NEW: Added Longitude
 
@@ -30,6 +31,7 @@ class ConfirmationScreen extends StatefulWidget {
     required this.address,
     required this.payment,
     required this.deliveryTime,
+    required this.deliveryDate, // <-- NEW
     this.latitude, // <-- NEW
     this.longitude, // <-- NEW
   });
@@ -74,6 +76,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
       final bookingRef =
           FirebaseFirestore.instance.collection('morningbooking').doc();
 
+      // Platform fee calculation logic to mirror structural segregation requirements
+      double platformFee = widget.total - (widget.subtotal - widget.discount + widget.deliveryFee);
+      if (platformFee < 0) platformFee = 0.0;
+
       final bookingData = {
         "orderId": bookingRef.id,
         "userId": currentUser.uid, // ✅ Matches screenshot user ID
@@ -84,13 +90,15 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
               "quantity": item['quantity'] ?? 1,
               "image": item['image'] ?? '', // ✅ Supports Base64 string
             }).toList(),
-        "subtotal": widget.subtotal,
-        "discount": widget.discount,
-        "deliveryFee": widget.deliveryFee, // ✅ Matches screenshot field
-        "total": widget.total,
+        "subtotal": widget.subtotal, // ✅ Stored separately
+        "discount": widget.discount, // ✅ Stored separately
+        "deliveryFee": widget.deliveryFee, // ✅ Stored separately
+        "platformFee": double.parse(platformFee.toStringAsFixed(2)), // ✅ Stored separately
+        "total": widget.total, // ✅ Stored separately
         "address": widget.address,
         "payment": widget.payment,
         "deliveryTime": widget.deliveryTime, // ✅ Matches screenshot slot
+        "deliveryDate": Timestamp.fromDate(widget.deliveryDate), // <-- NEW: Storing delivery date
         "latitude": widget.latitude, // <-- NEW: Storing latitude
         "longitude": widget.longitude, // <-- NEW: Storing longitude
         "status": "booked",

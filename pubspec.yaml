@@ -2,7 +2,7 @@ name: fastevergo_v1
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+12
+version: 1.0.0+8
 
 environment:
   sdk: ^3.8.1
@@ -33,11 +33,12 @@ dependencies:
   video_player: ^2.6.1
   chewie: ^1.8.0
   flutter_launcher_icons: ^0.14.4
-  url_launcher: ^6.2.5  # Add this line
+  url_launcher: ^6.3.2  # Add this line
   intl: ^0.20.2
   firebase_messaging: ^15.2.1
   flutter_local_notifications: ^18.0.1
   google_places_flutter: ^2.1.0
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:
@@ -81,12 +82,31 @@ flutter:
 
     - assets/instahub/s1.png
     - assets/instahub/s2.png
-    - assets/instahub/s3.png
+    
     - assets/instahub/s4.png
     - assets/instahub/s5.png
     - assets/instahub/s6.png
     - assets/instahub/s7.png
     - assets/instahub/s8.png
+    - assets/instahub/s9.png
+
+    - assets/instahub/home.png
+    - assets/instahub/laundry.png
+    - assets/instahub/pharmacy.png
+    - assets/instahub/events.png
+    - assets/instahub/healthcare.png
+    - assets/instahub/beauty.png
+
+    
+    - assets/instahub/homee.png
+    - assets/instahub/laundryy.png
+    - assets/instahub/pharmacyy.png
+    - assets/instahub/carwashh.png
+    - assets/instahub/bookyy.png
+    - assets/instahub/ridey.png
+    - assets/instahub/eventyy.png
+    
+
 
     # icons
     - assets/icons/fv.jpeg
@@ -120,23 +140,24 @@ flutter:
     - assets/icons/pc.jpeg
 
     - assets/animations/waiting.json
+    - assets/images/scooter_pin.png
 
 # ✅ App icon config
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/logo2.png"
-  adaptive_icon_background: "#000000"  # Changed to Pure Black
+  adaptive_icon_background: "#FFC400"  # Changed to Pure Black
   adaptive_icon_foreground: "assets/logo2.png"
 
 flutter_native_splash:
-  color: "#000000"   # Changed to Pure Black background
+  color: "#FFC400"   # Changed to Pure Black background
   image: assets/logo3.png
   android: true
   ios: true
 
   android_12:
-    color: "#000000"
+    color: "#FFC400"
     image: assets/logo3.png
 
 # FORCES THE BUILD TO IGNORE VERSION CONFLICTS

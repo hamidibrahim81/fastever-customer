@@ -192,6 +192,8 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
       "platformFee": widget.platformFee, // ✅ Included in order data
       "appliedCouponCode": widget.appliedCouponCode,
       "deliveryInstructions": widget.deliveryInstructions ?? "", 
+      "deliveryLatitude": widget.deliveryLatitude,
+      "deliveryLongitude": widget.deliveryLongitude,
       "location": {
         "latitude": widget.deliveryLatitude,
         "longitude": widget.deliveryLongitude,

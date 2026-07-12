@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'cleaning_service_form.dart'; // This assumes the form is in the same folder
+import 'cleaning_service_form.dart'; // Adjust if you change the form name
 
-// ✅ IMPORT GLOBAL AUTH GUARD
+// ✅ GLOBAL AUTH GUARD IMPORT
 import 'package:fastevergo_v1/utils/auth_guards.dart';
 
 class HomeServicesScreen extends StatelessWidget {
@@ -38,72 +38,153 @@ class HomeServicesScreen extends StatelessWidget {
           ),
           const SizedBox(height: 25),
 
-          // Cleaning Service Card
-          GestureDetector(
-            onTap: () {
-              // ✅ FIXED: Using Global Auth Guard
-              if (!requireLoginGlobal("Please login to book a cleaning service")) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CleaningServiceForm()),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(16),
+          // ⚡ Electrician
+          _buildServiceCard(
+            context: context,
+            title: "Electrician",
+            subtitle: "Wiring, repairs, switches & fan installations",
+            icon: Icons.electric_bolt_rounded,
+            iconColor: const Color(0xFFFFB300), // Amber/Yellow
+          ),
+          const SizedBox(height: 16),
+
+          // 🚰 Plumber
+          _buildServiceCard(
+            context: context,
+            title: "Plumber",
+            subtitle: "Leakages, pipes, taps & bathroom fittings",
+            icon: Icons.water_drop_rounded,
+            iconColor: const Color(0xFF2196F3), // Blue
+          ),
+          const SizedBox(height: 16),
+
+          // 🧹 House Cleaning
+          _buildServiceCard(
+            context: context,
+            title: "House Cleaning",
+            subtitle: "Deep home, office, kitchen & flat cleaning",
+            icon: Icons.cleaning_services_rounded,
+            iconColor: const Color(0xFFFD3C68), // Pink/Red
+          ),
+          const SizedBox(height: 16),
+
+          // ❄️ AC Service
+          _buildServiceCard(
+            context: context,
+            title: "AC Service",
+            subtitle: "Cooling repair, gas refill & servicing",
+            icon: Icons.ac_unit_rounded,
+            iconColor: const Color(0xFF00BCD4), // Cyan
+          ),
+          const SizedBox(height: 16),
+
+          // 🧰 Appliance Repair
+          _buildServiceCard(
+            context: context,
+            title: "Appliance Repair",
+            subtitle: "Fridge, TV, washing machine & microwave fixes",
+            icon: Icons.home_repair_service_rounded,
+            iconColor: const Color(0xFF4CAF50), // Green
+          ),
+          const SizedBox(height: 16),
+
+          // 🚚 Home Shifting
+          _buildServiceCard(
+            context: context,
+            title: "Home Shifting",
+            subtitle: "Packers, movers & safe logistics help",
+            icon: Icons.local_shipping_rounded,
+            iconColor: const Color(0xFF9C27B0), // Purple
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ REUSABLE SERVICE CARD WIDGET
+  Widget _buildServiceCard({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        // Auth Guard check
+        if (!requireLoginGlobal("Please login to book a $title service")) return;
+
+        // Navigates and explicitly passes the chosen service type string
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CleaningServiceForm(serviceType: title),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            // Styled Icon Container
+            Container(
+              height: 60,
+              width: 60,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  )
-                ],
+                color: iconColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(15),
               ),
-              child: Row(
+              child: Icon(
+                icon,
+                color: iconColor,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 15),
+            // Text Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 60,
-                    width: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFD3C68).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: const Icon(
-                      Icons.cleaning_services_rounded,
-                      color: Color(0xFFFD3C68),
-                      size: 30,
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF333333),
                     ),
                   ),
-                  const SizedBox(width: 15),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Cleaning Service",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF333333),
-                          ),
-                        ),
-                        Text(
-                          "House, Office & Flat cleaning",
-                          style: TextStyle(fontSize: 13, color: Colors.grey),
-                        ),
-                      ],
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                 ],
               ),
             ),
-          ),
-          
-          // Add more services here using the same structure if needed
-        ],
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Colors.grey,
+            ),
+          ],
+        ),
       ),
     );
   }

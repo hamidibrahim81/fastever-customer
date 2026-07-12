@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui; // Added for precise image scaling
+import 'package:flutter/services.dart'; // Added for byte loading
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as maps;
 
@@ -31,27 +32,39 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   maps.LatLng? _destLatLng;
 
   double _driverRotation = 0.0;
+  
+  // Default fallback marker instantly prepared so it never disappears
+  maps.BitmapDescriptor _scooterIcon = maps.BitmapDescriptor.defaultMarkerWithHue(maps.BitmapDescriptor.hueOrange);
 
   @override
   void initState() {
     super.initState();
-    _saveDeviceToken();
-
+    _loadCustomMarker();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
   }
 
-  Future<void> _saveDeviceToken() async {
+  // ✅ FIXED: High-accuracy pixel bytes resize helper method to fix huge sizing/ghosting issues
+  Future<void> _loadCustomMarker() async {
     try {
-      String? token = await FirebaseMessaging.instance.getToken();
-      if (token != null) {
-        await FirebaseFirestore.instance
-            .collection('order_status')
-            .doc(widget.orderId)
-            .set({'fcmToken': token}, SetOptions(merge: true));
-      }
-    } catch (_) {}
+      // 120 width/height provides a crisp, standardized pin size matching the target standard destination indicator
+      final Uint8List markerIcon = await _getBytesFromAsset('assets/images/scooter_pin.png', 120);
+      setState(() {
+        _scooterIcon = maps.BitmapDescriptor.fromBytes(markerIcon);
+      });
+    } catch (e) {
+      // Safe fallback mechanism if image file cannot be resolved or parsed
+      _scooterIcon = maps.BitmapDescriptor.defaultMarkerWithHue(maps.BitmapDescriptor.hueOrange);
+    }
+  }
+
+  // ✅ Helper framework utility to scale PNG directly onto the engine graphics pipeline layer
+  Future<Uint8List> _getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(), targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
   }
 
   @override
@@ -62,7 +75,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     super.dispose();
   }
 
-  // ================= MAP LOGIC =================
+  // ================= MAP HANDLING LOGIC =================
 
   double _bearing(maps.LatLng a, maps.LatLng b) {
     final lat1 = a.latitude * math.pi / 180;
@@ -80,15 +93,13 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
 
   void _animateDriverTo(maps.LatLng next) {
     final start = _animatedDriverLatLng ?? next;
-
     _animTimer?.cancel();
 
-    const steps = 50;
+    const steps = 40;
     int current = 0;
-
     _driverRotation = _bearing(start, next);
 
-    _animTimer = Timer.periodic(const Duration(milliseconds: 60), (t) {
+    _animTimer = Timer.periodic(const Duration(milliseconds: 50), (t) {
       current++;
       double f = current / steps;
 
@@ -97,38 +108,45 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
 
       final pos = maps.LatLng(lat, lng);
       _animatedDriverLatLng = pos;
-
       _updateMarkers(pos);
 
       if (mounted) setState(() {});
-
       if (current >= steps) t.cancel();
     });
   }
 
   void _updateMarkers(maps.LatLng driver) {
     _markers.removeWhere((m) => m.markerId.value == 'driver');
-
     _markers.add(
       maps.Marker(
         markerId: const maps.MarkerId('driver'),
         position: driver,
         rotation: _driverRotation,
         flat: true,
-        icon: maps.BitmapDescriptor.defaultMarkerWithHue(
-          maps.BitmapDescriptor.hueOrange,
-        ),
+        anchor: const Offset(0.5, 0.5), // ✅ FIXED: Keeps center pivot lock so icon stays attached when zooming
+        icon: _scooterIcon, 
       ),
     );
 
     if (_destLatLng != null) {
+      _markers.removeWhere((m) => m.markerId.value == 'dest');
+      _markers.add(
+        maps.Marker(
+          markerId: const maps.MarkerId('dest'),
+          position: _destLatLng!,
+          anchor: const Offset(0.5, 1.0), // Classic bottom drop pinpoint anchor balance
+          icon: maps.BitmapDescriptor.defaultMarkerWithHue(maps.BitmapDescriptor.hueRed),
+        ),
+      );
+
       _polylines.clear();
       _polylines.add(
         maps.Polyline(
           polylineId: const maps.PolylineId("route"),
           points: [driver, _destLatLng!],
-          width: 5,
+          width: 6,
           color: Colors.orange,
+          jointType: maps.JointType.round,
         ),
       );
     }
@@ -136,105 +154,131 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
 
   void _moveCamera(maps.LatLng pos) {
     if (_mapController == null) return;
-    _mapController!.animateCamera(
-      maps.CameraUpdate.newLatLngZoom(pos, 15),
-    );
+    _mapController!.animateCamera(maps.CameraUpdate.newLatLngZoom(pos, 15.5));
   }
 
-  // ================= SWIGGY STYLE DYNAMIC ETA =================
-
   String _getDynamicTime(Map<String, dynamic> data) {
-    final String status = (data['status'] ?? 'pending').toLowerCase();
+    final String status = (data['status'] ?? 'pending').toLowerCase().trim();
     if (status == 'delivered') return "Delivered";
+
+    if (status == 'out_for_delivery' || status == 'on_the_way' || status == 'picked') {
+      if (data['deliveryPartnerETA'] != null) {
+        int transit = int.tryParse(data['deliveryPartnerETA'].toString()) ?? 12;
+        return transit <= 1 ? "1 min" : "$transit mins";
+      }
+      return "12 mins";
+    }
 
     final created = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
     final elapsedMins = DateTime.now().difference(created).inMinutes;
 
-    int baseMins = 40; // Default
+    int baseRemainingMins = 40;
 
     if (status == 'accepted') {
-      baseMins = 35;
-    } else if (status.contains('accepted') || status.contains('preparing') || status == 'ready') {
-      baseMins = 25;
-    } else if (status.contains('out_for_delivery') || status.contains('picked')) {
-      int transit = int.tryParse(data['deliveryPartnerETA']?.toString() ?? "12") ?? 12;
-      return transit <= 1 ? "1 min" : "$transit mins";
+      baseRemainingMins = 35;
+    } else if (status.contains('preparing')) {
+      baseRemainingMins = 30;
+    } else if (status == 'ready') {
+      baseRemainingMins = 25;
+    } else if (status == 'partner_accepted') {
+      baseRemainingMins = 20;
+    } else if (status == 'arrived_at_pickup') {
+      baseRemainingMins = 15;
     }
 
-    int remaining = baseMins - elapsedMins;
-    return remaining <= 0 ? "Arriving shortly" : "$remaining mins";
+    int finalRemaining = baseRemainingMins - elapsedMins;
+    return finalRemaining <= 0 ? "Shortly" : "$finalRemaining Mins";
   }
 
   String _prettyStatus(String status) {
     final s = status.toLowerCase().trim();
     switch (s) {
-      case 'accepted': return "ORDER ACCEPTED";
-      case 'ready': return "YOUR FOOD IS READY";
-      case 'partner_accepted': return "PARTNER ASSIGNED";
-      case 'arrived_at_pickup': return "PARTNER AT RESTAURANT";
+      case 'pending': return "Order Placed";
+      case 'accepted': return "Order Confirmed";
+      case 'ready': return "Food is Ready";
+      case 'partner_accepted': return "Driver Assigned";
+      case 'arrived_at_pickup': return "Driver at Restaurant";
       case 'out_for_delivery': 
-      case 'on_the_way': return "ON THE WAY";
-      case 'delivered': return "DELIVERED";
+      case 'on_the_way':
+      case 'picked': return "Out For Delivery";
+      case 'delivered': return "Delivered";
       default: return status.toUpperCase().replaceAll('_', ' ');
     }
   }
 
-  // ================= UI COMPONENTS =================
+  // ================= TIMELINE UI =================
 
-  Widget _buildStatusDot(String label, bool isActive) {
+  Widget _buildTimelineStep(String label, bool isDone, bool isCurrent) {
+    Color itemColor = isCurrent ? Colors.orange : (isDone ? Colors.black87 : Colors.grey.shade300);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          isActive ? Icons.check_circle : Icons.circle_outlined,
-          color: isActive ? Colors.orange : Colors.grey[300],
-          size: 20,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: isCurrent ? 24 : 16,
+          height: isCurrent ? 24 : 16,
+          decoration: BoxDecoration(
+            color: isCurrent ? Colors.white : itemColor,
+            shape: BoxShape.circle,
+            border: isCurrent ? Border.all(color: Colors.orange, width: 6) : null,
+            boxShadow: isCurrent ? [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 10)] : null,
+          ),
+          child: !isCurrent && isDone 
+              ? const Icon(Icons.check, color: Colors.white, size: 10) 
+              : const SizedBox.shrink(),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            color: isActive ? Colors.black : Colors.grey,
+            fontSize: 11,
+            fontWeight: (isCurrent || isDone) ? FontWeight.w800 : FontWeight.w500,
+            color: isCurrent ? Colors.orange : (isDone ? Colors.black87 : Colors.grey.shade400),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatusLine(bool isActive) {
+  Widget _buildTimelineDivider(bool isDone) {
     return Expanded(
       child: Container(
-        height: 2,
-        margin: const EdgeInsets.only(bottom: 15),
-        color: isActive ? Colors.orange : Colors.grey[200],
+        height: 3,
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: isDone ? Colors.orange : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
     );
   }
 
   Widget _statusShower(String status) {
     final s = status.toLowerCase().trim();
-    int currentIdx = 0;
+    int idx = 0;
     
-    // Mapping internal database statuses to UI milestones
-    if (s == 'accepted') currentIdx = 0;
-    if (s == 'ready') currentIdx = 1;
-    if (s == 'partner_accepted' || s == 'arrived_at_pickup') currentIdx = 2;
-    if (s == 'out_for_delivery' || s == 'on_the_way' || s == 'picked') currentIdx = 3;
-    if (s == 'delivered') currentIdx = 4;
+    if (s == 'accepted') idx = 1;
+    if (s == 'ready') idx = 2;
+    if (s == 'partner_accepted' || s == 'arrived_at_pickup') idx = 3;
+    if (s == 'out_for_delivery' || s == 'on_the_way' || s == 'picked') idx = 4;
+    if (s == 'delivered') idx = 5;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildStatusDot("Accepted", currentIdx >= 0),
-          _buildStatusLine(currentIdx >= 1),
-          _buildStatusDot("Ready", currentIdx >= 1),
-          _buildStatusLine(currentIdx >= 2),
-          _buildStatusDot("Partner", currentIdx >= 2),
-          _buildStatusLine(currentIdx >= 3),
-          _buildStatusDot("On Way", currentIdx >= 3),
+          _buildTimelineStep("Placed", idx >= 0, idx == 0),
+          _buildTimelineDivider(idx >= 1),
+          _buildTimelineStep("Kitchen", idx >= 1, idx == 1 || idx == 2),
+          _buildTimelineDivider(idx >= 3),
+          _buildTimelineStep("Pickup", idx >= 3, idx == 3),
+          _buildTimelineDivider(idx >= 4),
+          _buildTimelineStep("On Way", idx >= 4, idx == 4),
         ],
       ),
     );
@@ -245,10 +289,11 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Track Order", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Track Your Order", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.3)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        centerTitle: true,
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -261,7 +306,6 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-
           final status = data['status'] ?? 'processing';
           final timeLabel = _getDynamicTime(data);
 
@@ -270,13 +314,6 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
 
           if (dest != null) {
             _destLatLng = maps.LatLng(dest.latitude, dest.longitude);
-            _markers.removeWhere((m) => m.markerId.value == 'dest');
-            _markers.add(
-              maps.Marker(
-                markerId: const maps.MarkerId('dest'),
-                position: _destLatLng!,
-              ),
-            );
           }
 
           if (driverLoc != null && _isMapReady) {
@@ -296,8 +333,19 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
             children: [
               _header(timeLabel, status),
               _statusShower(status),
-              Expanded(child: _map(driverLoc)),
-              _driver(data),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15)],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _map(driverLoc),
+                ),
+              ),
+              _driverCard(data),
             ],
           );
         },
@@ -307,30 +355,17 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
 
   Widget _header(String time, String status) {
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 5),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         children: [
           Text(
-            "ESTIMATED ARRIVAL",
-            style: TextStyle(color: Colors.grey[600], fontSize: 12, letterSpacing: 1.2),
+            _prettyStatus(status).toUpperCase(),
+            style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             time,
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _prettyStatus(status),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Colors.orange,
-            ),
+            style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: -1),
           ),
         ],
       ),
@@ -344,14 +379,14 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-              height: 200,
+              height: 160,
               child: Lottie.asset(
                 'assets/animations/waiting.json',
                 errorBuilder: (context, error, stackTrace) => 
                     const CircularProgressIndicator(color: Colors.orange),
               ),
             ),
-            const Text("Waiting for partner assignment...", style: TextStyle(color: Colors.grey)),
+            Text("Preparing setup details...", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
           ],
         ),
       );
@@ -360,10 +395,13 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     final initial = maps.LatLng(driverLoc.latitude, driverLoc.longitude);
 
     return maps.GoogleMap(
-      initialCameraPosition: maps.CameraPosition(target: initial, zoom: 15),
+      initialCameraPosition: maps.CameraPosition(target: initial, zoom: 15.5),
       onMapCreated: (c) {
         _mapController = c;
         _isMapReady = true;
+        if (_lastDriverGeo != null) {
+          _updateMarkers(maps.LatLng(_lastDriverGeo!.latitude, _lastDriverGeo!.longitude));
+        }
       },
       markers: _markers,
       polylines: _polylines,
@@ -372,40 +410,68 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     );
   }
 
-  Widget _driver(Map<String, dynamic> data) {
+  Widget _driverCard(Map<String, dynamic> data) {
     final name = data['driverName'] ?? data['deliveryPartnerName'] ?? "Delivery Partner";
     final phone = data['driverPhone'] ?? data['deliveryPartnerPhone'] ?? "";
 
     if (name == "Delivery Partner" && phone == "") return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        color: const Color(0xFF1A1A1A),
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, -4))],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const CircleAvatar(
-            backgroundColor: Colors.orange,
-            child: Icon(Icons.person, color: Colors.white),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10))),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange.withOpacity(0.5), width: 2)),
+                child: const CircleAvatar(
+                  radius: 22,
+                  backgroundColor: Colors.white10,
+                  child: Icon(Icons.person, color: Colors.orange, size: 24),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white)),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Container(width: 7, height: 7, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                        const SizedBox(width: 6),
+                        const Text("Active Now", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (phone.isNotEmpty)
+                GestureDetector(
+                  onTap: () => launchUrl(Uri.parse('tel:$phone')),
+                  child: Container(
+                    height: 46,
+                    width: 46,
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: const Icon(Icons.phone_forwarded_rounded, color: Colors.green, size: 18),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const Text("Your delivery hero", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          ),
-          if (phone.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.call, color: Colors.green),
-              onPressed: () => launchUrl(Uri.parse('tel:$phone')),
-              style: IconButton.styleFrom(backgroundColor: Colors.green.withOpacity(0.1)),
-            ),
         ],
       ),
     );

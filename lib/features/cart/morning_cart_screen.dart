@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'morning_cart_provider.dart';
+import 'package:intl/intl.dart'; // 👉 Added for formatting dates easily
 
 import 'package:fastevergo_v1/features/food/coupon/coupon_service.dart';
 import 'package:fastevergo_v1/features/food/coupon/coupon_model.dart';
@@ -57,8 +57,9 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   Coupon? appliedCoupon;
   double appliedDiscount = 0;
   String selectedTimeSlot = "5:00 AM - 6:00 AM";
-
   
+  // ✅ ADDED DATE SELECTOR STATE (Defaults to tomorrow morning since it's a morning service)
+  DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
 
   // -------------------------
   // Delivery Fee Configuration
@@ -76,7 +77,7 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   double? _deliveryLat;
   double? _deliveryLng;
 
-  // ✅ ADDED SERVICE AREA VARIABLES
+  // ✅ SERVICE AREA VARIABLES
   double? _serviceLat;
   double? _serviceLng;
 
@@ -311,6 +312,35 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   }
 
   // -------------------------
+  // Date Picker Function
+  // -------------------------
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now(), // Allows today's date if slots are still open
+      lastDate: DateTime.now().add(const Duration(days: 7)), // Allows up to a week in advance
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.orange.shade700,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
+  // -------------------------
   // Navigate to Confirmation
   // -------------------------
   void _navigateToOrderConfirmation(double subtotal, double discount, double totalDeliveryFee) {
@@ -353,8 +383,9 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
           total: total,
           address: selectedAddress,
           payment: selectedPayment,
-          deliveryFee: totalDeliveryFee,
-          deliveryTime: selectedTimeSlot,
+          deliveryFee: _calculatedDeliveryFee, // 👉 PASSING THE SEPARATED DELIVERY FEE
+          deliveryTime: selectedTimeSlot, 
+          deliveryDate: selectedDate,     // 👉 PASSING THE ACTUAL DATETIME OBJECT
           latitude: _deliveryLat,
           longitude: _deliveryLng,
         ),
@@ -410,7 +441,7 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
                   _buildSectionTitle("📍 Delivery Address"),
                   _buildAddress(),
                   const SizedBox(height: 16),
-                  _buildSectionTitle("⏰ Select Delivery Time"),
+                  _buildSectionTitle("⏰ Select Delivery Schedule"), // 👉 Section Title Update
                   _buildDeliveryTimeSlot(),
                   const SizedBox(height: 16),
                   _buildSectionTitle("💰 Order Summary"),
@@ -470,18 +501,62 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     ),
   );
 
+  // ------------------------------------
+  // ✅ UPDATED DATE & TIME SLOT PICKER
+  // ------------------------------------
   Widget _buildDeliveryTimeSlot() => Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
-        child: DropdownButtonFormField<String>(
-          value: selectedTimeSlot,
-          decoration: InputDecoration(
-            labelText: 'Select Slot',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            prefixIcon: const Icon(Icons.alarm, color: Colors.orange),
-          ),
-          onChanged: (String? newValue) { if (newValue != null) setState(() => selectedTimeSlot = newValue); },
-          items: _deliverySlots.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50, 
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          children: [
+            // Date Picker Row
+            InkWell(
+              onTap: _selectDate,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_month, color: Colors.orange),
+                        const SizedBox(width: 12),
+                        Text(
+                          DateFormat('EEEE, d MMM yyyy').format(selectedDate),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Time Slot Dropdown
+            DropdownButtonFormField<String>(
+              value: selectedTimeSlot,
+              decoration: InputDecoration(
+                labelText: 'Select Time Slot',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                prefixIcon: const Icon(Icons.alarm, color: Colors.orange),
+              ),
+              onChanged: (String? newValue) { if (newValue != null) setState(() => selectedTimeSlot = newValue); },
+              items: _deliverySlots.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            ),
+          ],
         ),
       );
 
