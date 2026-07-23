@@ -16,7 +16,11 @@ import '../instahub/InstantOrderHomeScreen.dart';
 import '../instahub/MorningOrderHomeScreen.dart';
 import '../auth/login_screen.dart';
 import '../home_services/home_services_screen.dart';
-import '../Laundry/LaundryServiceForm.dart';
+import '../laundry/LaundryServiceForm.dart';
+import '../car_wash/CarWashingCentresScreen.dart';
+import '../book_time/book_time_screens.dart';
+import '../notification/notificationscreen.dart';
+import '../takearide/takeridescreen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -756,9 +760,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
       appBar: AppBar(
-        iconTheme: const IconThemeData(color: AppColors.primary), 
-        backgroundColor: AppColors.background, 
-        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white), 
+        backgroundColor: AppColors.primary,
+        elevation: 6,
+        shadowColor: Colors.black.withOpacity(0.3),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(24), // 🌟 Smooth rounded bottom header curve
+          ),
+        ),
         centerTitle: false,
         title: GestureDetector(
           onTap: () => setState(() => _gateState = GateState.outOfArea),
@@ -770,13 +780,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Flexible(
                 child: Text(
                   _currentLocation, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary, overflow: TextOverflow.ellipsis)
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white, overflow: TextOverflow.ellipsis)
                 ),
               ),
-              const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.primary)
+              const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.white)
             ],
           ),
         ),
+        actions: [
+          const NotificationBellIconButton(),
+          const SizedBox(width: 8),
+        ],
       ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
@@ -885,6 +899,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, 
+                mainAxisSpacing: 16, 
+                crossAxisSpacing: 16, 
+                childAspectRatio: 0.88,
+              ),
               delegate: SliverChildBuilderDelegate((context, index) {
                 final item = services[index];
                 return GestureDetector(
@@ -962,12 +982,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 );
               }, childCount: services.length),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, 
-                mainAxisSpacing: 16, 
-                crossAxisSpacing: 16, 
-                childAspectRatio: 0.88 
-              )
             ),
           ),
 
@@ -1081,7 +1095,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 }
 
 // ---------------------------------------------------------------------
-// Unified Other Services View (Injected locally to guarantee error-free compiling)
+// Unified Other Services View 
 // ---------------------------------------------------------------------
 class OtherServicesScreen extends StatelessWidget {
   const OtherServicesScreen({super.key});
@@ -1091,28 +1105,37 @@ class OtherServicesScreen extends StatelessWidget {
     final List<Map<String, dynamic>> allServices = [
       {'title': 'Home Service', 'image': 'assets/instahub/homee.png', 'screen': const HomeServicesScreen()},
       {'title': 'Laundry', 'image': 'assets/instahub/laundryy.png', 'screen': const LaundryServiceForm()},
-      {'title': 'Car Wash', 'image': 'assets/instahub/carwashh.png', 'screen': null},
-      {'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.png', 'screen': null},
-      {'title': 'Take Ride', 'image': 'assets/instahub/ridey.png', 'screen': null},
+      {'title': 'Car Wash', 'image': 'assets/instahub/carwashh.png', 'screen': const CarWashingCentresScreen()},
+      {'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.png', 'screen': const BookTimeHubScreen()},
+      {'title': 'Take Ride', 'image': 'assets/instahub/ridey.png', 'screen': const TakeRideScreen()},
       {'title': 'Pharmacy', 'image': 'assets/instahub/pharmacyy.png', 'screen': null},
       {'title': 'Events', 'image': 'assets/instahub/eventyy.png', 'screen': null},
-      
     ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
+        backgroundColor: AppColors.primary,
+        elevation: 6,
+        shadowColor: Colors.black.withOpacity(0.3),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(24), // 🌟 Smooth rounded bottom header curve
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.primary),
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "All Services 🌟",
-          style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
+        actions: [
+          const NotificationBellIconButton(),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Padding(

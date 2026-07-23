@@ -105,6 +105,10 @@ flutter:
     - assets/instahub/bookyy.png
     - assets/instahub/ridey.png
     - assets/instahub/eventyy.png
+
+    - assets/instahub/salon.png
+    - assets/instahub/petcare.png
+    - assets/instahub/turf.png
     
 
 
