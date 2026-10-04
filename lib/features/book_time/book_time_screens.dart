@@ -24,12 +24,6 @@ class BookTimeHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> categories = [
-      {'title': 'Salon & Grooming', 'image': 'assets/instahub/salon.png', 'active': true},
-      {'title': 'Pet Care', 'image': 'assets/instahub/petcare.png', 'active': true},
-      {'title': 'Turf Booking', 'image': 'assets/instahub/turf.png', 'active': true},
-    ];
-
     return Scaffold(
       backgroundColor: LocalColors.background,
       appBar: AppBar(
@@ -48,109 +42,173 @@ class BookTimeHubScreen extends StatelessWidget {
           NotificationBellIconButton(),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-            child: const Text(
-              "Select Service Field",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: LocalColors.primary),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: categories.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.9,
+      // StreamBuilder listens to `app_settings/book_time_status` for live maintenance toggles
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('app_settings').doc('book_time_status').snapshots(),
+        builder: (context, snapshot) {
+          Map<String, dynamic> statusData = {};
+          if (snapshot.hasData && snapshot.data!.exists) {
+            statusData = snapshot.data!.data() as Map<String, dynamic> ?? {};
+          }
+
+          // Read individual flags with default fallback to true if document is missing
+          final bool salonActive = statusData['salons'] ?? true;
+          final bool petActive = statusData['pet_care'] ?? true;
+          final bool turfActive = statusData['turf'] ?? true;
+
+          final List<Map<String, dynamic>> categories = [
+            {
+              'title': 'Salon & Grooming', 
+              'image': 'assets/instahub/salon.png', 
+              'active': salonActive,
+              'key': 'salons'
+            },
+            {
+              'title': 'Pet Care', 
+              'image': 'assets/instahub/petcare.png', 
+              'active': petActive,
+              'key': 'pet_care'
+            },
+            {
+              'title': 'Turf Booking', 
+              'image': 'assets/instahub/turf.png', 
+              'active': turfActive,
+              'key': 'turf'
+            },
+          ];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 24, 24, 12),
+                child: Text(
+                  "Select Service Field",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: LocalColors.primary),
+                ),
               ),
-              itemBuilder: (context, index) {
-                final cat = categories[index];
-                return GestureDetector(
-                  onTap: () {
-                    if (cat['active'] == true) {
-                      if (cat['title'] == 'Salon & Grooming') {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const SalonDirectoryScreen()));
-                      } else if (cat['title'] == 'Pet Care') {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const PetCareDirectoryScreen()));
-                      } else if (cat['title'] == 'Turf Booking') {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TurfDirectoryScreen()));
-                      }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("${cat['title']} subsystem coming online soon!")),
-                      );
-                    }
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.black.withOpacity(0.03)),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 8, offset: const Offset(0, 2))
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 7,
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: double.infinity,
-                              child: Image.asset(
-                                cat['image'],
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  color: LocalColors.primary.withOpacity(0.05),
-                                  child: const Icon(Icons.storefront_rounded, size: 40, color: LocalColors.textLight),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: categories.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.9,
+                  ),
+                  itemBuilder: (context, index) {
+                    final cat = categories[index];
+                    final bool isActive = cat['active'] == true;
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (isActive) {
+                          if (cat['title'] == 'Salon & Grooming') {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const SalonDirectoryScreen()));
+                          } else if (cat['title'] == 'Pet Care') {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const PetCareDirectoryScreen()));
+                          } else if (cat['title'] == 'Turf Booking') {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const TurfDirectoryScreen()));
+                          }
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("${cat['title']} is currently under maintenance. Please check back later!"),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      },
+                      child: Opacity(
+                        opacity: isActive ? 1.0 : 0.6,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.black.withOpacity(0.03)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 8, offset: const Offset(0, 2))
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 7,
+                                  child: Stack(
+                                    children: [
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        child: Image.asset(
+                                          cat['image'],
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(
+                                            color: LocalColors.primary.withOpacity(0.05),
+                                            child: const Icon(Icons.storefront_rounded, size: 40, color: LocalColors.textLight),
+                                          ),
+                                        ),
+                                      ),
+                                      if (!isActive)
+                                        Container(
+                                          color: Colors.black54,
+                                          child: const Center(
+                                            child: Text(
+                                              "TEMPORARILY OFF",
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                                Expanded(
+                                  flex: 3,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          cat['title'],
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: LocalColors.primary),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (!isActive)
+                                          const Text(
+                                            "Under Maintenance",
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.redAccent,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              ],
                             ),
                           ),
-                          Expanded(
-                            flex: 3,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    cat['title'],
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: LocalColors.primary),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (cat['active'] != true)
-                                    const Text(
-                                      "Coming Soon",
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: LocalColors.textLight,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          )
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -350,7 +408,6 @@ class PetCareDirectoryScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // 🎯 Collection stream configured to 'pet_care'
         stream: FirebaseFirestore.instance.collection('pet_care').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

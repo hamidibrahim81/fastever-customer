@@ -37,6 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
   int _secondsRemaining = 30;
   bool _canResend = false;
 
+  // Matching Theme Color Token
+  static const Color _brandYellow = Color(0xFFFFC400);
+
   final String _privacyUrl = "https://sites.google.com/view/fastever-privacy";
   final String _termsUrl =
       "https://sites.google.com/view/fastever-termsconditions/home";
@@ -171,8 +174,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              backgroundColor: Colors.green,
-              content: Text("OTP sent successfully."),
+              backgroundColor: Colors.black87,
+              content: Text("OTP sent successfully.", style: TextStyle(color: _brandYellow)),
             ),
           );
         },
@@ -312,8 +315,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: Colors.redAccent,
-        content: Text(msg),
+        backgroundColor: Colors.black87,
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -337,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _brandYellow,
       body: Stack(
         children: [
           SafeArea(
@@ -358,21 +361,23 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text(
                             "Let's sign you in.",
                             style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black,
+                              letterSpacing: -0.5,
                             ),
                           ),
                           const SizedBox(height: 10),
                           const Text(
                             "Welcome to FASTever.\nContinue with your phone number.",
                             style: TextStyle(
-                              fontSize: 22,
-                              color: Colors.grey,
-                              height: 1.25,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                              height: 1.3,
                             ),
                           ),
-                          const SizedBox(height: 50),
+                          const SizedBox(height: 45),
                           AnimatedCrossFade(
                             duration: const Duration(milliseconds: 350),
                             firstChild: _buildPhoneInput(),
@@ -398,26 +403,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: Colors.black.withOpacity(0.38),
+      color: Colors.black.withOpacity(0.55),
       child: Center(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 28),
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.78),
-            borderRadius: BorderRadius.circular(18),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: Colors.white),
-              const SizedBox(height: 18),
+              const CircularProgressIndicator(color: Colors.black),
+              const SizedBox(height: 20),
               Text(
                 _loadingTitle,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
+                  color: Colors.black,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -426,7 +438,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 _loadingSubtitle,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: Colors.black54,
                   fontSize: 13,
                   height: 1.35,
                 ),
@@ -445,7 +457,11 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           const Text(
             "Phone Number",
-            style: TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.black,
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -454,22 +470,41 @@ class _LoginScreenState extends State<LoginScreen> {
             autofillHints: const [AutofillHints.telephoneNumber],
             maxLength: 10,
             enabled: !_isSendingOtp && !_isLoading,
-            style: const TextStyle(fontSize: 18, letterSpacing: 1.0),
+            style: const TextStyle(
+              fontSize: 18,
+              letterSpacing: 1.0,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
             decoration: InputDecoration(
               prefixIcon: const Padding(
-                padding: EdgeInsets.all(15),
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 15),
                 child: Text(
                   "+91",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
               ),
               hintText: "Enter phone number",
+              hintStyle: const TextStyle(color: Colors.black38, fontWeight: FontWeight.normal),
               counterText: "",
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.black12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.black, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.shade50,
+              fillColor: Colors.white,
             ),
           ),
           const SizedBox(height: 24),
@@ -483,25 +518,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       : _sendOTP,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                disabledBackgroundColor: Colors.black54,
+                foregroundColor: _brandYellow,
+                disabledBackgroundColor: Colors.black45,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: _isSendingOtp
                   ? const SizedBox(
-                      height: 20,
-                      width: 20,
+                      height: 22,
+                      width: 22,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
+                        color: _brandYellow,
+                        strokeWidth: 2.5,
                       ),
                     )
                   : const Text(
                       "Get OTP",
                       style: TextStyle(
                         fontSize: 18,
-                        color: Colors.white,
+                        color: _brandYellow,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -522,13 +559,21 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const Text(
                 "Enter OTP",
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.black,
+                ),
               ),
               TextButton(
                 onPressed: _isLoading ? null : _changeNumber,
                 child: const Text(
                   "Change Number",
-                  style: TextStyle(color: Colors.blueAccent),
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
             ],
@@ -543,17 +588,28 @@ class _LoginScreenState extends State<LoginScreen> {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 24,
-              letterSpacing: 4.0,
+              letterSpacing: 6.0,
               fontWeight: FontWeight.bold,
+              color: Colors.black,
             ),
             decoration: InputDecoration(
               hintText: "• • • • • •",
+              hintStyle: const TextStyle(color: Colors.black38, letterSpacing: 6.0),
               counterText: "",
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.black12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Colors.black, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey.shade50,
+              fillColor: Colors.white,
             ),
           ),
           const SizedBox(height: 15),
@@ -567,14 +623,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text(
                       "Resend OTP",
                       style: TextStyle(
-                        color: Colors.blueAccent,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                   )
                 : Text(
                     "Resend OTP in $_secondsRemaining seconds",
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
           ),
           const SizedBox(height: 15),
@@ -585,25 +647,27 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: (_isVerifyingOtp || _isLoading) ? null : _verifyOTP,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                disabledBackgroundColor: Colors.black54,
+                foregroundColor: _brandYellow,
+                disabledBackgroundColor: Colors.black45,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: _isVerifyingOtp
                   ? const SizedBox(
-                      height: 20,
-                      width: 20,
+                      height: 22,
+                      width: 22,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
+                        color: _brandYellow,
+                        strokeWidth: 2.5,
                       ),
                     )
                   : const Text(
                       "Verify & Login",
                       style: TextStyle(
                         fontSize: 18,
-                        color: Colors.white,
+                        color: _brandYellow,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -622,7 +686,11 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const Text(
               "By continuing, you agree to our",
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 4),
             Wrap(
@@ -631,12 +699,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 _link("Terms", _termsUrl),
                 const Text(
                   "  •  ",
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                  style: TextStyle(color: Colors.black54, fontSize: 11),
                 ),
                 _link("Privacy", _privacyUrl),
                 const Text(
                   "  •  ",
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                  style: TextStyle(color: Colors.black54, fontSize: 11),
                 ),
                 _link("Shipping", _shippingUrl),
               ],
@@ -658,7 +726,7 @@ class _LoginScreenState extends State<LoginScreen> {
           fontSize: 11,
           fontWeight: FontWeight.bold,
           decoration: TextDecoration.underline,
-          color: Colors.black87,
+          color: Colors.black,
         ),
       ),
     );

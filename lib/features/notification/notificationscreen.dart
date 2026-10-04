@@ -32,6 +32,16 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
     super.dispose();
   }
 
+  // 🛡️ Safe DateTime parser for sorting regardless of whether it's stored as Timestamp, String, or null
+  DateTime _parseDateTime(dynamic val) {
+    if (val is Timestamp) {
+      return val.toDate();
+    } else if (val is String) {
+      return DateTime.tryParse(val) ?? DateTime.now();
+    }
+    return DateTime.now();
+  }
+
   // ⏰ Helper method: Check 2-hour cutoff rule
   bool _isCancellationAllowed(String bookingDate, int slotStartMinutes) {
     try {
@@ -52,11 +62,11 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
     String docId, 
     Map<String, dynamic> bookingData
   ) async {
-    final String bDate = bookingData['booking_date'] ?? '';
+    final String bDate = bookingData['booking_date'] ?? bookingData['pickup_date'] ?? bookingData['scheduled_date'] ?? '';
     final int slotStartMinutes = bookingData['slot_start_minutes'] ?? 0;
 
-    // ⛔ Check 2-Hour Rule
-    if (!_isCancellationAllowed(bDate, slotStartMinutes)) {
+    // ⛔ Check 2-Hour Rule (for time-slotted bookings)
+    if (bDate.isNotEmpty && slotStartMinutes > 0 && !_isCancellationAllowed(bDate, slotStartMinutes)) {
       if (mounted) {
         showDialog(
           context: context,
@@ -93,7 +103,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Cancel Booking?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: NotificationColors.primary)),
-        content: const Text("Are you sure you want to cancel this booking? This will free the slot for other users.", style: TextStyle(fontSize: 14, color: NotificationColors.textDark)),
+        content: const Text("Are you sure you want to cancel this booking? This action cannot be undone.", style: TextStyle(fontSize: 14, color: NotificationColors.textDark)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false), 
@@ -119,40 +129,24 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
         'cancelled_at': FieldValue.serverTimestamp(),
       };
 
-      // 1. User Subcollection
-      batch.update(firestore.collection('users').doc(userId).collection(subcollectionName).doc(docId), updatePayload);
-
-      // 2. Venue Subcollection
-      String centerCollection = 'salons';
-      String centerId = bookingData['salon_id'] ?? '';
-
-      if (subcollectionName == 'turf_booking') {
-        centerCollection = 'turf';
-        centerId = bookingData['turf_id'] ?? '';
-      } else if (subcollectionName == 'pet_booking') {
-        centerCollection = 'pet_care';
-        centerId = bookingData['pet_id'] ?? '';
+      if (subcollectionName == 'food_orders') {
+        batch.update(firestore.collection('orders').doc(docId), updatePayload);
+      } else if (subcollectionName == 'home_service') {
+        batch.update(firestore.collection('home_service').doc(docId), updatePayload);
+      } else if (subcollectionName == 'laundry') {
+        batch.update(firestore.collection('laundry').doc(docId), updatePayload);
+      } else if (subcollectionName == 'pharmacy_orders') {
+        batch.update(firestore.collection('users').doc(userId).collection('pharmacy_orders').doc(docId), updatePayload);
+        batch.update(firestore.collection('pharmacy_orders').doc(docId), updatePayload);
+      } else {
+        batch.update(firestore.collection('users').doc(userId).collection(subcollectionName).doc(docId), updatePayload);
       }
-
-      if (centerId.isNotEmpty) {
-        batch.update(firestore.collection(centerCollection).doc(centerId).collection('centre_orders').doc(docId), updatePayload);
-      }
-
-      // 3. Global Master Collection
-      String globalCollection = 'booking_salon_service';
-      if (subcollectionName == 'turf_booking') {
-        globalCollection = 'booking_turf_service';
-      } else if (subcollectionName == 'pet_booking') {
-        globalCollection = 'booking_pet_service';
-      }
-
-      batch.update(firestore.collection(globalCollection).doc(docId), updatePayload);
 
       await batch.commit();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Booking cancelled and slot liberated.")),
+          const SnackBar(content: Text("Booking cancelled successfully.")),
         );
       }
     } catch (e) {
@@ -175,7 +169,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
           icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("My Bookings 🔔", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text("My Bookings & Orders 🔔", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -191,7 +185,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
         ),
       ),
       body: user == null
-          ? const Center(child: Text("Please sign in to view your bookings."))
+          ? const Center(child: Text("Please sign in to view your orders."))
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('salon_booking').snapshots(),
               builder: (context, salonSnapshot) {
@@ -201,51 +195,75 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                     return StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('pet_booking').snapshots(),
                       builder: (context, petSnapshot) {
-                        List<Map<String, dynamic>> allBookings = [];
+                        return StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('ride_booking').snapshots(),
+                          builder: (context, rideSnapshot) {
+                            return StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('tourist_bus_booking').snapshots(),
+                              builder: (context, busSnapshot) {
+                                return StreamBuilder<QuerySnapshot>(
+                                  stream: FirebaseFirestore.instance.collection('orders').where('userId', isEqualTo: user.uid).snapshots(),
+                                  builder: (context, foodSnapshot) {
+                                    return StreamBuilder<QuerySnapshot>(
+                                      stream: FirebaseFirestore.instance.collection('home_service').where('userId', isEqualTo: user.uid).snapshots(),
+                                      builder: (context, homeServiceSnapshot) {
+                                        return StreamBuilder<QuerySnapshot>(
+                                          stream: FirebaseFirestore.instance.collection('laundry').where('userId', isEqualTo: user.uid).snapshots(),
+                                          builder: (context, laundrySnapshot) {
+                                            return StreamBuilder<QuerySnapshot>(
+                                              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('pharmacy_orders').snapshots(),
+                                              builder: (context, pharmacySnapshot) {
+                                                List<Map<String, dynamic>> allBookings = [];
 
-                        if (salonSnapshot.hasData) {
-                          for (var doc in salonSnapshot.data!.docs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            data['_doc_id'] = doc.id;
-                            data['_subcollection'] = 'salon_booking';
-                            allBookings.add(data);
-                          }
-                        }
+                                                void addDocs(AsyncSnapshot<QuerySnapshot> snapshot, String subName) {
+                                                  if (snapshot.hasData && snapshot.data != null) {
+                                                    for (var doc in snapshot.data!.docs) {
+                                                      final data = doc.data() as Map<String, dynamic>;
+                                                      data['_doc_id'] = doc.id;
+                                                      data['_subcollection'] = subName;
+                                                      allBookings.add(data);
+                                                    }
+                                                  }
+                                                }
 
-                        if (turfSnapshot.hasData) {
-                          for (var doc in turfSnapshot.data!.docs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            data['_doc_id'] = doc.id;
-                            data['_subcollection'] = 'turf_booking';
-                            allBookings.add(data);
-                          }
-                        }
+                                                addDocs(salonSnapshot, 'salon_booking');
+                                                addDocs(turfSnapshot, 'turf_booking');
+                                                addDocs(petSnapshot, 'pet_booking');
+                                                addDocs(rideSnapshot, 'ride_booking');
+                                                addDocs(busSnapshot, 'tourist_bus_booking');
+                                                addDocs(foodSnapshot, 'food_orders');
+                                                addDocs(homeServiceSnapshot, 'home_service');
+                                                addDocs(laundrySnapshot, 'laundry');
+                                                addDocs(pharmacySnapshot, 'pharmacy_orders');
 
-                        if (petSnapshot.hasData) {
-                          for (var doc in petSnapshot.data!.docs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            data['_doc_id'] = doc.id;
-                            data['_subcollection'] = 'pet_booking';
-                            allBookings.add(data);
-                          }
-                        }
+                                                // Safe sorting using _parseDateTime to prevent type casting crashes
+                                                allBookings.sort((a, b) {
+                                                  DateTime dateA = _parseDateTime(a['createdAt'] ?? a['timestamp'] ?? a['created_at']);
+                                                  DateTime dateB = _parseDateTime(b['createdAt'] ?? b['timestamp'] ?? b['created_at']);
+                                                  return dateB.compareTo(dateA);
+                                                });
 
-                        // Sort newest first
-                        allBookings.sort((a, b) {
-                          Timestamp tA = a['timestamp'] ?? Timestamp.now();
-                          Timestamp tB = b['timestamp'] ?? Timestamp.now();
-                          return tB.compareTo(tA);
-                        });
+                                                final activeList = allBookings.where((b) => (b['status'] ?? 'booked').toString().toLowerCase() != 'cancelled').toList();
+                                                final historyList = allBookings.where((b) => (b['status'] ?? 'booked').toString().toLowerCase() == 'cancelled').toList();
 
-                        final activeList = allBookings.where((b) => (b['status'] ?? 'booked') != 'cancelled').toList();
-                        final historyList = allBookings.where((b) => (b['status'] ?? 'booked') == 'cancelled').toList();
-
-                        return TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildBookingList(activeList, user.uid, isActiveTab: true),
-                            _buildBookingList(historyList, user.uid, isActiveTab: false),
-                          ],
+                                                return TabBarView(
+                                                  controller: _tabController,
+                                                  children: [
+                                                    _buildBookingList(activeList, user.uid, isActiveTab: true),
+                                                    _buildBookingList(historyList, user.uid, isActiveTab: false),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          },
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
                         );
                       },
                     );
@@ -300,13 +318,53 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
           typeIcon = Icons.pets_rounded;
           badgeBg = const Color(0xFFFEF3C7);
           badgeFg = const Color(0xFFB45309);
+        } else if (subcollection == 'ride_booking') {
+          typeTitle = "RIDE SERVICE";
+          typeIcon = Icons.local_taxi_rounded;
+          badgeBg = const Color(0xFFFEF08A);
+          badgeFg = const Color(0xFFA16207);
+        } else if (subcollection == 'tourist_bus_booking') {
+          typeTitle = "TOURIST BUS BOOKING";
+          typeIcon = Icons.directions_bus_rounded;
+          badgeBg = const Color(0xFFE0F2FE);
+          badgeFg = const Color(0xFF0369A1);
+        } else if (subcollection == 'food_orders') {
+          typeTitle = "FOOD & INSTAHUB ORDER";
+          typeIcon = Icons.fastfood_rounded;
+          badgeBg = const Color(0xFFFFEDD5);
+          badgeFg = const Color(0xFFC2410C);
+        } else if (subcollection == 'home_service') {
+          typeTitle = "HOME SERVICE (${(booking['service_category'] ?? 'General').toString().toUpperCase()})";
+          typeIcon = Icons.home_repair_service_rounded;
+          badgeBg = const Color(0xFFE0E7FF);
+          badgeFg = const Color(0xFF3730A3);
+        } else if (subcollection == 'laundry') {
+          typeTitle = "LAUNDRY SERVICE";
+          typeIcon = Icons.local_laundry_service_rounded;
+          badgeBg = const Color(0xFFE0F2FE);
+          badgeFg = const Color(0xFF0284C7);
+        } else if (subcollection == 'pharmacy_orders') {
+          typeTitle = "PHARMACY PRESCRIPTION";
+          typeIcon = Icons.medical_services_rounded;
+          badgeBg = const Color(0xFFCCFBF1);
+          badgeFg = const Color(0xFF0D9488);
         }
 
-        final String venueName = booking['salon_name'] ?? booking['turf_name'] ?? booking['pet_name'] ?? 'Care Center';
-        final String date = booking['booking_date'] ?? 'N/A';
-        final String time = booking['booking_time'] ?? 'N/A';
+        final String venueName = booking['salon_name'] ?? 
+            booking['turf_name'] ?? 
+            booking['pet_name'] ?? 
+            booking['vehicle_type'] ?? 
+            booking['bus_name'] ?? 
+            booking['service_category'] ??
+            booking['washing_centre_name'] ??
+            (subcollection == 'food_orders' ? "Food Delivery Order" : null) ??
+            (subcollection == 'pharmacy_orders' ? "Medicine Request" : null) ??
+            'Booking Details';
+
+        final String date = booking['booking_date'] ?? booking['pickup_date'] ?? booking['scheduled_date'] ?? 'N/A';
+        final String time = booking['booking_time'] ?? booking['pickup_time'] ?? booking['scheduled_time'] ?? booking['drop_location'] ?? booking['where_to_go'] ?? 'N/A';
         final String status = booking['status'] ?? 'booked';
-        final List<dynamic> services = booking['selected_sports'] ?? booking['selected_services'] ?? [];
+        final List<dynamic> services = booking['selected_sports'] ?? booking['selected_services'] ?? booking['service_categories'] ?? [];
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -387,9 +445,21 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                             Expanded(
                               child: Row(
                                 children: [
-                                  const Icon(Icons.access_time_filled_rounded, size: 16, color: NotificationColors.accent),
+                                  Icon(
+                                    subcollection == 'ride_booking' || subcollection == 'tourist_bus_booking' 
+                                        ? Icons.location_on_rounded 
+                                        : Icons.access_time_filled_rounded, 
+                                    size: 16, 
+                                    color: NotificationColors.accent
+                                  ),
                                   const SizedBox(width: 6),
-                                  Expanded(child: Text(time, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NotificationColors.textDark), overflow: TextOverflow.ellipsis)),
+                                  Expanded(
+                                    child: Text(
+                                      time, 
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: NotificationColors.textDark), 
+                                      overflow: TextOverflow.ellipsis
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -468,34 +538,70 @@ class NotificationBellIconButton extends StatelessWidget {
             return StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('pet_booking').where('status', isEqualTo: 'booked').snapshots(),
               builder: (context, petSnap) {
-                int activeCount = 0;
-                if (salonSnap.hasData) activeCount += salonSnap.data!.docs.length;
-                if (turfSnap.hasData) activeCount += turfSnap.data!.docs.length;
-                if (petSnap.hasData) activeCount += petSnap.data!.docs.length;
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('ride_booking').where('status', isEqualTo: 'booked').snapshots(),
+                  builder: (context, rideSnap) {
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('tourist_bus_booking').where('status', isEqualTo: 'booked').snapshots(),
+                      builder: (context, busSnap) {
+                        return StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance.collection('orders').where('userId', isEqualTo: user.uid).where('status', isEqualTo: 'pending').snapshots(),
+                          builder: (context, foodSnap) {
+                            return StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance.collection('home_service').where('userId', isEqualTo: user.uid).where('status', isEqualTo: 'Pending').snapshots(),
+                              builder: (context, homeSnap) {
+                                return StreamBuilder<QuerySnapshot>(
+                                  stream: FirebaseFirestore.instance.collection('laundry').where('userId', isEqualTo: user.uid).where('status', isEqualTo: 'Pending').snapshots(),
+                                  builder: (context, laundrySnap) {
+                                    return StreamBuilder<QuerySnapshot>(
+                                      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).collection('pharmacy_orders').where('status', isEqualTo: 'Pending Approval').snapshots(),
+                                      builder: (context, pharmacySnap) {
+                                        int activeCount = 0;
+                                        if (salonSnap.hasData) activeCount += salonSnap.data!.docs.length;
+                                        if (turfSnap.hasData) activeCount += turfSnap.data!.docs.length;
+                                        if (petSnap.hasData) activeCount += petSnap.data!.docs.length;
+                                        if (rideSnap.hasData) activeCount += rideSnap.data!.docs.length;
+                                        if (busSnap.hasData) activeCount += busSnap.data!.docs.length;
+                                        if (foodSnap.hasData) activeCount += foodSnap.data!.docs.length;
+                                        if (homeSnap.hasData) activeCount += homeSnap.data!.docs.length;
+                                        if (laundrySnap.hasData) activeCount += laundrySnap.data!.docs.length;
+                                        if (pharmacySnap.hasData) activeCount += pharmacySnap.data!.docs.length;
 
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_rounded, color: Colors.white),
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
-                    ),
-                    if (activeCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            '$activeCount',
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
+                                        return Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.notifications_rounded, color: Colors.white),
+                                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                                            ),
+                                            if (activeCount > 0)
+                                              Positioned(
+                                                right: 8,
+                                                top: 8,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(4),
+                                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                                  child: Text(
+                                                    '$activeCount',
+                                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
                 );
               },
             );

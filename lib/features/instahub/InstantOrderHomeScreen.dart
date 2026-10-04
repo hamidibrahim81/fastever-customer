@@ -1,17 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:fastevergo_v1/features/profile/profile_screen2.dart';
-import 'package:fastevergo_v1/features/instahub/CategoryScreen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../auth/login_screen.dart';
-
+import 'package:fastevergo_v1/features/profile/profile_screen2.dart';
 // ✅ IMPORT GLOBAL AUTH GUARD
 import 'package:fastevergo_v1/utils/auth_guards.dart';
-
+// ✅ IMPORT NOTIFICATION SCREEN FOR NAVIGATION
+import 'package:fastevergo_v1/features/notification/NotificationScreen.dart';
 // CORRECTED INSTAHUB IMPORTS
 import 'instahub_cart_provider.dart';
 import 'instahub_cart_bar.dart';
@@ -32,15 +29,16 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
   String _searchQuery = '';
   DateTime? _lastPressed;
 
-  final PageController _adsPageController =
-      PageController(viewportFraction: 0.9);
-  int _currentAdsPage = 0;
+  // Ads loop & soft transition controls
+  int _currentAdIndex = 0;
   Timer? _adsTimer;
-  late AnimationController _pulseController;
-  late AnimationController _bigDealsController;
 
-  static const Color _primaryColor = Color(0xFF121212); 
-  static const Color _accentColor = Color(0xFF00E676); 
+  // Selected filter: 'all', 'top_sell', 'best_offer', or a specific category tag
+  String _selectedFilterTag = 'all';
+
+  // Slate-navy top background container
+  static const Color _headerBgColor = Color(0xFF0F172A);
+  static const Color _accentColor = Color(0xFF00E676);
   static const Color _bgColor = Color(0xFFF8F9FD);
 
   final List<Map<String, dynamic>> categories = [
@@ -50,7 +48,7 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
     {"name": "Grocery & staples", "image": "assets/icons/gs.jpeg", "tag": "gs"},
     {"name": "Bakery & snacks", "image": "assets/icons/bs.jpeg", "tag": "bs"},
     {"name": "Beverages", "image": "assets/icons/b.jpeg", "tag": "b"},
-    {"name": "household Essentials", "image": "assets/icons/he.jpeg", "tag": "he"},
+    {"name": "Household Essentials", "image": "assets/icons/he.jpeg", "tag": "he"},
     {"name": "Baby & kids", "image": "assets/icons/bk.jpeg", "tag": "bk"},
     {"name": "Pet Care", "image": "assets/icons/pc.jpeg", "tag": "pc"},
   ];
@@ -59,27 +57,6 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _bigDealsController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-
-    _adsTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
-      if (_adsPageController.hasClients) {
-        _currentAdsPage++;
-        _adsPageController.animateToPage(
-          _currentAdsPage,
-          duration: const Duration(milliseconds: 1000),
-          curve: Curves.fastLinearToSlowEaseIn,
-        );
-      }
-    });
   }
 
   @override
@@ -87,10 +64,7 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _adsPageController.dispose();
     _adsTimer?.cancel();
-    _pulseController.dispose();
-    _bigDealsController.dispose();
     super.dispose();
   }
 
@@ -98,7 +72,7 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
     setState(() => _searchQuery = _searchController.text.trim());
   }
 
-  void _handlePop(bool didPop) {
+  void _handlePop(bool didPop, dynamic result) {
     if (didPop) return;
     if (_searchQuery.isNotEmpty) {
       setState(() {
@@ -107,72 +81,77 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       });
       return;
     }
+    const duration = Duration(milliseconds: 2000);
     final now = DateTime.now();
-    if (_lastPressed == null ||
-        now.difference(_lastPressed!) > const Duration(milliseconds: 2000)) {
+    if (_lastPressed == null || now.difference(_lastPressed!) > duration) {
       _lastPressed = now;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Press back again to exit", style: GoogleFonts.inter()),
-        backgroundColor: Colors.black,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Press back again to return to home", style: GoogleFonts.inter()),
+          backgroundColor: Colors.black,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     } else {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      Future.microtask(() {
+        if (!context.mounted) return;
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      });
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchBigDeals() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("instaitems")
-        .where("tag", arrayContains: "bigdeal")
-        .get();
-    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
-  }
-
-  Future<List<Map<String, dynamic>>> fetchTopSellingItems() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("instaitems")
-        .where("tag", arrayContains: "tops")
-        .get();
-    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
-  }
-
-  Future<List<Map<String, dynamic>>> fetchBestOfferItems() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("instaitems")
-        .where("tag", arrayContains: "bo")
-        .get();
-    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
-  }
-
-  Future<List<Map<String, dynamic>>> fetchCategoryItems(String tag) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("instaitems")
-        .where("tag", arrayContains: tag)
-        .get();
-    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  Query<Map<String, dynamic>> _buildItemsQuery() {
+    final collection = FirebaseFirestore.instance.collection("instaitems");
+    if (_selectedFilterTag == 'all') {
+      return collection.limit(50);
+    } else if (_selectedFilterTag == 'best_offer') {
+      return collection.where("tag", arrayContains: "best_offer");
+    } else if (_selectedFilterTag == 'top_sell') {
+      return collection.where("tag", arrayContains: "top_sell");
+    } else {
+      return collection.where("tag", arrayContains: _selectedFilterTag);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: _handlePop,
+      onPopInvokedWithResult: _handlePop,
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           backgroundColor: _bgColor,
           appBar: AppBar(
-            title: Text("INSTAHUB",
-                style: GoogleFonts.montserrat(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                    letterSpacing: 1.2)),
-            backgroundColor: _primaryColor,
+            title: Text(
+              "INSTAHUB",
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+                letterSpacing: 1.2,
+              ),
+            ),
+            backgroundColor: _headerBgColor,
             foregroundColor: Colors.white,
             elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              onPressed: () {
+                Future.microtask(() {
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                });
+              },
+            ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_rounded, size: 26),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                ),
+              ),
               IconButton(
                 icon: const Icon(Icons.person_outline_rounded, size: 28),
                 onPressed: () {
@@ -195,24 +174,11 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                       ),
                       _buildSearchResults(),
                     ] else ...[
-                      _buildSyncedCategorySystem(),
-                      const SizedBox(height: 20),
-                      _buildAdsRunner(), 
-                      const SizedBox(height: 32),
-                      _buildBigDealsSection(),
-                      const SizedBox(height: 32),
-                      _buildFirestoreSection(
-                          title: "⚡ Best Sellers",
-                          subtitle: "Fastest moving items",
-                          future: fetchTopSellingItems()),
-                      const SizedBox(height: 12),
-                      _buildFirestoreSection(
-                          title: "💸 Super Savings",
-                          subtitle: "Limited time offers",
-                          color: const Color(0xFFE8F5E9),
-                          future: fetchBestOfferItems()),
-                      const SizedBox(height: 32),
-                      ...categories.map((cat) => _buildCategoryRail(cat)).toList(),
+                      _buildHeaderSection(),
+                      const SizedBox(height: 16),
+                      _buildFilterChips(),
+                      const SizedBox(height: 16),
+                      _buildUnifiedItemsGrid(),
                       Consumer<InstahubCartProvider>(
                         builder: (_, cart, __) => SizedBox(height: cart.isNotEmpty ? 120 : 60),
                       ),
@@ -228,110 +194,253 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
     );
   }
 
-  Widget _buildSyncedCategorySystem() {
-    return Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          height: 340, 
-          decoration: const BoxDecoration(
-            color: _primaryColor,
-            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
-          ),
+  Widget _buildHeaderSection() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: _headerBgColor,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 16), child: _buildSearchBar()),
-            
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              child: _buildMorningBanner(),
-            ),
-
-            Padding(padding: const EdgeInsets.only(left: 20, bottom: 8), child: Text("Shop by Category", style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1))),
-            SizedBox(
-              height: 140, 
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                physics: const BouncingScrollPhysics(),
-                itemCount: categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 20),
-                itemBuilder: (context, index) {
-                  final cat = categories[index];
-                  return GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryScreen(categoryName: cat["name"]))),
-                    child: Column(
-                      children: [
-                        Container(
-                          height: 70, width: 70,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 5))],
-                            border: Border.all(color: Colors.white24, width: 2),
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              cat["image"], 
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(child: Icon(Icons.shopping_bag_outlined, color: Colors.grey));
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10), 
-                        SizedBox(
-                          width: 75,
-                          child: Text(
-                            cat["name"],
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.montserrat(
-                              fontSize: 10, 
-                              fontWeight: FontWeight.w800, 
-                              color: Colors.white, 
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: _buildSearchBar(),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: _buildMorningBanner(),
+          ),
+          _buildFullWidthAdsRunner(),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.only(left: 20, bottom: 8),
+            child: Text(
+              "Shop by Category",
+              style: GoogleFonts.montserrat(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
               ),
             ),
-          ],
-        ),
-      ],
+          ),
+          SizedBox(
+            height: 110,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              physics: const BouncingScrollPhysics(),
+              itemCount: categories.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 20),
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final bool isSelected = _selectedFilterTag == cat["tag"];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedFilterTag = cat["tag"];
+                    });
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        height: 64,
+                        width: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: isSelected ? Colors.orange : Colors.white24,
+                            width: isSelected ? 3 : 2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            cat["image"],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: 75,
+                        child: Text(
+                          cat["name"],
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: isSelected ? Colors.orange : Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 
-  Widget _buildAdsRunner() {
+  Widget _buildFullWidthAdsRunner() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('ads').where('tag', isEqualTo: 'insta_ads').where('active', isEqualTo: true).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('ads')
+          .where('tag', isEqualTo: 'insta_ads')
+          .where('active', isEqualTo: true)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
         final adsDocs = snapshot.data!.docs;
+
+        _adsTimer ??= Timer.periodic(const Duration(seconds: 4), (timer) {
+          if (mounted && adsDocs.isNotEmpty) {
+            setState(() {
+              _currentAdIndex = (_currentAdIndex + 1) % adsDocs.length;
+            });
+          }
+        });
+
+        final adData = adsDocs[_currentAdIndex % adsDocs.length].data() as Map<String, dynamic>;
+
         return SizedBox(
-          height: 170,
-          child: PageView.builder(
-            controller: _adsPageController,
+          width: double.infinity,
+          height: 165,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 750),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: Container(
+              key: ValueKey<int>(_currentAdIndex),
+              width: double.infinity,
+              height: 165,
+              child: CachedNetworkImage(
+                imageUrl: adData['imageUrl'] ?? '',
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(color: Colors.black12),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.black12,
+                  child: const Icon(Icons.broken_image, color: Colors.white54),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final List<Map<String, String>> filters = [
+      {"label": "✨ All Items", "tag": "all"},
+      {"label": "⚡ Top Selling", "tag": "top_sell"},
+      {"label": "💸 Best Offers", "tag": "best_offer"},
+      ...categories.map((c) => {"label": c["name"].toString(), "tag": c["tag"].toString()}),
+    ];
+
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final filter = filters[index];
+          final isSelected = _selectedFilterTag == filter["tag"];
+          return ChoiceChip(
+            label: Text(filter["label"]!),
+            selected: isSelected,
+            selectedColor: Colors.orange,
+            backgroundColor: Colors.white,
+            side: BorderSide(
+              color: isSelected ? Colors.orange : Colors.grey.shade300,
+            ),
+            labelStyle: GoogleFonts.montserrat(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 12,
+            ),
+            onSelected: (selected) {
+              if (selected) {
+                setState(() => _selectedFilterTag = filter["tag"]!);
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildUnifiedItemsGrid() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _buildItemsQuery().snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 250,
+            child: Center(child: CircularProgressIndicator(color: Colors.orange)),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Container(
+            height: 200,
+            alignment: Alignment.center,
+            child: Text(
+              "No items found in this section",
+              style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: docs.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.65,
+            ),
             itemBuilder: (context, index) {
-              final ad = adsDocs[index % adsDocs.length].data() as Map<String, dynamic>;
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 8))],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: CachedNetworkImage(imageUrl: ad['imageUrl'], fit: BoxFit.cover),
-                ),
+              final doc = docs[index];
+              return _HomeItemCard(
+                item: {...doc.data(), 'id': doc.id},
               );
             },
           ),
@@ -348,7 +457,10 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
           subtitle: "Delivery",
           icon: Icons.wb_sunny_rounded,
           colors: [const Color(0xFFFF9100), const Color(0xFFFF3D00)],
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MorningOrderHomeScreen())),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const MorningOrderHomeScreen()),
+          ),
         ),
         const SizedBox(width: 16),
         _buildQuickActionCard(
@@ -358,126 +470,70 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
           colors: [const Color(0xFF00BFA5), const Color(0xFF00796B)],
           onTap: () {
             if (!requireLoginGlobal("Please login to request items")) return;
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const RequestItemListScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RequestItemListScreen()),
+            );
           },
         ),
       ],
     );
   }
 
-  Widget _buildQuickActionCard({required String title, required String subtitle, required IconData icon, required List<Color> colors, required VoidCallback onTap}) {
+  Widget _buildQuickActionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> colors,
+    required VoidCallback onTap,
+  }) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 110, 
+          height: 105,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: colors.first.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: colors.first.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.white, size: 26),
+              Icon(icon, color: Colors.white, size: 24),
               const Spacer(),
-              Text(title, style: GoogleFonts.inter(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-              Text(subtitle, style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, height: 1)),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: GoogleFonts.montserrat(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBigDealsSection() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: fetchBigDeals(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-        final docs = snapshot.data!;
-        return AnimatedBuilder(
-          animation: _bigDealsController,
-          builder: (context, child) => Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              gradient: const LinearGradient(colors: [Color(0xFF2C3E50), Color(0xFF000000)]),
-              boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.1 * _pulseController.value), blurRadius: 20, spreadRadius: 5)],
-            ),
-            child: child,
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    const Icon(Icons.flash_on, color: Colors.amber, size: 32),
-                    const SizedBox(width: 12),
-                    Text("BIG DEALS", style: GoogleFonts.montserrat(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 290,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: docs.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) => _HomeItemCard(item: docs[index], isBigDeal: true),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCategoryRail(Map<String, dynamic> cat) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(cat['name'], style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w800, color: _primaryColor)),
-                TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryScreen(categoryName: cat["name"]))),
-                  child: Text("VIEW ALL", style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.orange)),
-                ),
-              ],
-            ),
-          ),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: fetchCategoryItems(cat['tag']),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-              if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-              final docs = snapshot.data!;
-              return SizedBox(
-                height: 290,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: docs.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) => _HomeItemCard(item: docs[index]),
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }
@@ -487,7 +543,13 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: TextField(
         controller: _searchController,
@@ -521,57 +583,54 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final item = docs[index].data() as Map<String, dynamic>;
+            final rawMrp = item["price"] ?? item["mrp"] ?? 0;
+            final rawOffer = item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
+            final double mrp = rawMrp is num ? rawMrp.toDouble() : double.tryParse(rawMrp.toString()) ?? 0.0;
+            final double sellingPrice = rawOffer is num ? rawOffer.toDouble() : double.tryParse(rawOffer.toString()) ?? mrp;
+            final bool hasDiscount = mrp > sellingPrice && sellingPrice > 0;
+
             return ListTile(
-              leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: CachedNetworkImage(imageUrl: item['image'] ?? '', width: 50, height: 50, fit: BoxFit.cover)),
-              title: Text(item['name'] ?? '', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
-              subtitle: Text("₹${item['offerPrice'] ?? item['price']}", style: GoogleFonts.inter(color: _accentColor, fontWeight: FontWeight.w800)),
-              trailing: SizedBox(width: 100, child: _SearchAddButton(item: {...item, 'id': docs[index].id})),
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  imageUrl: item['image'] ?? item['remoteImageUrl'] ?? '',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              title: Text(
+                item['name'] ?? item['productName'] ?? '',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              subtitle: Row(
+                children: [
+                  Text(
+                    "₹${sellingPrice.toInt()}",
+                    style: GoogleFonts.inter(color: _accentColor, fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                  if (hasDiscount) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      "₹${mrp.toInt()}",
+                      style: GoogleFonts.inter(
+                        decoration: TextDecoration.lineThrough,
+                        color: Colors.grey.shade500,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              trailing: SizedBox(
+                width: 100,
+                child: _SearchAddButton(item: {...item, 'id': docs[index].id}),
+              ),
             );
           },
         );
       },
-    );
-  }
-
-  Widget _buildFirestoreSection({required String title, String? subtitle, Color? color, required Future<List<Map<String, dynamic>>> future}) {
-    return Container(
-      width: double.infinity,
-      color: color ?? Colors.transparent,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.w800, color: _primaryColor)),
-                if (subtitle != null) Text(subtitle, style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 290,
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-                final docs = snapshot.data!;
-                return ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: docs.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, index) => _HomeItemCard(item: docs[index]),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -581,7 +640,8 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
         duration: const Duration(milliseconds: 600),
         curve: Curves.elasticOut,
         bottom: cart.isNotEmpty ? 24 : -120,
-        left: 16, right: 16,
+        left: 16,
+        right: 16,
         child: const InstahubCartBar(),
       ),
     );
@@ -591,33 +651,88 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
 class _HomeItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
   final bool isBigDeal;
+
   const _HomeItemCard({required this.item, this.isBigDeal = false});
 
   @override
   Widget build(BuildContext context) {
-    final rawPrice = item["offerPrice"] ?? item["price"] ?? 0;
-    final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse(rawPrice.toString()) ?? 0.0;
-    final stock = (item['stock'] as num?)?.toInt() ?? 0;
+    // Handling MRP & Offer/Sale Price mapping correctly from schema
+    final rawMrp = item["price"] ?? item["mrp"] ?? 0;
+    final rawOffer = item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
+
+    final double mrp = rawMrp is num ? rawMrp.toDouble() : double.tryParse(rawMrp.toString()) ?? 0.0;
+    final double sellingPrice = rawOffer is num ? rawOffer.toDouble() : double.tryParse(rawOffer.toString()) ?? mrp;
+
+    final bool hasDiscount = mrp > sellingPrice && sellingPrice > 0;
+    final int discountPercent = hasDiscount ? (((mrp - sellingPrice) / mrp) * 100).round() : 0;
+
+    final stock = (item['stock'] ?? item['stockLevels'] as num?)?.toInt() ?? 0;
+    final String itemId = item['id'] ?? item['name'] ?? 'item';
 
     return Consumer<InstahubCartProvider>(
       builder: (context, cart, _) {
-        final quantity = cart.getItem(item['id'] ?? item['name'])?.quantity ?? 0;
-
+        final quantity = cart.getItem(itemId)?.quantity ?? 0;
         return Container(
-          width: 170,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Container(
-                  margin: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: const Color(0xFFF5F5F7), borderRadius: BorderRadius.circular(20)),
-                  child: Center(child: Hero(tag: "item_${item['id']}", child: CachedNetworkImage(imageUrl: item['image'] ?? '', fit: BoxFit.contain, width: 100))),
+                child: Stack(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F7F9),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Hero(
+                          tag: "item_$itemId",
+                          child: CachedNetworkImage(
+                            imageUrl: item['image'] ?? item['remoteImageUrl'] ?? '',
+                            fit: BoxFit.contain,
+                            width: 90,
+                            height: 90,
+                            errorWidget: (context, url, error) => const Icon(
+                              Icons.image_not_supported_outlined,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (hasDiscount)
+                      Positioned(
+                        top: 14,
+                        left: 14,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00E676),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            "$discountPercent% OFF",
+                            style: GoogleFonts.montserrat(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Padding(
@@ -625,27 +740,86 @@ class _HomeItemCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item['name'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, height: 1.2)),
+                    Text(
+                      item['name'] ?? item['productName'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          "₹${sellingPrice.toInt()}",
+                          style: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: const Color(0xFF121212),
+                          ),
+                        ),
+                        if (hasDiscount) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            "₹${mrp.toInt()}",
+                            style: GoogleFonts.inter(
+                              decoration: TextDecoration.lineThrough,
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 8),
-                    Text("₹${price.toInt()}", style: GoogleFonts.montserrat(fontWeight: FontWeight.w900, fontSize: 18)),
-                    const SizedBox(height: 12),
                     if (stock > 0)
                       _JumboQuantitySelector(
                         quantity: quantity,
                         onAdd: () {
                           if (!requireLoginGlobal("Please login to add items")) return;
-                          cart.updateItem(id: item['id'] ?? item['name'], name: item['name'], price: price, restaurantId: "instahub_store", image: item['image'], quantity: quantity + 1);
+                          cart.updateItem(
+                            id: itemId,
+                            name: item['name'] ?? item['productName'],
+                            price: sellingPrice,
+                            restaurantId: "instahub_store",
+                            image: item['image'] ?? item['remoteImageUrl'],
+                            quantity: quantity + 1,
+                          );
                         },
-                        onRemove: () => cart.removeItem(item['id'] ?? item['name']),
+                        onRemove: () => cart.removeItem(itemId),
                         onUpdate: (newQty) {
                           if (newQty > quantity) {
                             if (!requireLoginGlobal("Please login to update items")) return;
                           }
-                          cart.updateItem(id: item['id'] ?? item['name'], name: item['name'], price: price, restaurantId: "instahub_store", image: item['image'], quantity: newQty);
+                          cart.updateItem(
+                            id: itemId,
+                            name: item['name'] ?? item['productName'],
+                            price: sellingPrice,
+                            restaurantId: "instahub_store",
+                            image: item['image'] ?? item['remoteImageUrl'],
+                            quantity: newQty,
+                          );
                         },
                       )
                     else
-                      Text("OUT OF STOCK", style: GoogleFonts.inter(color: Colors.red, fontSize: 10, fontWeight: FontWeight.w800)),
+                      Container(
+                        height: 40,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "OUT OF STOCK",
+                          style: GoogleFonts.inter(
+                            color: Colors.red,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -663,43 +837,81 @@ class _JumboQuantitySelector extends StatelessWidget {
   final VoidCallback onRemove;
   final Function(int) onUpdate;
 
-  const _JumboQuantitySelector({required this.quantity, required this.onAdd, required this.onRemove, required this.onUpdate});
+  const _JumboQuantitySelector({
+    required this.quantity,
+    required this.onAdd,
+    required this.onRemove,
+    required this.onUpdate,
+  });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       child: quantity == 0
           ? InkWell(
+              key: const ValueKey('add_btn'),
               onTap: onAdd,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               child: Container(
                 width: double.infinity,
-                height: 48, 
+                height: 40,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Colors.orange, Color(0xFFFF8C00)]),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                  gradient: const LinearGradient(
+                    colors: [Colors.orange, Color(0xFFFF8C00)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-                child: Center(child: Text("ADD", style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15))),
+                child: Center(
+                  child: Text(
+                    "ADD",
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
               ),
             )
           : Container(
-              height: 48, 
-              decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(14)),
+              key: const ValueKey('counter_btn'),
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: InkWell(
                       onTap: () => quantity > 1 ? onUpdate(quantity - 1) : onRemove(),
-                      child: const Center(child: Icon(Icons.remove_rounded, color: Colors.white, size: 26)),
+                      child: const Center(
+                        child: Icon(Icons.remove_rounded, color: Colors.white, size: 20),
+                      ),
                     ),
                   ),
-                  Text('$quantity', style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                  Text(
+                    '$quantity',
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
                   Expanded(
                     child: InkWell(
                       onTap: onAdd,
-                      child: const Center(child: Icon(Icons.add_rounded, color: Colors.white, size: 26)),
+                      child: const Center(
+                        child: Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                      ),
                     ),
                   ),
                 ],
@@ -711,28 +923,46 @@ class _JumboQuantitySelector extends StatelessWidget {
 
 class _SearchAddButton extends StatelessWidget {
   final Map<String, dynamic> item;
+
   const _SearchAddButton({required this.item});
+
   @override
   Widget build(BuildContext context) {
-    final rawPrice = item["offerPrice"] ?? item["price"] ?? 0;
-    final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse(rawPrice.toString()) ?? 0.0;
+    final rawMrp = item["price"] ?? item["mrp"] ?? 0;
+    final rawOffer = item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
+    final double mrp = rawMrp is num ? rawMrp.toDouble() : double.tryParse(rawMrp.toString()) ?? 0.0;
+    final double sellingPrice = rawOffer is num ? rawOffer.toDouble() : double.tryParse(rawOffer.toString()) ?? mrp;
+    final String itemId = item['id'] ?? item['name'] ?? 'item';
+
     return Consumer<InstahubCartProvider>(
       builder: (context, cart, _) {
-        final quantity = cart.getItem(item['id'] ?? item['name'])?.quantity ?? 0;
+        final quantity = cart.getItem(itemId)?.quantity ?? 0;
         return _JumboQuantitySelector(
           quantity: quantity,
           onAdd: () {
-            // ✅ LOGIN GUARD ADDED TO SEARCH RESULTS
             if (!requireLoginGlobal("Please login to add items")) return;
-            cart.updateItem(id: item['id'] ?? item['name'], name: item['name'], price: price, restaurantId: "instahub_store", image: item['image'], quantity: quantity + 1);
+            cart.updateItem(
+              id: itemId,
+              name: item['name'] ?? item['productName'],
+              price: sellingPrice,
+              restaurantId: "instahub_store",
+              image: item['image'] ?? item['remoteImageUrl'],
+              quantity: quantity + 1,
+            );
           },
-          onRemove: () => cart.removeItem(item['id'] ?? item['name']),
+          onRemove: () => cart.removeItem(itemId),
           onUpdate: (newQty) {
-            // ✅ LOGIN GUARD ADDED TO INCREMENT IN SEARCH RESULTS
             if (newQty > quantity) {
-               if (!requireLoginGlobal("Please login to update items")) return;
+              if (!requireLoginGlobal("Please login to update items")) return;
             }
-            cart.updateItem(id: item['id'] ?? item['name'], name: item['name'], price: price, restaurantId: "instahub_store", image: item['image'], quantity: newQty);
+            cart.updateItem(
+              id: itemId,
+              name: item['name'] ?? item['productName'],
+              price: sellingPrice,
+              restaurantId: "instahub_store",
+              image: item['image'] ?? item['remoteImageUrl'],
+              quantity: newQty,
+            );
           },
         );
       },

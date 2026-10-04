@@ -1,42 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'track_order_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'track_order_screen.dart';
 
 class ActiveOrderBottomBar extends StatelessWidget {
   const ActiveOrderBottomBar({super.key});
 
-  // ✅ FIXED: Time decreases logically on milestones instead of rising
   String _calculateRemainingTime(Map<String, dynamic> data) {
     final String status = (data['status'] ?? 'pending').toLowerCase().trim();
     if (status == 'delivered') return "Delivered";
 
-    // 1. Live Transit Modes
     if (status == 'out_for_delivery' || status == 'on_the_way' || status == 'picked') {
       if (data['deliveryPartnerETA'] != null) {
         int transit = int.tryParse(data['deliveryPartnerETA'].toString()) ?? 12;
         return transit <= 1 ? "1 min" : "$transit mins";
       }
-      return "12 mins"; // Fallback delivery start estimate
+      return "12 mins";
     }
 
-    // 2. Preparation/Milestone Countdown Calculations
     final created = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
     final elapsedMins = DateTime.now().difference(created).inMinutes;
 
-    int baseRemainingMins = 40; // Initial default when order is 'pending'
-
+    int baseRemainingMins = 40;
     if (status == 'accepted') {
-      baseRemainingMins = 35; // Drops immediately upon restaurant acceptance
+      baseRemainingMins = 35;
     } else if (status.contains('preparing')) {
-      baseRemainingMins = 30; // Drops during food creation phase
+      baseRemainingMins = 30;
     } else if (status == 'ready') {
-      baseRemainingMins = 25; // Drops further when food is packed and waiting
+      baseRemainingMins = 25;
     } else if (status == 'partner_accepted') {
-      baseRemainingMins = 20; // Drops when driver accepts gig
+      baseRemainingMins = 20;
     } else if (status == 'arrived_at_pickup') {
-      baseRemainingMins = 15; // Drops when driver stops at storefront
+      baseRemainingMins = 15;
     }
 
     int finalRemaining = baseRemainingMins - elapsedMins;
@@ -82,9 +78,17 @@ class ActiveOrderBottomBar extends StatelessWidget {
     }
   }
 
-  Future<void> _callPartner(String phone) async {
+  Future<void> _makeCall(String phone) async {
     if (phone.trim().isEmpty) return;
     final Uri url = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    }
+  }
+
+  Future<void> _sendEmail(String email, String orderId) async {
+    if (email.trim().isEmpty) return;
+    final Uri url = Uri.parse('mailto:$email?subject=Delayed Order Support: $orderId');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     }
@@ -110,6 +114,17 @@ class ActiveOrderBottomBar extends StatelessWidget {
         final doc = snapshot.data!.docs.first;
         final data = doc.data() as Map<String, dynamic>;
         final String status = data['status'] ?? 'pending';
+
+        final created = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+        final elapsedMins = DateTime.now().difference(created).inMinutes;
+
+        // Vanish completely after 80 minutes (60 min normal/support start + 20 min active support window)
+        if (elapsedMins >= 80) {
+          return const SizedBox.shrink();
+        }
+
+        // Active support mode between 60 and 80 minutes
+        final bool isDelayed = elapsedMins >= 60;
         final String remainingTime = _calculateRemainingTime(data);
 
         return TweenAnimationBuilder(
@@ -121,16 +136,25 @@ class ActiveOrderBottomBar extends StatelessWidget {
               child: child,
             );
           },
-          child: _buildPremiumBar(context, doc.id, status, remainingTime),
+          child: _buildPremiumBar(
+            context: context,
+            orderId: doc.id,
+            status: status,
+            time: remainingTime,
+            isDelayed: isDelayed,
+          ),
         );
       },
     );
   }
 
-  Widget _buildPremiumBar(
-      BuildContext context, String orderId, String status, String time) {
-    bool isOut = status.contains('out') || status.contains('picked') || status.contains('way');
-
+  Widget _buildPremiumBar({
+    required BuildContext context,
+    required String orderId,
+    required String status,
+    required String time,
+    required bool isDelayed,
+  }) {
     return SafeArea(
       child: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -143,7 +167,7 @@ class ActiveOrderBottomBar extends StatelessWidget {
               (live['deliveryPartnerName'] ?? live['driverName'] ?? "").toString();
           final String partnerPhone =
               (live['deliveryPartnerPhone'] ?? live['driverPhone'] ?? "").toString();
-          
+
           double progressWidth = _getProgress(status);
 
           return GestureDetector(
@@ -167,19 +191,21 @@ class ActiveOrderBottomBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.orange.withOpacity(0.18),
+                    color: (isDelayed ? Colors.redAccent : Colors.orange).withOpacity(0.18),
                     blurRadius: 25,
                     offset: const Offset(0, 8),
                   ),
                 ],
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(
+                  color: isDelayed ? Colors.redAccent.withOpacity(0.3) : Colors.white.withOpacity(0.06),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
-                      _buildLiveIcon(isOut),
+                      _buildLiveIcon(isDelayed),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -187,9 +213,9 @@ class ActiveOrderBottomBar extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _prettyStatus(status).toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.orange,
+                              isDelayed ? "ORDER DELAYED" : _prettyStatus(status).toUpperCase(),
+                              style: TextStyle(
+                                color: isDelayed ? Colors.redAccent : Colors.orange,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 13,
                                 letterSpacing: 0.8,
@@ -197,14 +223,14 @@ class ActiveOrderBottomBar extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              isOut ? "Arriving in $time" : "Estimated Delivery: $time",
+                              isDelayed ? "Contact our support team" : "Estimated Delivery: $time",
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 15,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            if (partnerName.isNotEmpty) ...[
+                            if (!isDelayed && partnerName.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Row(
                                 children: [
@@ -225,59 +251,24 @@ class ActiveOrderBottomBar extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (partnerPhone.isNotEmpty)
-                        GestureDetector(
-                          onTap: () => _callPartner(partnerPhone),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2E7D32),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 14),
-                                SizedBox(width: 6),
-                                Text(
-                                  "CALL",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 11,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                      if (isDelayed)
+                        _buildSupportActions(orderId)
+                      else if (partnerPhone.isNotEmpty)
+                        _buildActionButton(
+                          label: "CALL",
+                          icon: Icons.phone_in_talk_rounded,
+                          color: const Color(0xFF2E7D32),
+                          onTap: () => _makeCall(partnerPhone),
                         )
                       else
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade800,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Row(
-                            children: [
-                              Text(
-                                "TRACK",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 11,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.pin_drop_rounded, color: Colors.white, size: 14),
-                            ],
-                          ),
+                        _buildActionButton(
+                          label: "TRACK",
+                          icon: Icons.pin_drop_rounded,
+                          color: Colors.orange.shade800,
                         ),
                     ],
                   ),
                   const SizedBox(height: 14),
-                  // Premium Micro progress line bar
                   Container(
                     height: 4,
                     width: double.infinity,
@@ -291,8 +282,10 @@ class ActiveOrderBottomBar extends StatelessWidget {
                           flex: (progressWidth * 100).round(),
                           child: Container(
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Colors.orangeAccent, Colors.orange],
+                              gradient: LinearGradient(
+                                colors: isDelayed
+                                    ? [Colors.redAccent, Colors.red]
+                                    : [Colors.orangeAccent, Colors.orange],
                               ),
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -314,18 +307,97 @@ class ActiveOrderBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildLiveIcon(bool isOut) {
+  Widget _buildSupportActions(String orderId) {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance.collection('customer_supprt').limit(1).get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final supportData = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+        final callNumber = supportData['support_call']?.toString() ?? '';
+        final mailAddress = supportData['support_mail']?.toString() ?? '';
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (callNumber.isNotEmpty)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.all(8),
+                ),
+                icon: const Icon(Icons.call, color: Colors.white, size: 16),
+                onPressed: () => _makeCall(callNumber),
+              ),
+            if (mailAddress.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.blueGrey.shade800,
+                  padding: const EdgeInsets.all(8),
+                ),
+                icon: const Icon(Icons.email_rounded, color: Colors.white, size: 16),
+                onPressed: () => _sendEmail(mailAddress, orderId),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(icon, color: Colors.white, size: 14),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveIcon(bool isDelayed) {
     return Container(
       width: 42,
       height: 42,
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.12),
+        color: (isDelayed ? Colors.redAccent : Colors.orange).withOpacity(0.12),
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.orange.withOpacity(0.2), width: 1),
+        border: Border.all(
+          color: (isDelayed ? Colors.redAccent : Colors.orange).withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Icon(
-        isOut ? Icons.delivery_dining_rounded : Icons.fastfood_rounded,
-        color: Colors.orange,
+        isDelayed ? Icons.support_agent_rounded : Icons.fastfood_rounded,
+        color: isDelayed ? Colors.redAccent : Colors.orange,
         size: 22,
       ),
     );

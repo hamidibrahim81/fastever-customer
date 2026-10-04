@@ -2,7 +2,7 @@ name: fastevergo_v1
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+8
+version: 1.0.1+13
 
 environment:
   sdk: ^3.8.1
@@ -39,6 +39,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   google_places_flutter: ^2.1.0
   package_info_plus: ^9.0.1
+  firebase_storage: ^12.4.10
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:
@@ -54,7 +56,12 @@ flutter:
     - assets/logo.json
 
     
-  
+
+    - assets/images/desserts.png
+    - assets/images/fried.png
+    - assets/images/grills.png
+    - assets/images/tea.png
+    - assets/images/snacks.png
     - assets/images/arabian.jpeg
     - assets/images/indian.jpeg
     - assets/images/biriyani.jpeg
@@ -104,11 +111,25 @@ flutter:
     - assets/instahub/carwashh.png
     - assets/instahub/bookyy.png
     - assets/instahub/ridey.png
-    - assets/instahub/eventyy.png
+    - assets/instahub/labyy.png
+    - assets/instahub/cakess.png
 
     - assets/instahub/salon.png
     - assets/instahub/petcare.png
     - assets/instahub/turf.png
+    
+
+    - assets/instahub/cakesss.png
+    - assets/instahub/carwash.png
+    - assets/instahub/turff.png
+    - assets/instahub/lab.png
+
+    - assets/instahub/taxi.png
+    - assets/instahub/pickup.png
+    - assets/instahub/truck.png
+    - assets/instahub/torist.png
+    - assets/instahub/bestcake.png
+    - assets/instahub/todaycake&gift1.png
     
 
 
@@ -145,6 +166,9 @@ flutter:
 
     - assets/animations/waiting.json
     - assets/images/scooter_pin.png
+
+
+    - assets/main.png
 
 # ✅ App icon config
 flutter_launcher_icons:

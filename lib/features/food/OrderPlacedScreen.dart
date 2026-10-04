@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart'; // ✅ Added Provider Import
-import 'cart/cart_provider.dart'; // ✅ Added Cart Provider Import
+import 'package:provider/provider.dart';
+import 'cart/cart_provider.dart';
 import 'food_home_screen.dart'; 
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -21,10 +21,14 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
   bool isLoading = true;
   bool hasOrderRun = false; 
 
+  static const Color _primaryDark = Color(0xFF111827);
+  static const Color _accentOrange = Color(0xFFFF6B00);
+  static const Color _successGreen = Color(0xFF16A34A);
+  static const Color _bgColor = Color(0xFFF8FAFC);
+
   @override
   void initState() {
     super.initState();
-    // Ensure order is placed only once
     if (!hasOrderRun) {
       _placeOrder();
     }
@@ -32,7 +36,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
 
   Future<void> _placeOrder() async {
     if (hasOrderRun) return; 
-    setState(() => hasOrderRun = true); // ✅ Prevent double order entry
+    setState(() => hasOrderRun = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -43,20 +47,15 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
           ? List.from(widget.orderData['items'])
           : [];
       
-      // Extract numeric values safely
       final double deliveryFee = double.tryParse(widget.orderData['deliveryFee'].toString()) ?? 0.0;
-      final double platformFee = double.tryParse(widget.orderData['platformFee'].toString()) ?? 0.0; // ✅ Extracted Platform Fee
+      final double platformFee = double.tryParse(widget.orderData['platformFee'].toString()) ?? 0.0;
       final double totalAmount = double.tryParse(widget.orderData['total'].toString()) ?? 0.0;
       final double subtotal = double.tryParse(widget.orderData['subtotal'].toString()) ?? 0.0;
       final double discount = double.tryParse(widget.orderData['discount'].toString()) ?? 0.0;
-
-      // ✅ NEW: Extract instructions for the driver/restaurant
       final String deliveryInstructions = widget.orderData['deliveryInstructions'] ?? "";
 
-      // Determine Primary ID 
       String primaryRestaurantId = widget.orderData['restaurantId']?.toString() ?? "UNKNOWN";
       
-      // Fallback: If root ID is missing, try to find it in the first item
       if ((primaryRestaurantId == "UNKNOWN" || primaryRestaurantId.isEmpty) && allItems.isNotEmpty) {
         final firstItem = Map<String, dynamic>.from(allItems.first as Map);
         primaryRestaurantId = firstItem['restaurantId']?.toString() ?? "UNKNOWN";
@@ -66,7 +65,6 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         throw Exception("Critical Error: No Restaurant ID found in order data.");
       }
 
-      // Group Items by Restaurant ID (for Split Orders)
       final Map<String, List<Map<String, dynamic>>> itemsByRestaurant = {};
       for (var item in allItems) {
         final itemMap = Map<String, dynamic>.from(item as Map);
@@ -77,7 +75,6 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         itemsByRestaurant[rId]!.add(itemMap);
       }
 
-      // Common Data
       final timestamp = FieldValue.serverTimestamp();
       final createdDate = DateTime.now().toIso8601String();
       final address = widget.orderData['address'] ?? "N/A";
@@ -96,14 +93,10 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         };
       }
 
-      // Attempt to get Name/Phone from orderData first, then Auth user
       final String userName = widget.orderData['name'] ?? user.displayName ?? "Valued Customer";
       final String userPhone = widget.orderData['phone'] ?? user.phoneNumber ?? "N/A";
 
-      // ==============================================================================
-      // STEP 2: CREATE MASTER ORDER ('orders' collection)
-      // ==============================================================================
-      
+      // STEP 2: MASTER ORDER
       final masterOrderData = {
         "userId": user.uid,
         "userName": userName,
@@ -112,7 +105,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         "subtotal": subtotal,
         "discount": discount,
         "deliveryFee": deliveryFee, 
-        "platformFee": platformFee, // ✅ Saved separately in Master
+        "platformFee": platformFee,
         "total": totalAmount,
         "timestamp": timestamp,
         "createdAt": createdDate,
@@ -132,22 +125,16 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
           .add(masterOrderData);
 
       await masterRef.update({"orderId": masterRef.id});
-      
-      debugPrint("✅ Master Order Created in 'orders': ${masterRef.id}");
 
-      // Start Batch
       final batch = FirebaseFirestore.instance.batch();
 
-      // ==============================================================================
-      // STEP 3: CREATE SPLIT ORDERS ('restaurant_orders' collection)
-      // ==============================================================================
-
+      // STEP 3: SPLIT ORDERS
       itemsByRestaurant.forEach((rId, rItems) {
         double rTotal = 0;
         for (var item in rItems) {
-           double price = double.tryParse(item['price'].toString()) ?? 0;
-           int qty = int.tryParse(item['quantity'].toString()) ?? 1;
-           rTotal += (price * qty);
+            double price = double.tryParse(item['price'].toString()) ?? 0;
+            int qty = int.tryParse(item['quantity'].toString()) ?? 1;
+            rTotal += (price * qty);
         }
 
         final DocumentReference splitRef = FirebaseFirestore.instance.collection("restaurant_orders").doc();
@@ -176,10 +163,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         batch.set(splitRef, splitOrderData);
       });
 
-      // ==============================================================================
-      // STEP 4: CREATE DELIVERY PARTNER ORDER ('delivery_partner_orders')
-      // ==============================================================================
-      
+      // STEP 4: DELIVERY PARTNER ORDER
       List<String> restaurantIds = itemsByRestaurant.keys.toList();
 
       List<Map<String, dynamic>> deliveryItems = allItems.map((item) {
@@ -215,18 +199,12 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       };
 
       batch.set(deliveryRef, deliveryData);
-      debugPrint("✅ Delivery Order staged for 'delivery_partner_orders'");
 
-      // ==============================================================================
-      // STEP 5: CREATE ORDER STATUS ('order_status' collection)
-      // ==============================================================================
-
+      // STEP 5: ORDER STATUS
       String? fcmToken;
       try {
         fcmToken = await FirebaseMessaging.instance.getToken();
-        debugPrint("🔥 FCM TOKEN: $fcmToken");
       } catch (e) {
-        debugPrint("⚠️ FCM TOKEN SKIPPED: $e");
         fcmToken = "";
       }
 
@@ -235,7 +213,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
           .doc(masterRef.id);
 
       final statusData = {
-        ...masterOrderData, // ✅ Now includes platformFee automatically
+        ...masterOrderData,
         "orderId": masterRef.id,
         "status": "pending",
         "timestamp": timestamp,
@@ -258,10 +236,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
 
       batch.set(statusRef, statusData);
 
-      // ==============================================================================
-      // STEP 5.5: CREATE USER HISTORY
-      // ==============================================================================
-
+      // STEP 5.5: USER HISTORY
       final DocumentReference userHistoryRef = FirebaseFirestore.instance
           .collection("users")
           .doc(user.uid)
@@ -272,9 +247,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
       historyData["orderId"] = masterRef.id;
       batch.set(userHistoryRef, historyData);
 
-      // ==============================================================================
-      // STEP 5.7: ATOMIC STOCK DECREASE LOGIC
-      // ==============================================================================
+      // STEP 5.7: STOCK UPDATE
       for (var item in allItems) {
         final Map<String, dynamic> itemMap = Map<String, dynamic>.from(item as Map);
         final String rId = itemMap['restaurantId']?.toString() ?? "";
@@ -282,8 +255,6 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         final int qty = int.tryParse(itemMap['quantity'].toString()) ?? 0;
 
         if (rId.isNotEmpty && itemId.isNotEmpty && rId != 'instahub') {
-          debugPrint("📉 DECREASING STOCK FOR -> Restaurant: $rId | Doc ID: $itemId | Qty: -$qty");
-
           final DocumentReference stockRef = FirebaseFirestore.instance
               .collection('restaurants')
               .doc(rId)
@@ -294,17 +265,10 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         }
       }
 
-      // ==============================================================================
-      // STEP 6: COMMIT & UI UPDATE
-      // ==============================================================================
-
+      // STEP 6: COMMIT
       await batch.commit(); 
-      debugPrint("✅ Batch Committed successfully with stock updates");
 
-      // ✅ SAVE USED COUPON AFTER SUCCESSFUL ORDER
-      final String? usedCoupon =
-          widget.orderData['appliedCouponCode']?.toString().trim();
-
+      final String? usedCoupon = widget.orderData['appliedCouponCode']?.toString().trim();
       if (usedCoupon != null && usedCoupon.isNotEmpty) {
         await FirebaseFirestore.instance
             .collection('users')
@@ -316,8 +280,6 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
           'orderId': masterRef.id,
           'usedAt': FieldValue.serverTimestamp(),
         });
-
-        debugPrint("✅ Coupon marked as used: ${usedCoupon.toUpperCase()}");
       }
 
       if (mounted) {
@@ -328,26 +290,31 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         });
       }
       
-    } catch (e, stack) {
-      debugPrint("🔴 ERROR: $e");
-      debugPrint("🔴 STACK: $stack");
+    } catch (e) {
       if (mounted) {
         setState(() { isLoading = false; });
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(SnackBar(content: Text("Failed to place order: $e"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to place order: $e"), backgroundColor: Colors.redAccent),
+        );
       }
     }
   }
 
-  Widget _buildBillRow(String label, dynamic value) {
+  void _navigateToHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const FoodHomeScreen()), 
+      (route) => false,
+    );
+  }
+
+  Widget _buildBillRow(String label, dynamic value, {bool isTotal = false}) {
     String valueText;
-    Color? valueColor;
-    bool isBold = label == 'Total';
+    Color valueColor = isTotal ? _primaryDark : const Color(0xFF1E293B);
 
     if (value is num) {
       valueText = '₹${value.abs().toStringAsFixed(2)}';
       if (value < 0) {
-        valueColor = Colors.green;
+        valueColor = _successGreen;
         valueText = '- $valueText';
       }
     } else {
@@ -355,24 +322,91 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 5.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.w500, fontSize: 15, color: isBold ? Colors.black : Colors.grey[700])),
-          Text(valueText, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.w500, fontSize: 15, color: valueColor ?? (isBold ? Colors.black : Colors.grey[700]))),
+          Text(
+            label, 
+            style: TextStyle(
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500, 
+              fontSize: isTotal ? 16 : 14, 
+              color: isTotal ? _primaryDark : const Color(0xFF64748B),
+            ),
+          ),
+          Text(
+            valueText, 
+            style: TextStyle(
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w600, 
+              fontSize: isTotal ? 18 : 14, 
+              color: isTotal ? _accentOrange : valueColor,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoSection(String title, String content) {
-    return Column(
+  Widget _buildCardContainer({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFE2E8F0).withOpacity(0.6)),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildInfoSection(IconData icon, String title, String content) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(content.isNotEmpty ? content : 'N/A', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: _primaryDark.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: _primaryDark, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title, 
+                style: const TextStyle(
+                  fontSize: 13, 
+                  fontWeight: FontWeight.bold, 
+                  color: Color(0xFF94A3B8),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                content.isNotEmpty ? content : 'N/A', 
+                style: const TextStyle(
+                  fontSize: 14, 
+                  fontWeight: FontWeight.w600, 
+                  color: _primaryDark,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -383,7 +417,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
     final items = (widget.orderData['items'] as List?) ?? [];
     final subtotal = double.tryParse(widget.orderData['subtotal'].toString()) ?? 0.0;
     final deliveryFee = double.tryParse(widget.orderData['deliveryFee'].toString()) ?? 0.0;
-    final platformFee = double.tryParse(widget.orderData['platformFee'].toString()) ?? 0.0; // ✅ Added for UI
+    final platformFee = double.tryParse(widget.orderData['platformFee'].toString()) ?? 0.0;
     final discount = double.tryParse(widget.orderData['discount'].toString()) ?? 0.0;
     final total = double.tryParse(widget.orderData['total'].toString()) ?? 0.0;
 
@@ -392,121 +426,229 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
 
     String addressDisplay = widget.orderData['address'] ?? 'N/A';
     if (latitude != null && longitude != null) {
-      addressDisplay += "\nLat: $latitude\nLong: $longitude";
+      addressDisplay += "\n($latitude, $longitude)";
     }
 
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const FoodHomeScreen()), (route) => false);
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _navigateToHome();
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[100],
+        backgroundColor: _bgColor,
         appBar: AppBar(
-          title: const Text("Order Placed", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            "Order Status", 
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: _primaryDark),
+          ),
           centerTitle: true,
           backgroundColor: Colors.white,
-          elevation: 1,
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const FoodHomeScreen()), (route) => false);
-          }),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _primaryDark, size: 20),
+            onPressed: _navigateToHome,
+          ),
         ),
         body: isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+            ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: _accentOrange),
+                    SizedBox(height: 16),
+                    Text(
+                      "Securing your order...",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: _primaryDark, fontSize: 15),
+                    ),
+                  ],
+                ),
+              )
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Column(
                   children: [
-                    const SizedBox(height: 16),
-                    const Text("Order Placed Successfully!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green), textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    SizedBox(width: 200, height: 200, child: Lottie.asset('assets/animations/order_success.json', repeat: false, errorBuilder: (_, __, ___) => const Icon(Icons.check_circle, color: Colors.green, size: 120))),
-                    const SizedBox(height: 8),
-                    if (orderId != null) Text("Order ID: $orderId", style: const TextStyle(fontSize: 14, color: Colors.grey, fontStyle: FontStyle.italic)),
-                    const SizedBox(height: 24),
-
-                    // Order Summary Card
-                    Card(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 3,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("Order Summary", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: items.length,
-                              itemBuilder: (context, index) {
-                                final item = items[index] as Map<String, dynamic>;
-                                final name = item['name'] ?? 'Item';
-                                final qty = item['quantity'] ?? 1;
-                                final price = double.tryParse(item['price'].toString()) ?? 0.0;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(child: Text("$name x$qty", style: const TextStyle(fontSize: 14), overflow: TextOverflow.ellipsis)),
-                                      Text("₹${(price * qty).toStringAsFixed(2)}", style: const TextStyle(fontSize: 14)),
-                                    ],
-                                  ),
-                                );
-                              },
+                    // SUCCESS HERO HEADER
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [_successGreen.withOpacity(0.08), Colors.white],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: _successGreen.withOpacity(0.2)),
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: 140,
+                            height: 140,
+                            child: Lottie.asset(
+                              'assets/animations/order_success.json', 
+                              repeat: false, 
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.check_circle_rounded, 
+                                color: _successGreen, 
+                                size: 100,
+                              ),
                             ),
-                            const Divider(height: 24),
-                            _buildBillRow("Subtotal", subtotal),
-                            _buildBillRow("Delivery Fee", deliveryFee),
-                            _buildBillRow("Platform Fee", platformFee), // ✅ Platform Fee UI added
-                            if (discount > 0) _buildBillRow("Discount", -discount),
-                            const SizedBox(height: 8),
-                            _buildBillRow("Total", total),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Order Placed!", 
+                            style: TextStyle(
+                              fontSize: 24, 
+                              fontWeight: FontWeight.w900, 
+                              color: _primaryDark,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "Your meal is being prepared with care", 
+                            style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                          ),
+                          if (orderId != null) ...[
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _primaryDark,
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Text(
+                                "ID: $orderId", 
+                                style: const TextStyle(
+                                  fontSize: 12, 
+                                  color: Colors.white, 
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ]
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // ORDER SUMMARY CARD
+                    _buildCardContainer(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.restaurant_menu_rounded, color: _accentOrange, size: 20),
+                              SizedBox(width: 8),
+                              Text("Order Items", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryDark)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const ScrollPhysics(), // 👈 FIX: Uses valid ScrollPhysics()
+                            itemCount: items.length,
+                            separatorBuilder: (_, __) => const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            ),
+                            itemBuilder: (context, index) {
+                              final item = items[index] as Map<String, dynamic>;
+                              final name = item['name'] ?? 'Item';
+                              final qty = item['quantity'] ?? 1;
+                              final price = double.tryParse(item['price'].toString()) ?? 0.0;
+                              return Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _primaryDark.withOpacity(0.06),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      "${qty}x", 
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: _primaryDark),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      name, 
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark), 
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    "₹${(price * qty).toStringAsFixed(2)}", 
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryDark),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.0),
+                            child: Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                          ),
+                          _buildBillRow("Subtotal", subtotal),
+                          _buildBillRow("Delivery Fee", deliveryFee),
+                          _buildBillRow("Platform Fee", platformFee),
+                          if (discount > 0) _buildBillRow("Discount", -discount),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          ),
+                          _buildBillRow("Total Amount", total, isTotal: true),
+                        ],
+                      ),
+                    ),
+
+                    // FULFILLMENT DETAILS CARD
+                    _buildCardContainer(
+                      child: Column(
+                        children: [
+                          _buildInfoSection(Icons.location_on_rounded, "DELIVERY LOCATION", addressDisplay),
+                          if (instructions.isNotEmpty) ...[
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 14.0),
+                              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            ),
+                            _buildInfoSection(Icons.note_alt_rounded, "DELIVERY INSTRUCTIONS", instructions),
                           ],
-                        ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 14.0),
+                            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          ),
+                          _buildInfoSection(Icons.payments_rounded, "PAYMENT METHOD", widget.orderData['payment'] ?? 'N/A'),
+                        ],
                       ),
                     ),
 
                     const SizedBox(height: 16),
 
-                    // Address + Payment + Instructions Card
-                    Card(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 3,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildInfoSection("Delivery Address", addressDisplay),
-                            if (instructions.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              _buildInfoSection("Delivery Instructions", instructions), 
-                            ],
-                            const SizedBox(height: 16),
-                            _buildInfoSection("Payment Method", widget.orderData['payment'] ?? 'N/A'),
-                          ],
+                    // NAVIGATION ACTIONS
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton.icon(
+                        onPressed: _navigateToHome,
+                        icon: const Icon(Icons.home_rounded, size: 20),
+                        label: const Text(
+                          "Back to Home", 
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryDark,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // Action Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const FoodHomeScreen()), (route) => false);
-                          },
-                          icon: const Icon(Icons.home),
-                          label: const Text("Home"),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                        ),
-                      ],
                     ),
                   ],
                 ),

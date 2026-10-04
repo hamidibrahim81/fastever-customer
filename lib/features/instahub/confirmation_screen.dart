@@ -97,6 +97,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
         "total": widget.total, // ✅ Stored separately
         "address": widget.address,
         "payment": widget.payment,
+        "paymentStatus": "waiting for grant", // 👈 Added paymentStatus field here
         "deliveryTime": widget.deliveryTime, // ✅ Matches screenshot slot
         "deliveryDate": Timestamp.fromDate(widget.deliveryDate), // <-- NEW: Storing delivery date
         "latitude": widget.latitude, // <-- NEW: Storing latitude

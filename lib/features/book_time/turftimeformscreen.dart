@@ -324,10 +324,8 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
     if (_selectedSlots.isEmpty) return "Select Turf Hours *";
     if (_selectedSlots.length == 1) return _selectedSlots.first['label'];
 
-    int startMins = _selectedSlots.first['start_minutes'];
-    int endMins = _selectedSlots.last['end_minutes'];
-
-    return "${_formatMinutes(startMins)} to ${_formatMinutes(endMins)} (${_selectedSlots.length} hrs)";
+    final String joinedSlots = _selectedSlots.map((slot) => slot['label'] as String).join(" & ");
+    return "$joinedSlots (${_selectedSlots.length} hrs)";
   }
 
   Future<void> _submitBooking() async {

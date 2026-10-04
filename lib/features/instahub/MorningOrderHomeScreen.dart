@@ -14,6 +14,9 @@ import '../auth/login_screen.dart';
 // ✅ IMPORT GLOBAL AUTH GUARD
 import 'package:fastevergo_v1/utils/auth_guards.dart';
 
+// ✅ IMPORT NOTIFICATION SCREEN & BELL NAVIGATOR
+import 'package:fastevergo_v1/features/notification/NotificationScreen.dart';
+
 // Use morning cart imports only
 import 'package:fastevergo_v1/features/cart/morning_cart_provider.dart';
 import 'package:fastevergo_v1/features/cart/morning_cart_bar.dart';
@@ -80,7 +83,6 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
     super.dispose();
   }
 
-  // LOGIC UNTOUCHED
   Future<bool> _onWillPop() async {
     final now = DateTime.now();
     if (_lastPressed == null || now.difference(_lastPressed!) > _doublePressDuration) {
@@ -125,6 +127,14 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
           elevation: 0,
           centerTitle: true,
           actions: [
+            // 🔔 Notification Bell Icon Integration
+            IconButton(
+              icon: const Icon(Icons.notifications_rounded, size: 26),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationScreen()),
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.account_circle_outlined, size: 28),
               onPressed: () {
@@ -139,9 +149,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSyncedCategorySystem(), // 🔄 Unified horizontal unit
+              _buildSyncedCategorySystem(), 
               const SizedBox(height: 24),
-              _buildAdsRunner(), // Ads moved down
+              _buildAdsRunner(), 
               const SizedBox(height: 24),
               _buildMyOrdersButtonOnly(),
               const SizedBox(height: 32),
@@ -169,11 +179,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
     );
   }
 
-  // 🔄 FULLY SYNCED CATEGORY UI (Image and Name scroll as one unit)
   Widget _buildSyncedCategorySystem() {
     return Stack(
       children: [
-        // Background Header Box
         Container(
           width: double.infinity,
           height: 120, 
@@ -182,14 +190,13 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
             borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
           ),
         ),
-        // Unified Scrollable List
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 15),
             Padding(padding: const EdgeInsets.only(left: 20, bottom: 8), child: Text("Shop by Category", style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1))),
             SizedBox(
-              height: 145, // Total height for Image + Spacing + Name
+              height: 145, 
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -202,7 +209,6 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MorningCategoryScreen(categoryName: cat["name"]))),
                     child: Column(
                       children: [
-                        // Image Pod (Over Red area)
                         Container(
                           height: 70, width: 70,
                           decoration: BoxDecoration(
@@ -213,8 +219,7 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
                           ),
                           child: ClipOval(child: Image.asset(cat["image"], fit: BoxFit.cover)),
                         ),
-                        const SizedBox(height: 15), // Pushes text down onto the white area
-                        // Name Pod (Scrolls with the image)
+                        const SizedBox(height: 15), 
                         SizedBox(
                           width: 75,
                           child: Text(

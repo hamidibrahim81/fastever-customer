@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // Ensure you have intl added to your pubspec.yaml for formatting
+import 'package:intl/intl.dart';
 
 // Ensure this path matches your project structure
 import '../food/cart/ManageAddressScreen.dart'; 
@@ -135,8 +135,8 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(), // Prevents picking past dates
-      lastDate: DateTime.now().add(const Duration(days: 30)), // Restricts to 30 days ahead
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -159,11 +159,11 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     }
   }
 
-  // Time Picker Logic
+  // Time Picker Logic (Restricted to 9:00 AM - 5:00 PM)
   Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _selectedTime ?? TimeOfDay.now(),
+      initialTime: _selectedTime ?? const TimeOfDay(hour: 9, minute: 0),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -178,10 +178,24 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
       },
     );
 
-    if (picked != null && picked != _selectedTime) {
+    if (picked != null) {
+      final double pickedDouble = picked.hour + (picked.minute / 60.0);
+      const double minTime = 9.0;  // 9:00 AM
+      const double maxTime = 17.0; // 5:00 PM
+
+      if (pickedDouble < minTime || pickedDouble > maxTime) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Service available only between 9:00 AM and 5:00 PM."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _selectedTime = picked;
-        if (!mounted) return;
         _timeController.text = picked.format(context);
       });
     }
@@ -207,7 +221,6 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       
-      // Combine date and time if both are selected for uniform DB handling
       String scheduledDateTimeString = "";
       if (_selectedDate != null && _selectedTime != null) {
         final combinedDateTime = DateTime(
@@ -233,9 +246,9 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
         'other_details': _selectedType == 'Other' ? _otherController.text.trim() : '', 
         'userId': user?.uid ?? 'anonymous',
         'status': 'Pending',
-        'scheduled_date': _dateController.text, // Stores plain date string "YYYY-MM-DD"
-        'scheduled_time': _timeController.text, // Stores local structured time string "HH:MM AM/PM"
-        'scheduled_timestamp': scheduledDateTimeString, // Combined clear sorting track index
+        'scheduled_date': _dateController.text,
+        'scheduled_time': _timeController.text,
+        'scheduled_timestamp': scheduledDateTimeString,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
@@ -348,7 +361,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
               const SizedBox(height: 22),
 
               // CARD SECTION 2: SCHEDULE DATE & TIME
-              _buildSectionHeader("Schedule Appointment"),
+              _buildSectionHeader("Schedule Appointment (9:00 AM - 5:00 PM)"),
               _buildSectionContainer(
                 child: Row(
                   children: [
@@ -552,7 +565,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     );
   }
 
-  // Premium UI Component: Section Header Titles
+  // Section Header Titles
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
@@ -563,7 +576,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     );
   }
 
-  // Premium UI Component: Card Wrapper Layout
+  // Card Wrapper Layout
   Widget _buildSectionContainer({required Widget child, EdgeInsetsGeometry? padding}) {
     return Container(
       width: double.infinity,
@@ -583,7 +596,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     );
   }
 
-  // Premium UI Component: Styled Text Fields
+  // Styled Text Fields
   Widget _buildField(
     TextEditingController controller, 
     String label, 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'morning_cart_provider.dart';
-import 'package:intl/intl.dart'; // 👉 Added for formatting dates easily
+import 'package:intl/intl.dart';
 
 import 'package:fastevergo_v1/features/food/coupon/coupon_service.dart';
 import 'package:fastevergo_v1/features/food/coupon/coupon_model.dart';
@@ -10,7 +10,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 
-// 👉 IMPORT THE NEW MANAGEMENT SCREEN
 import 'package:fastevergo_v1/features/food/cart/ManageAddressScreen.dart';
 
 // -------------------------
@@ -26,6 +25,18 @@ int parseInt(dynamic value, {int defaultValue = 0}) {
   if (value is String) return int.tryParse(value) ?? defaultValue;
   if (value is num) return value.toInt();
   return defaultValue;
+}
+
+// -------------------------
+// 🔹 Theme Tokens
+// -------------------------
+class _CartTheme {
+  static const Color primaryDark = Color(0xFF111827);
+  static const Color accentOrange = Color(0xFFFF6B00);
+  static const Color successGreen = Color(0xFF16A34A);
+  static const Color bgColor = Color(0xFFF8FAFC);
+  static const Color cardBorder = Color(0xFFE2E8F0);
+  static const Color textMuted = Color(0xFF64748B);
 }
 
 // -------------------------
@@ -58,12 +69,8 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   double appliedDiscount = 0;
   String selectedTimeSlot = "5:00 AM - 6:00 AM";
   
-  // ✅ ADDED DATE SELECTOR STATE (Defaults to tomorrow morning since it's a morning service)
   DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
 
-  // -------------------------
-  // Delivery Fee Configuration
-  // -------------------------
   double _baseFee = 20.0; 
   double _baseKm = 2.0; 
   double _perKmFee = 8.0; 
@@ -77,7 +84,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   double? _deliveryLat;
   double? _deliveryLng;
 
-  // ✅ SERVICE AREA VARIABLES
   double? _serviceLat;
   double? _serviceLng;
 
@@ -85,7 +91,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
   bool _isFeeLoading = true;
   bool _isOutOfRange = false;
 
-  // Controllers
   final _couponController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -98,9 +103,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     _initCartScreen();
   }
 
-  // -------------------------
-  // Updated Init Cart Screen
-  // -------------------------
   Future<void> _initCartScreen({bool isRefresh = false}) async {
     try {
       if (mounted) setState(() => _isFeeLoading = true);
@@ -118,8 +120,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
 
       if (_deliveryLat == 0.0) _deliveryLat = null;
       if (_deliveryLng == 0.0) _deliveryLng = null;
-
-      debugPrint("Delivery Coords after address load: $_deliveryLat, $_deliveryLng");
 
       await _calculateDeliveryFee();
     } catch (e) {
@@ -139,9 +139,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     super.dispose();
   }
 
-  // -------------------------
-  // Load Store Location & Fee Config
-  // -------------------------
   Future<void> _loadStoreLocationAndFees() async {
     try {
       final storeDoc = await _firestore.collection('instahubStores').doc(_STORE_DOC_ID).get();
@@ -149,9 +146,7 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
         final data = storeDoc.data()!;
         _storeLat = parseDouble(data['latitude']);
         _storeLng = parseDouble(data['longitude']);
-        debugPrint("Store Location Loaded: $_storeLat, $_storeLng");
       } else {
-        debugPrint("⚠️ Store document not found. Using fallback coordinates.");
         _storeLat ??= 9.224346500;
         _storeLng ??= 76.84841150;
       }
@@ -164,16 +159,12 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
         _baseKm = parseDouble(data['baseKm'], defaultValue: _baseKm);
         _perKmFee = parseDouble(data['perKmFee'], defaultValue: _perKmFee);
         _platformFee = parseDouble(data['platformFee'], defaultValue: _platformFee);
-        debugPrint("✅ Delivery Fees Loaded: Platform Fee is $_platformFee");
       }
     } catch (e) {
-      debugPrint("⚠️ Firestore load error: $e");
+      debugPrint("Firestore load error: $e");
     }
   }
 
-  // -------------------------
-  // Load Service Area Radius
-  // -------------------------
   Future<void> _loadServiceAreaRadius() async {
     try {
       final snapshot = await _firestore
@@ -191,17 +182,12 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
 
         _serviceLat = parseDouble(data['latitude']);
         _serviceLng = parseDouble(data['longitude']);
-
-        debugPrint("✅ Service Area Radius Loaded: $_maxDeliveryDistanceKm km");
       }
     } catch (e) {
-      debugPrint("⚠️ Service area load error: $e");
+      debugPrint("Service area load error: $e");
     }
   }
 
-  // -------------------------
-  // Load Saved Address
-  // -------------------------
   Future<void> _loadSavedAddress(String uid) async {
     try {
       final doc = await _firestore.collection("users").doc(uid).collection("profile").doc("address").get();
@@ -220,17 +206,14 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
         }
       }
     } catch (e) {
-      debugPrint("⚠️ Address load error: $e");
+      debugPrint("Address load error: $e");
     }
   }
 
-  // -------------------------
-  // Address Selection
-  // -------------------------
   void _showAddressSelectionScreen() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ManageAddressScreen()),
+      MaterialPageRoute(builder: (_) => const ManageAddressScreen()),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -263,9 +246,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     }
   }
 
-  // -------------------------
-  // Calculate Delivery Fee
-  // -------------------------
   Future<double> _calculateDeliveryFee() async {
     if (_storeLat == null || _storeLng == null || _deliveryLat == null || _deliveryLng == null || _serviceLat == null || _deliveryLat == 0.0) {
       if (mounted) setState(() => _isFeeLoading = false);
@@ -311,22 +291,19 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     return _calculatedDeliveryFee;
   }
 
-  // -------------------------
-  // Date Picker Function
-  // -------------------------
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate: DateTime.now(), // Allows today's date if slots are still open
-      lastDate: DateTime.now().add(const Duration(days: 7)), // Allows up to a week in advance
+      firstDate: DateTime.now(), 
+      lastDate: DateTime.now().add(const Duration(days: 7)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.orange.shade700,
+            colorScheme: const ColorScheme.light(
+              primary: _CartTheme.primaryDark,
               onPrimary: Colors.white,
-              onSurface: Colors.black,
+              onSurface: _CartTheme.primaryDark,
             ),
           ),
           child: child!,
@@ -340,15 +317,12 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     }
   }
 
-  // -------------------------
-  // Navigate to Confirmation
-  // -------------------------
   void _navigateToOrderConfirmation(double subtotal, double discount, double totalDeliveryFee) {
     final bool coordsMissing = _deliveryLat == null || _deliveryLng == null || _storeLat == null || _storeLng == null || _deliveryLat == 0.0;
 
     if (selectedAddress == "No address saved yet" || coordsMissing) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a delivery address."), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Please select a delivery address."), backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -370,6 +344,7 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
         "quantity": item['quantity'],
         "image": item['image'] ?? "https://via.placeholder.com/70",
         "restaurantId": "morningHub",
+        "paymentStatus": "waiting for grant", // 👈 Added paymentStatus field here
       };
     }).toList();
 
@@ -383,9 +358,9 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
           total: total,
           address: selectedAddress,
           payment: selectedPayment,
-          deliveryFee: _calculatedDeliveryFee, // 👉 PASSING THE SEPARATED DELIVERY FEE
+          deliveryFee: _calculatedDeliveryFee, 
           deliveryTime: selectedTimeSlot, 
-          deliveryDate: selectedDate,     // 👉 PASSING THE ACTUAL DATETIME OBJECT
+          deliveryDate: selectedDate,    
           latitude: _deliveryLat,
           longitude: _deliveryLng,
         ),
@@ -393,9 +368,6 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     );
   }
 
-  // -------------------------
-  // Apply Coupon
-  // -------------------------
   Future<void> _applyCoupon(double subtotal) async {
     final code = _couponController.text.trim();
     if (code.isEmpty) return;
@@ -404,7 +376,7 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     if (coupon == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid coupon"), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Invalid coupon"), backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -419,156 +391,212 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final cart = Provider.of<MorningCartProvider>(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Morning Cart"),
-        backgroundColor: Colors.orange.shade700,
-        foregroundColor: Colors.white,
+  Widget _buildCardContainer({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: _CartTheme.cardBorder.withOpacity(0.6)),
       ),
-      body: cart.items.isEmpty
-          ? const Center(child: Text("Your cart is empty ☀️"))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildSectionTitle("🛒 Cart Items"),
-                  _buildCartItems(cart),
-                  const SizedBox(height: 16),
-                  _buildSectionTitle("📍 Delivery Address"),
-                  _buildAddress(),
-                  const SizedBox(height: 16),
-                  _buildSectionTitle("⏰ Select Delivery Schedule"), // 👉 Section Title Update
-                  _buildDeliveryTimeSlot(),
-                  const SizedBox(height: 16),
-                  _buildSectionTitle("💰 Order Summary"),
-                  _buildTotals(cart.totalAmount, _calculatedDeliveryFee, _platformFee, appliedDiscount, _isFeeLoading, _isOutOfRange),
-                  const SizedBox(height: 16),
-                  _buildSectionTitle("🏷️ Apply Coupon"),
-                  _buildCoupon(cart.totalAmount),
-                  const SizedBox(height: 16),
-                  _buildSectionTitle("💳 Payment Method"),
-                  _buildPayment(),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-      bottomNavigationBar: cart.items.isEmpty ? null : _buildPlaceOrderButton(cart.totalAmount),
+      child: child,
     );
   }
 
-  // -------------------------
-  // UI Helper Widgets
-  // -------------------------
-  Widget _buildSectionTitle(String title) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+  Widget _buildSectionTitle(IconData icon, String title) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: _CartTheme.accentOrange, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title, 
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _CartTheme.primaryDark),
+            ),
+          ],
+        ),
       );
 
-  Widget _buildAddress() => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: Colors.grey.shade200),
-    ),
-    child: Row(
-      children: [
-        const Icon(Icons.location_on, color: Colors.orange),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            selectedAddress,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13),
-          ),
-        ),
-        TextButton(
-          onPressed: _showAddressSelectionScreen,
-          child: const Text(
-            "Change",
-            style: TextStyle(
-              color: Colors.orange,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  // ------------------------------------
-  // ✅ UPDATED DATE & TIME SLOT PICKER
-  // ------------------------------------
-  Widget _buildDeliveryTimeSlot() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50, 
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
+  Widget _buildAddress() => _buildCardContainer(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date Picker Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSectionTitle(Icons.location_on_rounded, "Delivery Address"),
+                TextButton(
+                  onPressed: _showAddressSelectionScreen,
+                  child: const Text(
+                    "Change",
+                    style: TextStyle(color: _CartTheme.accentOrange, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _CartTheme.primaryDark.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.home_rounded, color: _CartTheme.primaryDark, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    selectedAddress,
+                    style: const TextStyle(fontSize: 14, color: _CartTheme.primaryDark, height: 1.3, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildDeliveryTimeSlot() => _buildCardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle(Icons.schedule_rounded, "Delivery Schedule"),
             InkWell(
               onTap: _selectDate,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(14),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade400),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
+                  border: Border.all(color: _CartTheme.cardBorder),
+                  borderRadius: BorderRadius.circular(14),
+                  color: _CartTheme.bgColor,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calendar_month, color: Colors.orange),
+                        const Icon(Icons.calendar_month_rounded, color: _CartTheme.accentOrange, size: 20),
                         const SizedBox(width: 12),
                         Text(
                           DateFormat('EEEE, d MMM yyyy').format(selectedDate),
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _CartTheme.primaryDark),
                         ),
                       ],
                     ),
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    const Icon(Icons.keyboard_arrow_down_rounded, color: _CartTheme.textMuted),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            // Time Slot Dropdown
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: selectedTimeSlot,
               decoration: InputDecoration(
                 labelText: 'Select Time Slot',
+                labelStyle: const TextStyle(color: _CartTheme.textMuted, fontSize: 13),
                 filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                prefixIcon: const Icon(Icons.alarm, color: Colors.orange),
+                fillColor: _CartTheme.bgColor,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _CartTheme.cardBorder)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _CartTheme.cardBorder)),
+                prefixIcon: const Icon(Icons.alarm_rounded, color: _CartTheme.accentOrange, size: 20),
               ),
               onChanged: (String? newValue) { if (newValue != null) setState(() => selectedTimeSlot = newValue); },
-              items: _deliverySlots.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+              items: _deliverySlots.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)))).toList(),
             ),
           ],
         ),
       );
 
-  Widget _buildCoupon(double subtotal) => Row(children: [
-        Expanded(child: TextField(controller: _couponController, decoration: InputDecoration(hintText: "Enter coupon", filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)))),
-        const SizedBox(width: 8),
-        ElevatedButton(onPressed: () => _applyCoupon(subtotal), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade700, foregroundColor: Colors.white), child: const Text("Apply")),
-      ]);
+  Widget _buildCoupon(double subtotal) => _buildCardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle(Icons.local_offer_rounded, "Apply Coupon"),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _couponController,
+                    decoration: InputDecoration(
+                      hintText: "Enter coupon code",
+                      hintStyle: const TextStyle(color: _CartTheme.textMuted, fontSize: 14),
+                      filled: true,
+                      fillColor: _CartTheme.bgColor,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () => _applyCoupon(subtotal),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _CartTheme.primaryDark,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text("Apply", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
-  Widget _buildPayment() => Column(children: [
-        RadioListTile<String>(value: "COD", groupValue: selectedPayment, onChanged: (val) => setState(() => selectedPayment = val!), title: const Text("Cash on Delivery"), activeColor: Colors.orange.shade700),
-      ]);
+  Widget _buildPayment() => _buildCardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle(Icons.payments_rounded, "Payment Method"),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _CartTheme.bgColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _CartTheme.cardBorder),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _CartTheme.accentOrange.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.payments_rounded, color: _CartTheme.accentOrange, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Cash on Delivery", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _CartTheme.primaryDark)),
+                        SizedBox(height: 2),
+                        Text("Pay in cash upon delivery", style: TextStyle(fontSize: 12, color: _CartTheme.textMuted)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.check_circle_rounded, color: _CartTheme.accentOrange, size: 22),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildTotals(double subtotal, double deliveryFee, double platformFee, double discount, bool isLoading, bool isUnavailable) {
     final bool coordsMissing = (_deliveryLat == null || _deliveryLat == 0.0) && !isLoading;
@@ -576,33 +604,47 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
     final actualDeliveryFee = showDeliveryUnavailable ? 0.0 : deliveryFee;
     final total = subtotal - discount + actualDeliveryFee + platformFee;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
-      child: Column(children: [
-        _buildTotalRow("Subtotal", subtotal),
-        _buildTotalRow("Delivery Fee", deliveryFee, isPlaceholder: isLoading, isUnavailable: showDeliveryUnavailable),
-        _buildTotalRow("Platform Fee", platformFee, isPlaceholder: isLoading),
-        _buildTotalRow("Discount", -discount, color: Colors.green),
-        const Divider(),
-        _buildTotalRow("Total", total, isBold: true, fontSize: 18, color: Colors.orange.shade700, isPlaceholder: isLoading, isUnavailable: coordsMissing),
-      ]),
+    return _buildCardContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(Icons.receipt_long_rounded, "Order Summary"),
+          _buildTotalRow("Subtotal", subtotal),
+          _buildTotalRow("Delivery Fee", deliveryFee, isPlaceholder: isLoading, isUnavailable: showDeliveryUnavailable),
+          _buildTotalRow("Platform Fee", platformFee, isPlaceholder: isLoading),
+          if (discount > 0) _buildTotalRow("Discount", -discount, color: _CartTheme.successGreen),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+          ),
+          _buildTotalRow("Total Amount", total, isBold: true, fontSize: 17, color: _CartTheme.accentOrange, isPlaceholder: isLoading, isUnavailable: coordsMissing),
+        ],
+      ),
     );
   }
 
-  Widget _buildTotalRow(String label, double value, {bool isBold = false, double fontSize = 16, Color? color, bool isPlaceholder = false, bool isUnavailable = false}) {
+  Widget _buildTotalRow(String label, double value, {bool isBold = false, double fontSize = 14, Color? color, bool isPlaceholder = false, bool isUnavailable = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
-        isPlaceholder ? const SizedBox(width: 80, child: LinearProgressIndicator()) : Text(isUnavailable ? "N/A" : "₹${value.toStringAsFixed(2)}", style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize, color: isUnavailable ? Colors.red : color)),
-      ]),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+        children: [
+          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.w500, fontSize: fontSize, color: isBold ? _CartTheme.primaryDark : _CartTheme.textMuted)),
+          isPlaceholder 
+              ? const SizedBox(width: 60, child: LinearProgressIndicator(color: _CartTheme.accentOrange)) 
+              : Text(
+                  isUnavailable ? "N/A" : "₹${value.abs().toStringAsFixed(2)}", 
+                  style: TextStyle(
+                    fontWeight: isBold ? FontWeight.w900 : FontWeight.bold, 
+                    fontSize: fontSize, 
+                    color: isUnavailable ? Colors.redAccent : (color ?? (isBold ? _CartTheme.primaryDark : _CartTheme.primaryDark)),
+                  ),
+                ),
+        ],
+      ),
     );
   }
 
-  // -------------------------
-  // Updated Place Order Button
-  // -------------------------
   Widget _buildPlaceOrderButton(double subtotal) {
     final bool noAddressSelected =
         selectedAddress == "No address saved yet" ||
@@ -615,62 +657,175 @@ class _MorningCartScreenState extends State<MorningCartScreen> {
 
     final total = subtotal - appliedDiscount + _calculatedDeliveryFee + _platformFee;
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ElevatedButton(
-        onPressed: isReady
-            ? () => _navigateToOrderConfirmation(
-                  subtotal,
-                  appliedDiscount,
-                  _calculatedDeliveryFee + _platformFee,
-                )
-            : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isReady ? Colors.orange.shade700 : Colors.grey,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: 54,
+          child: ElevatedButton(
+            onPressed: isReady
+                ? () => _navigateToOrderConfirmation(
+                      subtotal,
+                      appliedDiscount,
+                      _calculatedDeliveryFee + _platformFee,
+                    )
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isReady ? _CartTheme.primaryDark : Colors.grey.shade400,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: _isFeeLoading
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text(
+                    noAddressSelected
+                        ? "Select Delivery Address"
+                        : "Place Order • ₹${total.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
         ),
-        child: _isFeeLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : Text(
-                noAddressSelected
-                    ? "Select Address"
-                    : "Place Order • ₹${total.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
       ),
     );
   }
 
   Widget _buildCartItems(MorningCartProvider cart) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: cart.items.length,
-      itemBuilder: (_, i) {
-        final item = cart.items.values.toList()[i];
-        final id = item['id'];
-        final quantity = parseInt(item['quantity']);
-        final price = parseDouble(item['price']);
-        final imageUrl = item['image'] ?? "https://via.placeholder.com/70";
+    return _buildCardContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(Icons.shopping_bag_rounded, "Cart Items"),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const ScrollPhysics(),
+            itemCount: cart.items.length,
+            separatorBuilder: (_, __) => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+            ),
+            itemBuilder: (_, i) {
+              final item = cart.items.values.toList()[i];
+              final id = item['id'];
+              final quantity = parseInt(item['quantity']);
+              final price = parseDouble(item['price']);
+              final imageUrl = item['image'] ?? "https://via.placeholder.com/70";
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.zero),
-          child: Row(children: [
-            Container(width: 60, height: 60, child: Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image))),
-            const SizedBox(width: 16),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)), Text("₹${price.toStringAsFixed(2)} x $quantity")])),
-            IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: () => cart.reduceQuantity(id)),
-            IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => cart.addItem(id: id, name: item['name'] ?? '', price: price, restaurantId: "morningHub", image: imageUrl)),
-          ]),
-        );
-      },
+              return Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      imageUrl, 
+                      width: 55, 
+                      height: 55, 
+                      fit: BoxFit.cover, 
+                      errorBuilder: (_, __, ___) => Container(color: _CartTheme.bgColor, child: const Icon(Icons.image_outlined, color: _CartTheme.textMuted)),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['name'] ?? '', 
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _CartTheme.primaryDark),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "₹${price.toStringAsFixed(2)}", 
+                          style: const TextStyle(fontSize: 13, color: _CartTheme.textMuted, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline_rounded, color: _CartTheme.accentOrange, size: 22), 
+                        onPressed: () => cart.reduceQuantity(id),
+                      ),
+                      Text(
+                        "$quantity", 
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _CartTheme.primaryDark),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline_rounded, color: _CartTheme.accentOrange, size: 22), 
+                        onPressed: () => cart.addItem(id: id, name: item['name'] ?? '', price: price, restaurantId: "morningHub", image: imageUrl),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = Provider.of<MorningCartProvider>(context);
+    return Scaffold(
+      backgroundColor: _CartTheme.bgColor,
+      appBar: AppBar(
+        title: const Text("Morning Cart", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: _CartTheme.primaryDark)),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _CartTheme.primaryDark, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: cart.items.isEmpty
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.wb_sunny_outlined, size: 80, color: _CartTheme.textMuted),
+                  SizedBox(height: 16),
+                  Text(
+                    "Your morning cart is empty ☀️", 
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _CartTheme.primaryDark),
+                  ),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildCartItems(cart),
+                  _buildAddress(),
+                  _buildDeliveryTimeSlot(),
+                  _buildTotals(cart.totalAmount, _calculatedDeliveryFee, _platformFee, appliedDiscount, _isFeeLoading, _isOutOfRange),
+                  _buildCoupon(cart.totalAmount),
+                  _buildPayment(),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+      bottomNavigationBar: cart.items.isEmpty ? null : _buildPlaceOrderButton(cart.totalAmount),
     );
   }
 }

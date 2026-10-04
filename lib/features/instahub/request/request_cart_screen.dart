@@ -61,7 +61,7 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
 
       if (!mounted) return;
 
-      // Premium Announcement Dialog instead of standard snackbar
+      // Premium Announcement Dialog with updated text
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -85,15 +85,15 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    "Something Exciting is Cooking!",
+                    "Custom Item Requests – Coming Soon",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.montserrat(fontWeight: FontWeight.w900, fontSize: 20, color: const Color(0xFF121212)),
+                    style: GoogleFonts.montserrat(fontWeight: FontWeight.w900, fontSize: 18, color: const Color(0xFF121212)),
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    "We are currently putting the finishing touches on our custom item requests to ensure you get the fastest delivery possible.\n\nWe apologize for the short wait—this feature will be live very soon! Stay tuned.",
+                    "We're currently enhancing our Custom Item Request service to provide you with a faster and more reliable experience.\n\nThis feature is temporarily unavailable. We apologize for the inconvenience and appreciate your patience.\n\nWe'll be launching this service very soon—please check back later!",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey.shade600, height: 1.5),
                   ),
                   const SizedBox(height: 28),
                   SizedBox(
@@ -179,7 +179,7 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                 // ITEMS LIST LAYER
                 ListView.builder(
                   shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
+                  physics: const ScrollPhysics(),
                   itemCount: widget.items.length,
                   itemBuilder: (_, i) {
                     final item = widget.items[i];
@@ -329,7 +329,7 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
               child: ElevatedButton(
                 onPressed: isPlacingOrder ? null : _placeOrder,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF121212), // High-End solid aesthetic
+                  backgroundColor: const Color(0xFF121212),
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade400,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

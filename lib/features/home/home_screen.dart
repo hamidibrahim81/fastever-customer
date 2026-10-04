@@ -11,7 +11,11 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
+// ✅ IMPORT GLOBAL AUTH GUARD
+import 'package:fastevergo_v1/utils/auth_guards.dart';
+
 import '../food/food_home_screen.dart';
+import '../food/combo_screen.dart';
 import '../instahub/InstantOrderHomeScreen.dart';
 import '../instahub/MorningOrderHomeScreen.dart';
 import '../auth/login_screen.dart';
@@ -21,6 +25,10 @@ import '../car_wash/CarWashingCentresScreen.dart';
 import '../book_time/book_time_screens.dart';
 import '../notification/notificationscreen.dart';
 import '../takearide/takeridescreen.dart';
+import '../pharmacy/pharmacy_order_screen.dart'; 
+import '../lab_test/labs_list_screen.dart';
+import '../profile/profile_screen2.dart';
+import '../cake/cake_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -28,7 +36,7 @@ final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 // Premium Color Palette Tokens
 // ----------------------------------------------------------------------
 class AppColors {
-  static const Color primary = Color(0xFF111827);       // Deep Premium Slate/Black
+  static const Color primary = Color(0xFF111827);        // Deep Premium Slate/Black
   static const Color accent = Color(0xFFFF4D6D);        // Vibrant Modern Pink/Red
   static const Color background = Color(0xFFF7F8FA);    // Clean Crisp Background
   static const Color cardBg = Colors.white;             // Card Surfaces
@@ -38,9 +46,6 @@ class AppColors {
   static const Color textLight = Color(0xFF6B7280);     // Secondary Subtitles
 }
 
-// ----------------------------------------------------------------------
-// Helper Functions
-// ----------------------------------------------------------------------
 double parseDouble(dynamic value, {double defaultValue = 0.0}) {
   if (value is String) return double.tryParse(value) ?? defaultValue;
   if (value is num) return value.toDouble();
@@ -303,6 +308,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   StreamSubscription<Position>? _positionStreamSubscription;
   List<_ServiceLocation> _serviceLocations = []; 
   bool _serviceLocationsLoaded = false;
+  Map<String, dynamic> _serviceStatuses = {};
 
   @override
   void initState() {
@@ -311,6 +317,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _initGate();
     _setupTokenListener(); 
     _subscribeToTopics(); 
+    _listenToServiceStatuses();
   }
 
   @override
@@ -318,6 +325,79 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _positionStreamSubscription?.cancel();
     super.dispose();
+  }
+
+  void _listenToServiceStatuses() {
+    FirebaseFirestore.instance
+        .collection('app_settings')
+        .doc('service_status')
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        if (mounted) {
+          setState(() {
+            _serviceStatuses = snapshot.data()!;
+          });
+        }
+      }
+    });
+  }
+
+  void _handleServiceTap(String serviceKey, String serviceTitle, Widget? screen, {bool requiresAuth = true}) {
+    if (requiresAuth && !requireLoginGlobal("Please login to access $serviceTitle")) {
+      return;
+    }
+
+    final isAvailable = _serviceStatuses[serviceKey] ?? true;
+
+    if (!isAvailable) {
+      _showMaintenanceDialog(serviceTitle);
+      return;
+    }
+
+    if (screen != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("$serviceTitle coming soon!")),
+      );
+    }
+  }
+
+  void _showMaintenanceDialog(String serviceTitle) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.build_circle_rounded, color: AppColors.offer, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "Under Maintenance",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          "$serviceTitle is currently undergoing scheduled upgrades to serve you better. Please check back shortly!",
+          style: const TextStyle(color: AppColors.textDark, fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got It", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -505,25 +585,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           return AlertDialog(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Text(isDeletedSuccess ? "Data Purged" : "System Decommission Check", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+            title: Text(
+              isDeletedSuccess ? "Account Deleted" : "Delete Account", 
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (isDeleting) ...[
                   const CircularProgressIndicator(color: AppColors.accent),
                   const SizedBox(height: 20),
-                  const Text("Removing profile secure frames...", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
+                  const Text("Deleting your profile...", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
                 ] else if (isDeletedSuccess) ...[
                   const Icon(Icons.check_circle, color: AppColors.success, size: 60),
                   const SizedBox(height: 12),
-                  const Text(" E-Commerce identity scrub completed safely.", textAlign: TextAlign.center),
+                  const Text("Your account and personal data have been removed.", textAlign: TextAlign.center),
                 ] else
-                  const Text("Warning: Terminating your account breaks cross-app storage sync arrays and configurations permanently."),
+                  const Text("Are you sure you want to delete your account? This action is permanent and cannot be undone."),
               ],
             ),
             actions: [
               if (!isDeleting && !isDeletedSuccess) ...[
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Abort", style: TextStyle(color: AppColors.textLight))),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: AppColors.textLight))),
                 TextButton(
                   onPressed: () async {
                     setDialogState(() => isDeleting = true);
@@ -536,17 +619,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     } catch (e) {
                       if (mounted) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Authentication stale. Re-login required to commit deletion."), backgroundColor: AppColors.accent));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Session expired. Please log in again to delete your account."), backgroundColor: AppColors.accent));
                       }
                     }
                   },
-                  child: const Text("SCRUB ALL DATA", style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+                  child: const Text("DELETE ACCOUNT", style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
                 ),
               ],
               if (isDeletedSuccess)
                 TextButton(
                   onPressed: _logout,
-                  child: const Text("Return to Terminal Root"),
+                  child: const Text("Return to Home"),
                 ),
             ],
           );
@@ -557,50 +640,55 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<Map<String, dynamic>> get services => [
     {
+      'key': 'food_delivery',
       'title': 'Food Delivery', 
       'subtitle': 'Hot meals from restaurants',
       'tag': '20 min',
       'gradient': [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
       'image': 'assets/instahub/s1.png', 
       'screen': const FoodHomeScreen(), 
-      'isAvailable': true
+      'requiresAuth': false,
     },
     {
+      'key': 'instahub',
       'title': 'Instahub', 
       'subtitle': 'Groceries delivered instantly',
       'tag': '10 min',
       'gradient': [const Color(0xFF11998e), const Color(0xFF38ef7d)],
       'image': 'assets/instahub/s2.png', 
       'screen': const InstantOrderHomeScreen(), 
-      'isAvailable': true
+      'requiresAuth': false,
     },
     {
+      'key': 'morning_orders',
       'title': 'Morning Orders', 
       'subtitle': 'Daily fresh essentials',
       'tag': 'Before 7 AM',
       'gradient': [const Color(0xFF00c6ff), const Color(0xFF0072ff)],
       'image': 'assets/instahub/s6.png', 
       'screen': const MorningOrderHomeScreen(), 
-      'isAvailable': true
+      'requiresAuth': false,
     },
     {
+      'key': 'other_services',
       'title': 'Other Services', 
       'subtitle': 'Home care & premium hubs',
       'tag': 'Explore',
       'gradient': [const Color(0xFF7F00FF), const Color(0xFFE100FF)],
       'image': 'assets/instahub/s9.png', 
       'screen': const OtherServicesScreen(), 
-      'isAvailable': true
+      'requiresAuth': false,
     },
   ];
 
   List<Map<String, dynamic>> get exploreServices => [
-    {'title': 'Home Service', 'image': 'assets/instahub/home.png', 'screen': const HomeServicesScreen()},
-    {'title': 'Laundry', 'image': 'assets/instahub/laundry.png', 'screen': const OtherServicesScreen()}, 
-    {'title': 'Pharmacy', 'image': 'assets/instahub/pharmacy.png', 'screen': const OtherServicesScreen()},
-    {'title': 'Beauty & Wellness', 'image': 'assets/instahub/beauty.png', 'screen': const OtherServicesScreen()},
-    {'title': 'Healthcare', 'image': 'assets/instahub/healthcare.png', 'screen': const OtherServicesScreen()},
-    {'title': 'Events', 'image': 'assets/instahub/events.png', 'screen': const OtherServicesScreen()},
+    {'key': 'book_time', 'title': 'Turf Booking', 'image': 'assets/instahub/turff.png', 'screen': const TurfDirectoryScreen(), 'requiresAuth': true},
+    {'key': 'car_wash', 'title': 'Car Wash', 'image': 'assets/instahub/carwash.png', 'screen': const CarWashingCentresScreen(), 'requiresAuth': true},
+    {'key': 'lab_test', 'title': 'Lab Test', 'image': 'assets/instahub/lab.png', 'screen': LabsListScreen(), 'requiresAuth': true},
+    {'key': 'laundry', 'title': 'Laundry', 'image': 'assets/instahub/laundry.png', 'screen': const LaundryServiceForm(), 'requiresAuth': true}, 
+    {'key': 'cakes_bakery', 'title': 'Cakes & Gifts', 'image': 'assets/instahub/cakesss.png', 'screen': const CakeScreen(), 'requiresAuth': true},
+    {'key': 'home_service', 'title': 'Home Service', 'image': 'assets/instahub/home.png', 'screen': const HomeServicesScreen(), 'requiresAuth': true},
+    {'key': 'pharmacy', 'title': 'Pharmacy', 'image': 'assets/instahub/pharmacy.png', 'screen': const PharmacyOrderScreen(), 'requiresAuth': true}, 
   ];
 
   @override
@@ -632,9 +720,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: const Icon(Icons.location_off_rounded, size: 80, color: AppColors.accent),
               ),
               const SizedBox(height: 32),
-              const Text("Location Matrix Required", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
+              const Text("Location Access Required", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
               const SizedBox(height: 12),
-              const Text("FASTever requires geolocation arrays coordinates to calculate nearby dark stores and dispatch routes correctly.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.textLight, fontSize: 14)),
+              const Text("FASTever needs your location to find nearby stores, services, and delivery options.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.textLight, fontSize: 14)),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity, 
@@ -647,7 +735,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.symmetric(vertical: 18)
                   ),
                   onPressed: () => Geolocator.openLocationSettings(), 
-                  child: const Text("Authorize Geolocation Settings", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))
+                  child: const Text("Enable Location", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))
                 ),
               ),
             ],
@@ -667,12 +755,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const Text("Perimeter Bounds\nComing Soon", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary, height: 1.1)),
+              const Text("Coming Soon\nTo Your Area", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary, height: 1.1)),
               const SizedBox(height: 12),
-              const Text("Your explicit GPS address is outside our live fulfillment sectors right now.", style: TextStyle(color: AppColors.textLight, fontSize: 15)),
+              const Text("Your current location is outside our service area right now.", style: TextStyle(color: AppColors.textLight, fontSize: 15)),
               const SizedBox(height: 32),
               if (_serviceLocations.isNotEmpty) ...[
-                const Text("Select active system node explicitly:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primary, letterSpacing: 0.5)),
+                const Text("Select an available area:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primary, letterSpacing: 0.5)),
                 const SizedBox(height: 12),
                 Expanded(
                   child: ListView.separated(
@@ -685,7 +773,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                           title: Text(loc.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                          subtitle: Text("${loc.radiusKm} KM Protected Perimeter Bound", style: const TextStyle(fontSize: 12)),
+                          subtitle: Text("Service within ${loc.radiusKm} KM", style: const TextStyle(fontSize: 12)),
                           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primary),
                           onTap: () => _selectManualLocation(loc),
                         ),
@@ -701,7 +789,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     style: TextButton.styleFrom(foregroundColor: AppColors.accent),
                     onPressed: _initGate, 
                     icon: const Icon(Icons.refresh_rounded, size: 18), 
-                    label: const Text("Re-verify Geolocation Arrays", style: TextStyle(fontWeight: FontWeight.bold))
+                    label: const Text("Re-check My Location", style: TextStyle(fontWeight: FontWeight.bold))
                   ),
                 ),
               ),
@@ -728,31 +816,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: const [
                   Icon(Icons.layers_sharp, color: AppColors.accent, size: 40), 
                   SizedBox(height: 12),
-                  Text('FASTever Core', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                  Text('System Console Engine v1.0.0', style: TextStyle(color: Colors.white38, fontSize: 11, fontFamily: 'monospace')),
+                  Text('FASTever', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                  Text('Everyday Services @ Doorstep', style: TextStyle(color: Colors.white54, fontSize: 12)),
                 ],
               ),
             ),
-            ListTile(leading: const Icon(Icons.home_filled, color: AppColors.primary), title: const Text('Dashboard Module'), onTap: () => Navigator.pop(context)),
+            ListTile(
+              leading: const Icon(Icons.home_rounded, color: AppColors.primary), 
+              title: const Text('Home', style: TextStyle(fontWeight: FontWeight.w600)), 
+              onTap: () => Navigator.pop(context),
+            ),
             const Divider(height: 1),
-            ListTile(leading: const Icon(Icons.privacy_tip_outlined), title: const Text('Privacy Frame policy'), onTap: () => _launchURL('https://sites.google.com/view/fastever-privacy')),
-            ListTile(leading: const Icon(Icons.description_outlined), title: const Text('Terms of Operations'), onTap: () => _launchURL('https://sites.google.com/view/fastever-termsconditions/home')),
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined), 
+              title: const Text('Privacy Policy'), 
+              onTap: () => _launchURL('https://sites.google.com/view/fastever-privacy'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.description_outlined), 
+              title: const Text('Terms & Conditions'), 
+              onTap: () => _launchURL('https://sites.google.com/view/fastever-termsconditions/home'),
+            ),
             const Divider(height: 1),
             if (_isLoggedIn) ...[
               ListTile(
-                leading: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
-                title: const Text('Scrub User Core', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                title: const Text('Delete Account', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                 onTap: _deleteAccount,
               ),
               ListTile(
-                leading: const Icon(Icons.power_settings_new_rounded),
-                title: const Text('Disconnect Profile'),
+                leading: const Icon(Icons.logout_rounded),
+                title: const Text('Logout'),
                 onTap: _logout,
               ),
             ] else ...[
               ListTile(
                 leading: const Icon(Icons.login_rounded, color: AppColors.success),
-                title: const Text('Initialize Authorization Log'),
+                title: const Text('Login / Register', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
                 onTap: _goToLogin,
               ),
             ],
@@ -766,7 +866,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         shadowColor: Colors.black.withOpacity(0.3),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(24), // 🌟 Smooth rounded bottom header curve
+            bottom: Radius.circular(24),
           ),
         ),
         centerTitle: false,
@@ -789,6 +889,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         actions: [
           const NotificationBellIconButton(),
+          IconButton(
+            icon: const Icon(Icons.account_circle_outlined, color: Colors.white, size: 26),
+            onPressed: () {
+              if (!requireLoginGlobal("Please login to access profile")) return;
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const ProfileScreen2())
+              );
+            },
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -807,7 +917,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // HORIZONTAL SLIDER ROW FRAME (BOXFIT.COVER IMAGES + BOTTOM TEXT)
+          // HORIZONTAL SLIDER ROW FRAME
           SliverToBoxAdapter(
             child: SizedBox(
               height: 85,
@@ -819,7 +929,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 itemBuilder: (context, idx) {
                   final service = exploreServices[idx];
                   return GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => service['screen'])),
+                    onTap: () => _handleServiceTap(
+                      service['key'], 
+                      service['title'], 
+                      service['screen'],
+                      requiresAuth: service['requiresAuth'] ?? true,
+                    ),
                     child: Container(
                       width: 135,
                       margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -889,13 +1004,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text("Quick Services ⚡", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
-                  Text("Premium contextual on-demand hubs optimized instantly", style: TextStyle(color: AppColors.textLight, fontSize: 12)),
+                  Text("Fast on-demand delivery at your doorstep", style: TextStyle(color: AppColors.textLight, fontSize: 12)),
                 ],
               ),
             ),
           ),
 
-          // RE-ENGINEERED 2-COLUMN FLOATING SERVICE MODULE CARDS (BALANCED RATIO & TIGHT CORES)
+          // RE-ENGINEERED 2-COLUMN FLOATING SERVICE MODULE CARDS
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverGrid(
@@ -908,7 +1023,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               delegate: SliverChildBuilderDelegate((context, index) {
                 final item = services[index];
                 return GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => item['screen'])),
+                  onTap: () => _handleServiceTap(
+                    item['key'], 
+                    item['title'], 
+                    item['screen'],
+                    requiresAuth: item['requiresAuth'] ?? false,
+                  ),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -993,33 +1113,314 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
+          // ==================================================================
+          // 🎂 FULL WIDTH CAKE SCREEN NAVIGATION BANNER BUTTON WITH IMAGE
+          // ==================================================================
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: InkWell(
+                onTap: () {
+                  if (!requireLoginGlobal("Please login to view cakes & Gifts")) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CakeScreen()),
+                  );
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: double.infinity,
+                  height: 130, // 👈 Height optimized for the asset image banner
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/instahub/todaycake&gift1.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              color: const Color(0xFF111827),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.black.withOpacity(0.75),
+                                  Colors.black.withOpacity(0.3),
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      "Custom Cakes & Gifts 🎂",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "Order fresh birthday & celebration cakes instantly",
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.accent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // SECTION LABEL: TRENDING CAROUSEL MODULES
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text("Popular Today 🔥", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
-                  Text("View All", style: TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.bold)),
+                children: [
+                  const Text("Popular Today 🔥", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
+                  GestureDetector(
+                    onTap: () => _handleServiceTap('food_delivery', 'Food Delivery', const FoodHomeScreen(), requiresAuth: false),
+                    child: const Text("View All", style: TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
             ),
           ),
 
-          // HORIZONTAL SNAP SLIDER: POPULAR ITEMS
+          // 🔥 EXACT COMBO / BIG DEALS CAROUSEL LAYOUT FROM FOODHOME (REQUIRES LOGIN)
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 150,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildPopularHorizonCard("🚨 Classic Pizza Deal", "50% OFF INSTANTLY", "Order Now →", const Color(0xFFFF9900)),
-                  _buildPopularHorizonCard("🍔 Smash Burgers", "Free Delivery Runs", "Secure Pack →", const Color(0xFF00C6FF)),
-                  _buildPopularHorizonCard("🥛 Fresh Dairy Bundles", "Morning Lock-In", "Reserve Slot →", const Color(0xFF7F00FF)),
-                ],
+              height: 160,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('combodeals')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Shimmer.fromColors(
+                      baseColor: Colors.grey.shade200,
+                      highlightColor: Colors.grey.shade50,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: 3,
+                        itemBuilder: (_, __) => Container(
+                          width: 260,
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final docs = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final item = doc.data() as Map<String, dynamic>;
+                      final String name = item['name'] ?? item['title'] ?? 'Special Deal';
+                      final double originalPrice = parseDouble(item['originalPrice'] ?? item['price']);
+                      final double comboPrice = parseDouble(item['comboPrice'] ?? item['offerPrice'] ?? originalPrice);
+                      final String imageUrl = (item['image'] ?? item['imageUrl'] ?? '').toString();
+
+                      String discountTag = "SPECIAL OFFER";
+                      if (originalPrice > comboPrice && originalPrice > 0) {
+                        int discountPercent = (((originalPrice - comboPrice) / originalPrice) * 100).round();
+                        if (discountPercent > 0) {
+                          discountTag = "$discountPercent% OFF";
+                        }
+                      }
+
+                      return GestureDetector(
+                        onTap: () {
+                          if (!requireLoginGlobal("Please login to view deal")) return;
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ComboScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 260,
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Stack(
+                              children: [
+                                if (imageUrl.isNotEmpty)
+                                  Positioned.fill(
+                                    child: CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Container(color: AppColors.primary),
+                                      errorWidget: (_, __, ___) => Container(color: AppColors.primary),
+                                    ),
+                                  ),
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.transparent,
+                                          Colors.black.withOpacity(0.85),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.accent,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          discountTag,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 10,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          letterSpacing: -0.5,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "₹${comboPrice.toInt()}",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          if (originalPrice > comboPrice) ...[
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              "₹${originalPrice.toInt()}",
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.6),
+                                                fontSize: 11,
+                                                decoration: TextDecoration.lineThrough,
+                                              ),
+                                            ),
+                                          ],
+                                          const Spacer(),
+                                          const Text(
+                                            "Order →",
+                                            style: TextStyle(
+                                              color: AppColors.accent,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ),
@@ -1041,9 +1442,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
-                          Text("Need Operational Help?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text("Need Help?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                           SizedBox(height: 4),
-                          Text("Our logistics network dispatcher is live 24/7.", style: TextStyle(color: Colors.white60, fontSize: 12)),
+                          Text("Our support team is active 24/7.", style: TextStyle(color: Colors.white60, fontSize: 12)),
                         ],
                       ),
                     ),
@@ -1068,48 +1469,111 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
   }
+}
 
-  Widget _buildPopularHorizonCard(String title, String highlight, String action, Color variant) {
-    return Container(
-      width: 260,
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [variant, variant.withOpacity(0.8)]),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: variant.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4))]
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: -0.5)),
-          const SizedBox(height: 4),
-          Text(highlight, style: TextStyle(color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-          const Spacer(),
-          Text(action, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+// ---------------------------------------------------------------------
+// Unified Other Services View (STRICTLY REQUIRES LOGIN)
+// ---------------------------------------------------------------------
+class OtherServicesScreen extends StatefulWidget {
+  const OtherServicesScreen({super.key});
+
+  @override
+  State<OtherServicesScreen> createState() => _OtherServicesScreenState();
+}
+
+class _OtherServicesScreenState extends State<OtherServicesScreen> {
+  Map<String, dynamic> _serviceStatuses = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _listenToServiceStatuses();
+  }
+
+  void _listenToServiceStatuses() {
+    FirebaseFirestore.instance
+        .collection('app_settings')
+        .doc('service_status')
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        if (mounted) {
+          setState(() {
+            _serviceStatuses = snapshot.data()!;
+          });
+        }
+      }
+    });
+  }
+
+  void _handleServiceTap(String serviceKey, String serviceTitle, Widget? screen) {
+    if (!requireLoginGlobal("Please login to access $serviceTitle")) {
+      return;
+    }
+
+    final isAvailable = _serviceStatuses[serviceKey] ?? true;
+
+    if (!isAvailable) {
+      _showMaintenanceDialog(serviceTitle);
+      return;
+    }
+
+    if (screen != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("$serviceTitle coming soon!")),
+      );
+    }
+  }
+
+  void _showMaintenanceDialog(String serviceTitle) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.build_circle_rounded, color: AppColors.offer, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "Under Maintenance",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          "$serviceTitle is currently undergoing scheduled upgrades to serve you better. Please check back shortly!",
+          style: const TextStyle(color: AppColors.textDark, fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got It", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
   }
-}
-
-// ---------------------------------------------------------------------
-// Unified Other Services View 
-// ---------------------------------------------------------------------
-class OtherServicesScreen extends StatelessWidget {
-  const OtherServicesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> allServices = [
-      {'title': 'Home Service', 'image': 'assets/instahub/homee.png', 'screen': const HomeServicesScreen()},
-      {'title': 'Laundry', 'image': 'assets/instahub/laundryy.png', 'screen': const LaundryServiceForm()},
-      {'title': 'Car Wash', 'image': 'assets/instahub/carwashh.png', 'screen': const CarWashingCentresScreen()},
-      {'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.png', 'screen': const BookTimeHubScreen()},
-      {'title': 'Take Ride', 'image': 'assets/instahub/ridey.png', 'screen': const TakeRideScreen()},
-      {'title': 'Pharmacy', 'image': 'assets/instahub/pharmacyy.png', 'screen': null},
-      {'title': 'Events', 'image': 'assets/instahub/eventyy.png', 'screen': null},
+      {'key': 'home_service', 'title': 'Home Service', 'image': 'assets/instahub/homee.png', 'screen': const HomeServicesScreen()},
+      {'key': 'laundry', 'title': 'Laundry', 'image': 'assets/instahub/laundryy.png', 'screen': const LaundryServiceForm()},
+      {'key': 'car_wash', 'title': 'Car Wash', 'image': 'assets/instahub/carwashh.png', 'screen': const CarWashingCentresScreen()},
+      {'key': 'book_time', 'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.png', 'screen': const BookTimeHubScreen()},
+      {'key': 'take_ride', 'title': 'Take Ride', 'image': 'assets/instahub/ridey.png', 'screen': const TakeRideScreen()},
+      {'key': 'pharmacy', 'title': 'Pharmacy', 'image': 'assets/instahub/pharmacyy.png', 'screen': const PharmacyOrderScreen()},
+      {'key': 'lab_test', 'title': 'Lab Test', 'image': 'assets/instahub/labyy.png', 'screen': LabsListScreen()},
+      {'key': 'cakes_bakery', 'title': 'Cakes & Gifts', 'image': 'assets/instahub/cakess.png', 'screen': const CakeScreen()},
     ];
 
     return Scaffold(
@@ -1120,7 +1584,7 @@ class OtherServicesScreen extends StatelessWidget {
         shadowColor: Colors.black.withOpacity(0.3),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(24), // 🌟 Smooth rounded bottom header curve
+            bottom: Radius.circular(24),
           ),
         ),
         leading: IconButton(
@@ -1152,15 +1616,7 @@ class OtherServicesScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final item = allServices[index];
               return GestureDetector(
-                onTap: () {
-                  if (item['screen'] != null) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => item['screen']));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("${item['title']} subsystem coming online soon!")),
-                    );
-                  }
-                },
+                onTap: () => _handleServiceTap(item['key'], item['title'], item['screen']),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1183,6 +1639,10 @@ class OtherServicesScreen extends StatelessWidget {
                             child: Image.asset(
                               item['image'],
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: AppColors.primary.withOpacity(0.05),
+                                child: const Icon(Icons.cake_outlined, size: 36, color: AppColors.accent),
+                              ),
                             ),
                           ),
                         ),
@@ -1196,13 +1656,13 @@ class OtherServicesScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   item['title'],
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 2),
                                 const Text(
-                                  "Tap to book",
+                                  "Tap to order",
                                   style: TextStyle(fontSize: 10, color: AppColors.textLight, fontWeight: FontWeight.w500),
                                 ),
                               ],

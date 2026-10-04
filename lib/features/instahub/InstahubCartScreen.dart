@@ -12,7 +12,6 @@ import 'package:flutter/foundation.dart';
 import 'instahub_cart_provider.dart'; 
 import 'package:fastevergo_v1/features/food/cart/AddressFlow.dart';
 import 'package:fastevergo_v1/features/food/order_confirmation_screen.dart';
-// 👉 IMPORT THE NEW MANAGEMENT SCREEN
 import 'package:fastevergo_v1/features/food/cart/ManageAddressScreen.dart';
 
 // ===============================================
@@ -88,7 +87,6 @@ class InstahubStoreLocation {
       InstahubStoreLocation.fromFirestore({'latitude': 0, 'longitude': 0, 'radiusKm': 0});
 }
 
-
 class FeeBreakdown {
   final double deliveryCharge;
   final double platformFee;
@@ -108,7 +106,6 @@ class FeeBreakdown {
 
   static FeeBreakdown get zero => FeeBreakdown();
 }
-
 
 // =======================================
 // Instahub Cart Screen
@@ -383,12 +380,6 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     final cartProvider =
         Provider.of<InstahubCartProvider>(context, listen: false);
 
-    if (selectedPayment != "COD") {
-      _showSnackBar("Only Cash on Delivery is available right now.",
-          color: Colors.orange);
-      return;
-    }
-
     final List<Map<String, dynamic>> cartItems =
         cartProvider.items.values.map((item) {
       return {
@@ -420,7 +411,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
           discount: discount,
           total: total,
           address: selectedAddress,
-          payment: selectedPayment,
+          payment: "Cash on Delivery",
           deliveryFee: fees.deliveryCharge, 
           platformFee: fees.platformFee,     
           appliedCouponCode: appliedCoupon,
@@ -432,7 +423,6 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
   }
 
   void _showAddressSelectionScreen() async {
-    // 👉 UPDATED: Now uses ManageAddressScreen
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -441,12 +431,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     );
 
     if (result != null && result is Map<String, dynamic>) {
-      // Formats display address using keys from ManageAddressScreen result
       final fullAddress =
           "${result['recipient_name'] ?? ''}\n${result['phone'] ?? ''}\n"
           "${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}\n${result['landmark'] ?? ''}\n${result['full_display_address'] ?? ''}";
 
-      // Extracts coordinates safely
       final double newLat = parseDouble(result['lat']);
       final double newLon = parseDouble(result['lng']);
 
@@ -634,7 +622,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
 
     return ListView.separated(
       shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+      physics: const ScrollPhysics(), // 👈 FIX: Uses valid ScrollPhysics()
       itemCount: items.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -921,54 +909,57 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     );
   }
 
+  // 💳 CLEAN PAYMENT SECTION: CASH ON DELIVERY ONLY (NO EXTRA RADIOS, DOTS, OR EMPTY LABELS)
   Widget _buildPayment() {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Text(
-            "Payment Method",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.payments_rounded,
+              color: Colors.orange,
+              size: 24,
+            ),
           ),
-          RadioListTile<String>(
-            value: "COD",
-            groupValue: selectedPayment,
-            onChanged: (val) {
-              setState(() => selectedPayment = val!);
-            },
-            title: const Text("Cash on Delivery"),
-            controlAffinity: ListTileControlAffinity.trailing,
-            activeColor: Colors.orange,
-            contentPadding: EdgeInsets.zero,
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Cash on Delivery",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  "Pay in cash upon delivery",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
           ),
-          RadioListTile<String>(
-            value: "UPI",
-            groupValue: selectedPayment,
-            onChanged: (val) {
-              _showSnackBar("Currently not available, coming soon!",
-                  color: Colors.orange);
-            },
-            title: const Text(""),
-            controlAffinity: ListTileControlAffinity.trailing,
-            activeColor: Colors.orange,
-            contentPadding: EdgeInsets.zero,
-          ),
-          RadioListTile<String>(
-            value: "Card",
-            groupValue: selectedPayment,
-            onChanged: (val) {
-              _showSnackBar("Currently not available, coming soon!",
-                  color: Colors.orange);
-            },
-            title: const Text(""),
-            controlAffinity: ListTileControlAffinity.trailing,
-            activeColor: Colors.orange,
-            contentPadding: EdgeInsets.zero,
+          const Icon(
+            Icons.check_circle_rounded,
+            color: Colors.orange,
+            size: 22,
           ),
         ],
       ),

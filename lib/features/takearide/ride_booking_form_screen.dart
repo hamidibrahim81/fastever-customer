@@ -51,7 +51,7 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
     _prefillUserData();
   }
 
-  // Pre-fill user data if available
+  // Pre-fill user details if available
   Future<void> _prefillUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -91,7 +91,6 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
     super.dispose();
   }
 
-  // Helper method: Direct Phone Call
   Future<void> _makeCall(String phoneNumber) async {
     final uri = Uri.parse("tel:$phoneNumber");
     if (await canLaunchUrl(uri)) {
@@ -99,7 +98,6 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
     }
   }
 
-  // Helper method: WhatsApp Message
   Future<void> _openWhatsApp(String phoneNumber) async {
     final cleanPhone = phoneNumber.replaceAll('+', '').replaceAll(' ', '');
     final uri = Uri.parse("https://wa.me/$cleanPhone?text=Hi,%20I%20have%20an%20inquiry%20regarding%20my%20ride%20booking.");
@@ -108,7 +106,6 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
     }
   }
 
-  // Fetch support contact dynamically from Firestore
   Future<String> _fetchSupportPhone() async {
     try {
       final snap = await FirebaseFirestore.instance.collection('customer_supprt').get();
@@ -117,10 +114,9 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
         return data['support_call']?.toString() ?? "+918921752969";
       }
     } catch (_) {}
-    return "+918921752969"; // Fallback number from screenshot
+    return "+918921752969";
   }
 
-  // Submit booking to Firestore and display enhanced success dialog
   Future<void> _submitBooking() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -139,6 +135,8 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
         'comments': _commentsController.text.trim(),
         'vehicle_id': widget.selectedVehicle['id'],
         'vehicle_type': widget.selectedVehicle['title'],
+        'min_charge': widget.selectedVehicle['min_charge'] ?? 0,
+        'per_km_charge': widget.selectedVehicle['per_km_charge'] ?? 0,
         'status': 'booked',
         'created_at': FieldValue.serverTimestamp(),
       };
@@ -156,13 +154,11 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
           .doc(docRef.id)
           .set(bookingPayload);
 
-      // Fetch customer support phone number
       final supportPhone = await _fetchSupportPhone();
 
       if (mounted) {
         setState(() => _isSubmitting = false);
 
-        // Custom Enhanced Success Dialog
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -222,8 +218,6 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                   style: TextStyle(fontSize: 11, color: textLight),
                 ),
                 const SizedBox(height: 12),
-
-                // Support Call & WhatsApp Action Buttons
                 Row(
                   children: [
                     Expanded(
@@ -266,8 +260,8 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () {
-                    Navigator.pop(ctx); // Close dialog
-                    Navigator.pop(context); // Return to ride list
+                    Navigator.pop(ctx);
+                    Navigator.pop(context);
                   },
                   child: const Text("Done", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
@@ -292,6 +286,8 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
   @override
   Widget build(BuildContext context) {
     final vehicle = widget.selectedVehicle;
+    final num minCharge = vehicle['min_charge'] ?? 0;
+    final num perKmCharge = vehicle['per_km_charge'] ?? 0;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -331,7 +327,7 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Vehicle Banner Summary
+                // Vehicle Summary Banner with Rates
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -346,48 +342,76 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: (vehicle['color'] as Color).withOpacity(0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          vehicle['icon'] as IconData,
-                          color: vehicle['color'] as Color,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              vehicle['title'] as String,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: (vehicle['color'] as Color).withOpacity(0.12),
+                              shape: BoxShape.circle,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              "${vehicle['subtitle']} • ${vehicle['capacity']}",
-                              style: const TextStyle(fontSize: 12, color: textLight),
+                            child: Icon(
+                              vehicle['icon'] as IconData,
+                              color: vehicle['color'] as Color,
+                              size: 28,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  vehicle['title'] as String,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "${vehicle['subtitle']} • ${vehicle['capacity']}",
+                                  style: const TextStyle(fontSize: 12, color: textLight),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+
+                      // Fare Summary Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Minimum Charge", style: TextStyle(fontSize: 11, color: textLight)),
+                              Text("₹$minCharge", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryColor)),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text("Rate Per KM", style: TextStyle(fontSize: 11, color: textLight)),
+                              Text("₹$perKmCharge / KM", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: accentColor)),
+                            ],
+                          ),
+                        ],
+                      )
                     ],
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // Booking Inputs Container
+                // Form Fields
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -415,39 +439,29 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // Name Field
                       TextFormField(
                         controller: _nameController,
                         style: const TextStyle(fontSize: 14, color: textDark),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty ? 'Please enter your name' : null,
+                        validator: (value) => value == null || value.trim().isEmpty ? 'Please enter your name' : null,
                         decoration: InputDecoration(
                           labelText: "Full Name",
                           prefixIcon: const Icon(Icons.person_outline_rounded, color: primaryColor),
                           filled: true,
                           fillColor: backgroundColor,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
                       ),
 
                       const SizedBox(height: 14),
 
-                      // Phone Number Field
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         style: const TextStyle(fontSize: 14, color: textDark),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter phone number';
-                          }
-                          if (value.trim().length < 10) {
-                            return 'Enter a valid phone number';
-                          }
+                          if (value == null || value.trim().isEmpty) return 'Please enter phone number';
+                          if (value.trim().length < 10) return 'Enter a valid phone number';
                           return null;
                         },
                         decoration: InputDecoration(
@@ -456,58 +470,44 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                           filled: true,
                           fillColor: backgroundColor,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
                       ),
 
                       const SizedBox(height: 14),
 
-                      // Pickup Location Field
                       TextFormField(
                         controller: _pickupController,
                         style: const TextStyle(fontSize: 14, color: textDark),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty ? 'Please enter pickup location' : null,
+                        validator: (value) => value == null || value.trim().isEmpty ? 'Please enter pickup location' : null,
                         decoration: InputDecoration(
                           labelText: "Pickup Location",
                           prefixIcon: const Icon(Icons.my_location_rounded, color: accentColor),
                           filled: true,
                           fillColor: backgroundColor,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
                       ),
 
                       const SizedBox(height: 14),
 
-                      // Drop Location Field
                       TextFormField(
                         controller: _dropController,
                         style: const TextStyle(fontSize: 14, color: textDark),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty ? 'Please enter drop location' : null,
+                        validator: (value) => value == null || value.trim().isEmpty ? 'Please enter drop location' : null,
                         decoration: InputDecoration(
                           labelText: "Drop Location",
                           prefixIcon: const Icon(Icons.location_on_rounded, color: primaryColor),
                           filled: true,
                           fillColor: backgroundColor,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
                       ),
 
                       const SizedBox(height: 14),
 
-                      // Comments / Notes Field
                       TextFormField(
                         controller: _commentsController,
                         maxLines: 3,
@@ -524,10 +524,7 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                           filled: true,
                           fillColor: backgroundColor,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
                       ),
                     ],
@@ -536,7 +533,6 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
 
                 const SizedBox(height: 28),
 
-                // Submit Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -546,9 +542,7 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                       elevation: 4,
                       shadowColor: primaryColor.withOpacity(0.3),
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     ),
                     onPressed: _isSubmitting ? null : _submitBooking,
                     child: _isSubmitting
@@ -559,10 +553,7 @@ class _RideBookingFormScreenState extends State<RideBookingFormScreen> {
                           )
                         : const Text(
                             "Confirm Ride Request ➔",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
                 ),

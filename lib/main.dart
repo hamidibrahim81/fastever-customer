@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_messaging/firebase_messaging.dart'; // ✅ Added for FCM
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // ✅ Added for Local Notifications
-import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Switched to Firestore for Maintenance Mode
-import 'package:url_launcher/url_launcher.dart'; // ✅ Added for Contact Support
-import 'dart:async'; // ✅ Added for Countdown Timer
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Firebase configuration
 import 'firebase_options.dart';
@@ -23,12 +22,12 @@ import 'features/food/cart/cart_provider.dart';
 import 'features/cart/morning_cart_provider.dart';
 import 'features/instahub/instahub_cart_provider.dart';
 
-// ✅ STEP 1: DEFINE GLOBAL KEYS
+// GLOBAL KEYS
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-// ✅ STEP 1: BACKGROUND MESSAGE HANDLER
+// BACKGROUND MESSAGE HANDLER
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
@@ -37,7 +36,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
-// ✅ STEP 2: NOTIFICATION CHANNEL SETUP
+// NOTIFICATION CHANNEL SETUP
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
   'high_importance_channel', 
   'High Importance Notifications', 
@@ -56,7 +55,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // ✅ INITIALIZE LOCAL NOTIFICATIONS (REQUIRED TO PREVENT CRASHES)
+  // INITIALIZE LOCAL NOTIFICATIONS
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -70,16 +69,16 @@ void main() async {
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-  // ✅ SET UP BACKGROUND HANDLER
+  // SET UP BACKGROUND HANDLER
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // ✅ INITIALIZE LOCAL NOTIFICATIONS & CHANNEL
+  // INITIALIZE LOCAL NOTIFICATIONS & CHANNEL
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
-  // ✅ REQUEST NOTIFICATION PERMISSIONS
+  // REQUEST NOTIFICATION PERMISSIONS
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   await messaging.requestPermission(
     alert: true,
@@ -106,21 +105,19 @@ class FASTeverGoApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) {
             final user = FirebaseAuth.instance.currentUser;
-            // ✅ Only use Real UID or a safe guest string to prevent Permission Spam
             return InstahubCartProvider(userId: user?.uid ?? "is_guest");
           },
         ),
       ],
       child: MaterialApp(
-        // ✅ STEP 2: ASSIGN GLOBAL KEYS
         navigatorKey: appNavigatorKey,
         scaffoldMessengerKey: appScaffoldMessengerKey,
         title: 'FASTeverGo',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
-          primarySwatch: Colors.green,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+          primarySwatch: Colors.amber,
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFFFB800)),
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
@@ -129,12 +126,11 @@ class FASTeverGoApp extends StatelessWidget {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFFFFB800),
+              foregroundColor: Colors.black,
             ),
           ),
         ),
-        // ✅ REINFORCED DYNAMIC GATE: Moves StreamBuilder out of primary builder to stabilize keys
         builder: (context, child) {
           return MaintenanceGateWrapper(child: child!);
         },
@@ -150,7 +146,9 @@ class FASTeverGoApp extends StatelessWidget {
   }
 }
 
-// ✅ SEPARATE WRAPPER COMPONENT: Stabilizes the GlobalKeys by isolating the stream
+// -----------------------------------------------------------------------------
+// GATE WRAPPER
+// -----------------------------------------------------------------------------
 class MaintenanceGateWrapper extends StatelessWidget {
   final Widget child;
   const MaintenanceGateWrapper({super.key, required this.child});
@@ -165,38 +163,56 @@ class MaintenanceGateWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>?;
-          if (data != null && data['is_enabled'] == true) {
+          if (data == null) return child;
+
+          final status = data['status'] ?? "normal";
+
+          // 1. MAINTENANCE
+          if (status == "maintenance") {
             return AppStatusGate(
-              status: data['status'] ?? "maintenance",
-              title: data['title'] ?? "Maintenance in Progress",
-              message: data['message'] ?? "We're fine-tuning FASTever.",
-              targetDate: data['date_time'] ?? "2026-02-15 10:00:00", 
-              email: data['support_email'] ?? "bloohostgroup.official@gmail.com",
-              whatsapp: data['support_wa'] ?? "7356103498",
-            ); 
+              title: data['title'] ?? "We're Making Things Better!",
+              message: data['message'] ??
+                  "We are currently performing maintenance to serve you better. We'll be back very soon!",
+              email: data['support_email'] ?? "",
+              whatsapp: data['support_wa'] ?? "",
+            );
+          }
+
+          // 2. LAUNCH (Complete barrier, no interaction)
+          if (status == "launch") {
+            return LaunchImageGate(
+              imageUrl: data['image_url'] ?? "",
+            );
+          }
+
+          // 3. ADS (Clickable ad banner with local dismissal & seamless routing)
+          if (status == "ads") {
+            return AdScreenGate(
+              imageUrl: data['image_url2'] ?? "",
+              child: child,
+            );
           }
         }
+        // 4. NORMAL
         return child;
       },
     );
   }
 }
 
-// ✅ DYNAMIC GATE COMPONENT WITH TIMER & SUPPORT
+// -----------------------------------------------------------------------------
+// MAINTENANCE UI WITH FLOATING PARTICLE EFFECT
+// -----------------------------------------------------------------------------
 class AppStatusGate extends StatefulWidget {
-  final String status;   // "inauguration" or "maintenance"
   final String title;
   final String message;
-  final String targetDate;
   final String email;
   final String whatsapp;
 
   const AppStatusGate({
-    super.key, 
-    required this.status, 
-    required this.title, 
-    required this.message, 
-    required this.targetDate,
+    super.key,
+    required this.title,
+    required this.message,
     required this.email,
     required this.whatsapp,
   });
@@ -205,59 +221,50 @@ class AppStatusGate extends StatefulWidget {
   State<AppStatusGate> createState() => _AppStatusGateState();
 }
 
-class _AppStatusGateState extends State<AppStatusGate> {
-  Timer? _timer;
-  Duration _timeLeft = Duration.zero;
+class _AppStatusGateState extends State<AppStatusGate>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
 
   @override
   void initState() {
     super.initState();
-    _startCountdown();
-  }
-
-  void _startCountdown() {
-    final DateTime target = DateTime.tryParse(widget.targetDate) ?? DateTime.now();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final now = DateTime.now();
-      if (mounted) {
-        setState(() {
-          _timeLeft = target.isAfter(now) ? target.difference(now) : Duration.zero;
-        });
-      }
-    });
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _animController.dispose();
     super.dispose();
   }
 
-  Future<void> _launchWA() async {
-    final url = Uri.parse("https://wa.me/91${widget.whatsapp}?text=Hello KEEVO Support Team!");
+  Future<void> _launchWA(BuildContext context) async {
+    if (widget.whatsapp.isEmpty) return;
+    final url = Uri.parse("https://wa.me/91${widget.whatsapp}?text=Hello FASTever Support!");
     try {
       if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
         throw 'Could not launch WhatsApp';
       }
-    } catch (e) {
-      if (mounted) {
+    } catch (_) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("WhatsApp not installed or could not be opened.")),
+          const SnackBar(content: Text("WhatsApp could not be opened.")),
         );
       }
     }
   }
 
-  Future<void> _launchEmail() async {
+  Future<void> _launchEmail(BuildContext context) async {
+    if (widget.email.isEmpty) return;
     final url = Uri.parse("mailto:${widget.email}?subject=App Support Request");
     try {
-      if (!await launchUrl(url)) {
-        throw 'No email app found';
-      }
-    } catch (e) {
-      if (mounted) {
+      if (!await launchUrl(url)) throw 'No email app found';
+    } catch (_) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please contact us directly at: ${widget.email}")),
+          SnackBar(content: Text("Contact us directly at: ${widget.email}")),
         );
       }
     }
@@ -265,88 +272,389 @@ class _AppStatusGateState extends State<AppStatusGate> {
 
   @override
   Widget build(BuildContext context) {
-    bool isInauguration = widget.status == "inauguration";
-    Color themeColor = isInauguration ? Colors.orange : Colors.green;
-    IconData mainIcon = isInauguration ? Icons.celebration_rounded : Icons.handyman_rounded;
-
-    String timerText = "${_timeLeft.inDays}d : ${_timeLeft.inHours % 24}h : ${_timeLeft.inMinutes % 60}m : ${_timeLeft.inSeconds % 60}s";
+    const brandGold = Color(0xFFFFB800);
+    const darkBg = Color(0xFF101418);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: themeColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
+      backgroundColor: darkBg,
+      body: Stack(
+        children: [
+          AnimatedBuilder(
+            animation: _animController,
+            builder: (context, child) {
+              return CustomPaint(
+                size: Size.infinite,
+                painter: MaintenanceParticlePainter(_animController.value),
+              );
+            },
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          "FAST",
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            fontStyle: FontStyle.italic,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        Text(
+                          "EVER",
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: brandGold,
+                            fontStyle: FontStyle.italic,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "AT DOORSTEP SERVICE",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withOpacity(0.6),
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B2228).withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: brandGold.withOpacity(0.35),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: brandGold.withOpacity(0.08),
+                            blurRadius: 30,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: brandGold.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: brandGold.withOpacity(0.3),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.engineering_rounded,
+                              size: 56,
+                              color: brandGold,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: brandGold.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(
+                                  Icons.build_rounded,
+                                  size: 14,
+                                  color: brandGold,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Under Maintenance",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: brandGold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            widget.title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            widget.message,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withOpacity(0.7),
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    if (widget.whatsapp.isNotEmpty || widget.email.isNotEmpty) ...[
+                      Text(
+                        "Need assistance?",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.whatsapp.isNotEmpty)
+                            ElevatedButton.icon(
+                              onPressed: () => _launchWA(context),
+                              icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                              label: const Text("WhatsApp"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF25D366),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          if (widget.whatsapp.isNotEmpty && widget.email.isNotEmpty)
+                            const SizedBox(width: 12),
+                          if (widget.email.isNotEmpty)
+                            OutlinedButton.icon(
+                              onPressed: () => _launchEmail(context),
+                              icon: const Icon(Icons.email_rounded, size: 18),
+                              label: const Text("Email Us"),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: BorderSide(
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 28),
+                    Text(
+                      "Thank you for your patience! ❤️",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.white.withOpacity(0.4),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(mainIcon, size: 80, color: themeColor),
               ),
-              const SizedBox(height: 30),
-              Text(
-                widget.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const SizedBox(height: 15),
-              Text(
-                widget.message,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.5),
-              ),
-              const SizedBox(height: 35),
-              Text(isInauguration ? "Launching In" : "Back Online In", 
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                decoration: BoxDecoration(
-                  color: themeColor,
-                  borderRadius: BorderRadius.circular(15),
-                ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// BACKGROUND PARTICLES PAINTER
+// -----------------------------------------------------------------------------
+class MaintenanceParticlePainter extends CustomPainter {
+  final double animationValue;
+
+  MaintenanceParticlePainter(this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFFFB800).withOpacity(0.14)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 18; i++) {
+      double dx = (size.width / 18) * i + (i % 3 * 8);
+      double dy = ((animationValue * size.height) + (i * 55)) % size.height;
+      double radius = (i % 3) + 2.5;
+
+      canvas.drawCircle(Offset(dx, dy), radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant MaintenanceParticlePainter oldDelegate) => true;
+}
+
+// -----------------------------------------------------------------------------
+// LAUNCH STATUS (COMPLETE BARRIER - NO CLICK, NO CLOSE, NO BACK)
+// -----------------------------------------------------------------------------
+class LaunchImageGate extends StatelessWidget {
+  final String imageUrl;
+
+  const LaunchImageGate({
+    super.key,
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SizedBox.expand(
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.amber),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
                 child: Text(
-                  timerText,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.5),
+                  "Unable to load image",
+                  style: TextStyle(color: Colors.white54),
                 ),
-              ),
-              const SizedBox(height: 50),
-              const Text("Support Team:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _supportBtn(Icons.chat_bubble_rounded, "WhatsApp", const Color(0xFF25D366), _launchWA),
-                  const SizedBox(width: 15),
-                  _supportBtn(Icons.email_rounded, "Email", Colors.blueAccent, _launchEmail),
-                ],
-              ),
-              const SizedBox(height: 40),
-              const Text(
-                "Thank you for your patience!",
-                style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.grey),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _supportBtn(IconData icon, String label, Color color, VoidCallback action) {
-    return ElevatedButton.icon(
-      onPressed: action,
-      icon: Icon(icon, size: 18, color: Colors.white),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+// -----------------------------------------------------------------------------
+// ADS STATUS (CLICKABLE IMAGE2 WITH LOCAL DISMISSAL & EMBEDDED OVERLAY)
+// -----------------------------------------------------------------------------
+class AdScreenGate extends StatefulWidget {
+  final String imageUrl;
+  final Widget child;
+
+  const AdScreenGate({
+    super.key,
+    required this.imageUrl,
+    required this.child,
+  });
+
+  @override
+  State<AdScreenGate> createState() => _AdScreenGateState();
+}
+
+class _AdScreenGateState extends State<AdScreenGate> {
+  bool _isDismissed = false;
+
+  void _handleAdTap() {
+    setState(() {
+      _isDismissed = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If dismissed, simply return the app's main child tree smoothly
+    if (_isDismissed) {
+      return widget.child;
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: _handleAdTap,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              widget.imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.amber),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Text(
+                    "Unable to load advertisement",
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                );
+              },
+            ),
+            Positioned(
+              bottom: 40,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                    ),
+                    child: const Text(
+                      "Tap anywhere to continue",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

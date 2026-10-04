@@ -7,6 +7,9 @@ import 'package:intl/intl.dart';
 // Ensure this path matches your project structure
 import '../food/cart/ManageAddressScreen.dart'; 
 
+// ✅ IMPORT NOTIFICATION SCREEN FOR NAVIGATION
+import 'package:fastevergo_v1/features/notification/NotificationScreen.dart';
+
 class LaundryServiceForm extends StatefulWidget {
   const LaundryServiceForm({super.key});
 
@@ -122,9 +125,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
     double distance = _calculateDistanceInKm(_officeLat, _officeLng, targetLat, targetLng);
     double calculatedFee = _baseDeliveryFee;
 
-    // Custom Threshold Logic: 
-    // Anything within 2 km is covered under the base delivery fee.
-    // Anything over 2 km applies the per-km charge for each extra kilometer (rounded up using ceil).
     if (distance > 2.0) {
       double extraDistance = distance - 2.0;
       calculatedFee += (extraDistance.ceil() * _perKmCharge);
@@ -241,12 +241,30 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
       },
     );
 
-    if (picked != null && picked != _selectedTime) {
-      setState(() {
-        _selectedTime = picked;
+    if (picked != null) {
+      // 9:00 AM (540 mins) to 9:00 PM (1290 mins) range check
+      final int pickedMinutes = picked.hour * 60 + picked.minute;
+      const int startMinutes = 9 * 60;  // 9:00 AM
+      const int endMinutes = 21 * 60;   // 9:00 PM
+
+      if (pickedMinutes < startMinutes || pickedMinutes > endMinutes) {
         if (!mounted) return;
-        _timeController.text = picked.format(context);
-      });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please select a pickup time between 9:00 AM and 9:00 PM."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return; 
+      }
+
+      if (picked != _selectedTime) {
+        setState(() {
+          _selectedTime = picked;
+          if (!mounted) return;
+          _timeController.text = picked.format(context);
+        });
+      }
     }
   }
 
@@ -326,8 +344,8 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
         'pickup_date': _dateController.text, 
         'pickup_time': _timeController.text, 
         'scheduled_timestamp': combinedDateTimeString, 
-        'delivery_fee': _deliveryFee,         
-        'platform_fee': _platformFee,         
+        'delivery_fee': _deliveryFee,        
+        'platform_fee': _platformFee,        
         'distance_km': double.parse(_calculatedDistance.toStringAsFixed(2)),
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -409,6 +427,16 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
           "Laundry", 
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_rounded, color: Colors.white, size: 24),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationScreen()),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -418,7 +446,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // CARD SECTION: SERVICE SELECTION
               _buildSectionHeader("Select Services Needed"),
               _buildSectionContainer(
                 child: Column(
@@ -449,7 +476,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               ),
               const SizedBox(height: 22),
 
-              // CARD SECTION 1: CUSTOMER INFO
               _buildSectionHeader("Customer Details"),
               _buildSectionContainer(
                 child: Column(
@@ -462,7 +488,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               ),
               const SizedBox(height: 22),
 
-              // CARD SECTION 2: PICKUP DATE & TIME SETUP
               _buildSectionHeader("Select Pickup Schedule"),
               _buildSectionContainer(
                 child: Row(
@@ -489,7 +514,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               ),
               const SizedBox(height: 22),
 
-              // CARD SECTION 3: LOCATION DETAILS
               _buildSectionHeader("Pickup Location"),
               _buildSectionContainer(
                 padding: EdgeInsets.zero,
@@ -558,7 +582,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               ),
               const SizedBox(height: 22),
 
-              // CARD SECTION 4: GARMENT CONFIGURATIONS
               _buildSectionHeader("Garment Configurations"),
               _buildSectionContainer(
                 child: Column(
@@ -634,7 +657,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               ),
               const SizedBox(height: 22),
 
-              // CARD SECTION 5: BILL SUMMARY
               if (_selectedAddress != null) ...[
                 _buildSectionHeader("Bill Summary"),
                 _buildSectionContainer(
@@ -658,7 +680,6 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                 const SizedBox(height: 35),
               ],
               
-              // ACTION BUTTON
               Container(
                 width: double.infinity,
                 height: 56,
@@ -749,7 +770,17 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
         ),
         validator: (val) {
           if (label.contains("Optional")) return null;
-          return (val == null || val.isEmpty) ? "Field cannot be empty" : null;
+          if (val == null || val.isEmpty) return "Field cannot be empty";
+          
+          // Safeguard check for Pickup Time field
+          if (label.contains("Pickup Time") && _selectedTime != null) {
+            final int totalMins = _selectedTime!.hour * 60 + _selectedTime!.minute;
+            if (totalMins < (9 * 60) || totalMins > (21 * 60)) {
+              return "Time must be between 9:00 AM and 9:00 PM";
+            }
+          }
+          
+          return null;
         },
       ),
     );
