@@ -60,11 +60,13 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBjknIZg2k-KcROzTPjjnV_2yQTXJgTTH4',
-    appId: '1:580111714111:ios:3b1c2afd15c1f10046f58a',
+    appId: '1:580111714111:ios:81d74b00950a450146f58a',
     messagingSenderId: '580111714111',
     projectId: 'fastevergo',
     storageBucket: 'fastevergo.firebasestorage.app',
-    iosBundleId: 'com.example.fastevergoV1',
+    iosClientId:
+        '580111714111-h14n4ecf14uesriivqi1i11hn52dh3pf.apps.googleusercontent.com',
+    iosBundleId: 'com.fastever.customer',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
