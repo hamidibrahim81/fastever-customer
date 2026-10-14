@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:io';
 
@@ -34,53 +35,153 @@ class _SplashScreenState extends State<SplashScreen> {
     _navigationTimer = Timer(duration, () => _navigateNext());
   }
 
+  // MANDATORY FORCE UPDATE CHECK
   Future<Widget?> _checkForceUpdate() async {
-    try {
-      final info = await PackageInfo.fromPlatform();
-      final int currentBuild = int.tryParse(info.buildNumber) ?? 0;
+    final info = await PackageInfo.fromPlatform();
+    final int currentBuild =
+        int.tryParse(info.buildNumber) ?? 0;
 
-      final doc = await FirebaseFirestore.instance
-          .collection('app_config')
-          .doc('customer_app')
-          .get()
-          .timeout(const Duration(seconds: 5));
+    debugPrint('FASTever installed build: $currentBuild');
 
-      if (!doc.exists) return null;
+    debugPrint(
+      'FASTever Firebase project: '
+      '${FirebaseFirestore.instance.app.options.projectId}',
+    );
 
-      final data = doc.data()!;
+    debugPrint(
+      'FASTever Firestore database: '
+      '${FirebaseFirestore.instance.databaseId}',
+    );
 
-      final bool forceUpdate = data['forceUpdate'] ?? false;
+    // FIRESTORE DOCUMENT DIAGNOSTIC CHECK
+    final firestore = FirebaseFirestore.instance;
 
-      final int minimumBuildNumber = Platform.isIOS
-          ? data['iosMinimumBuildNumber'] ?? 0
-          : data['androidMinimumBuildNumber'] ?? 0;
+    // IMPORTANT:
+    // The Firestore document ID has one leading space.
+    // Actual document ID: " customer_app"
+    final doc = await firestore
+        .collection('app_config')
+        .doc(' customer_app')
+        .get(const GetOptions(source: Source.server))
+        .timeout(const Duration(seconds: 12));
 
-      if (forceUpdate && currentBuild < minimumBuildNumber) {
-        return ForceUpdateScreen(
-          title: data['updateTitle'] ?? 'Update Required',
-          message: data['updateMessage'] ?? 'Please update FASTever to continue.',
-          playStoreUrl: data['playStoreUrl'] ?? '',
-          appStoreUrl: data['appStoreUrl'] ?? '',
+    debugPrint('FASTever document exists: ${doc.exists}');
+    debugPrint(
+      'FASTever document path: ${doc.reference.path}',
+    );
+    debugPrint('FASTever document data: ${doc.data()}');
+
+    // Inspect collection only if direct document is missing.
+    if (!doc.exists) {
+      try {
+        final query = await firestore
+            .collection('app_config')
+            .limit(10)
+            .get(const GetOptions(source: Source.server))
+            .timeout(const Duration(seconds: 12));
+
+        debugPrint(
+          'FASTever app_config document count: '
+          '${query.docs.length}',
+        );
+
+        for (final item in query.docs) {
+          debugPrint(
+            'FASTever document ID: ${item.id}',
+          );
+        }
+      } catch (e) {
+        debugPrint(
+          'FASTever collection diagnostic error: $e',
         );
       }
-
-      return null;
-    } catch (e) {
-      debugPrint("Force update check error: $e");
-      return null;
     }
+
+    if (!doc.exists || doc.data() == null) {
+      throw Exception(
+        'Force update configuration not found: '
+        'app_config/ customer_app',
+      );
+    }
+
+    final data = doc.data()!;
+
+    final bool forceUpdate =
+        data['forceUpdate'] == true;
+
+    final dynamic minimumBuildValue = Platform.isIOS
+        ? data['iosMinimumBuildNumber']
+        : data['androidMinimumBuildNumber'];
+
+    final int minimumBuildNumber =
+        minimumBuildValue is num
+            ? minimumBuildValue.toInt()
+            : int.tryParse(
+                  minimumBuildValue?.toString() ?? '',
+                ) ??
+                0;
+
+    debugPrint('FASTever forceUpdate: $forceUpdate');
+    debugPrint(
+      'FASTever minimum required build: '
+      '$minimumBuildNumber',
+    );
+
+    if (forceUpdate &&
+        currentBuild < minimumBuildNumber) {
+      debugPrint(
+        'FASTever: MANDATORY UPDATE REQUIRED',
+      );
+
+      return ForceUpdateScreen(
+        title: data['updateTitle']?.toString() ??
+            'Update Required',
+        message: data['updateMessage']?.toString() ??
+            'Please update FASTever to continue.',
+        playStoreUrl:
+            data['playStoreUrl']?.toString() ?? '',
+        appStoreUrl:
+            data['appStoreUrl']?.toString() ?? '',
+      );
+    }
+
+    debugPrint(
+      'FASTever: App version accepted.',
+    );
+
+    return null;
   }
 
   void _navigateNext() async {
     if (_navigated) return;
     _navigated = true;
 
-    final updateScreen = await _checkForceUpdate();
+    // Check mandatory update before home/profile navigation.
+    Widget? updateScreen;
+
+    try {
+      updateScreen = await _checkForceUpdate();
+    } catch (e, stackTrace) {
+      debugPrint("========== FASTEVER UPDATE ERROR ==========");
+      debugPrint("Error: $e");
+      debugPrint("Stack trace: $stackTrace");
+      debugPrint("===========================================");
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) =>
+              const ForceUpdateCheckErrorScreen(),
+        ),
+      );
+      return;
+    }
 
     if (updateScreen != null) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => updateScreen),
+        MaterialPageRoute(builder: (_) => updateScreen!),
       );
       return;
     }
@@ -178,10 +279,32 @@ class ForceUpdateScreen extends StatelessWidget {
 
   Future<void> _openStore() async {
     final url = Platform.isIOS ? appStoreUrl : playStoreUrl;
-    final uri = Uri.parse(url);
 
-    if (url.isNotEmpty) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (url.isEmpty) {
+      debugPrint('Force update: Store URL is empty.');
+      return;
+    }
+
+    final uri = Uri.tryParse(url);
+
+    if (uri == null ||
+        (uri.scheme != 'https' &&
+            uri.scheme != 'market')) {
+      debugPrint('Force update: Invalid store URL.');
+      return;
+    }
+
+    try {
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened) {
+        debugPrint('Force update: Could not open store.');
+      }
+    } catch (e) {
+      debugPrint('Force update store error: $e');
     }
   }
 
@@ -236,6 +359,63 @@ class ForceUpdateScreen extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Only shown when Firebase cannot verify the app version.
+class ForceUpdateCheckErrorScreen extends StatelessWidget {
+  const ForceUpdateCheckErrorScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFC400),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.wifi_off_rounded,
+                  size: 70,
+                  color: Colors.black,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Unable to Check App Version',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Please check your internet connection '
+                  'and try again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 15),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => const SplashScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
           ),
         ),

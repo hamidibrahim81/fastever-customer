@@ -16,6 +16,7 @@ import 'package:fastevergo_v1/utils/auth_guards.dart';
 
 import '../food/food_home_screen.dart';
 import '../food/combo_screen.dart';
+import '../food/offer_screen.dart';
 import '../instahub/InstantOrderHomeScreen.dart';
 import '../instahub/MorningOrderHomeScreen.dart';
 import '../auth/login_screen.dart';
@@ -25,7 +26,7 @@ import '../car_wash/CarWashingCentresScreen.dart';
 import '../book_time/book_time_screens.dart';
 import '../notification/notificationscreen.dart';
 import '../takearide/takeridescreen.dart';
-import '../pharmacy/pharmacy_order_screen.dart'; 
+import '../pharmacy/pharmacy_order_screen.dart';
 import '../lab_test/labs_list_screen.dart';
 import '../profile/profile_screen2.dart';
 import '../cake/cake_screen.dart';
@@ -36,14 +37,14 @@ final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 // Premium Color Palette Tokens
 // ----------------------------------------------------------------------
 class AppColors {
-  static const Color primary = Color(0xFF111827);        // Deep Premium Slate/Black
-  static const Color accent = Color(0xFFFF4D6D);        // Vibrant Modern Pink/Red
-  static const Color background = Color(0xFFF7F8FA);    // Clean Crisp Background
-  static const Color cardBg = Colors.white;             // Card Surfaces
-  static const Color success = Color(0xFF16A34A);       // Trust Green
-  static const Color offer = Color(0xFFF97316);         // High-conversion Orange
-  static const Color textDark = Color(0xFF1F2937);      // Deep Text Accent
-  static const Color textLight = Color(0xFF6B7280);     // Secondary Subtitles
+  static const Color primary = Color(0xFF111827); // Deep Premium Slate/Black
+  static const Color accent = Color(0xFFFF4D6D); // Vibrant Modern Pink/Red
+  static const Color background = Color(0xFFF7F8FA); // Clean Crisp Background
+  static const Color cardBg = Colors.white; // Card Surfaces
+  static const Color success = Color(0xFF16A34A); // Trust Green
+  static const Color offer = Color(0xFFF97316); // High-conversion Orange
+  static const Color textDark = Color(0xFF1F2937); // Deep Text Accent
+  static const Color textLight = Color(0xFF6B7280); // Secondary Subtitles
 }
 
 double parseDouble(dynamic value, {double defaultValue = 0.0}) {
@@ -149,8 +150,11 @@ class _NetworkVideoPlayerState extends State<NetworkVideoPlayer>
   Widget build(BuildContext context) {
     if (!_controller.value.isInitialized) {
       return Container(
-          color: Colors.black,
-          child: const Center(child: CircularProgressIndicator(color: AppColors.accent)));
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
+        ),
+      );
     }
     return FittedBox(
       fit: widget.isCoverFit ? BoxFit.cover : BoxFit.contain,
@@ -278,8 +282,8 @@ class _HeaderAdVideoState extends State<HeaderAdVideo> {
               margin: const EdgeInsets.symmetric(horizontal: 3.0),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(3),
-                color: _currentBannerIndex == entry.key 
-                    ? AppColors.accent 
+                color: _currentBannerIndex == entry.key
+                    ? AppColors.accent
                     : Colors.grey.shade300,
               ),
             );
@@ -306,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isLoadingLocation = true;
   Position? _currentPosition;
   StreamSubscription<Position>? _positionStreamSubscription;
-  List<_ServiceLocation> _serviceLocations = []; 
+  List<_ServiceLocation> _serviceLocations = [];
   bool _serviceLocationsLoaded = false;
   Map<String, dynamic> _serviceStatuses = {};
 
@@ -315,8 +319,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initGate();
-    _setupTokenListener(); 
-    _subscribeToTopics(); 
+    _setupTokenListener();
+    _subscribeToTopics();
     _listenToServiceStatuses();
   }
 
@@ -343,8 +347,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _handleServiceTap(String serviceKey, String serviceTitle, Widget? screen, {bool requiresAuth = true}) {
-    if (requiresAuth && !requireLoginGlobal("Please login to access $serviceTitle")) {
+  void _handleServiceTap(
+    String serviceKey,
+    String serviceTitle,
+    Widget? screen, {
+    bool requiresAuth = true,
+  }) {
+    if (requiresAuth &&
+        !requireLoginGlobal("Please login to access $serviceTitle")) {
       return;
     }
 
@@ -372,28 +382,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.build_circle_rounded, color: AppColors.offer, size: 28),
+            const Icon(Icons.build_circle_rounded,
+                color: AppColors.offer, size: 28),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 "Under Maintenance",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ],
         ),
         content: Text(
           "$serviceTitle is currently undergoing scheduled upgrades to serve you better. Please check back shortly!",
-          style: const TextStyle(color: AppColors.textDark, fontSize: 14, height: 1.4),
+          style: const TextStyle(
+            color: AppColors.textDark,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text("Got It", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text("Got It",
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -406,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _positionStreamSubscription?.resume();
       if (_gateState == GateState.locationOffOrDenied) _initGate();
     } else if (state == AppLifecycleState.paused) {
-      _positionStreamSubscription?.pause(); 
+      _positionStreamSubscription?.pause();
     }
   }
 
@@ -417,14 +440,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
-            .update({'fcmToken': newToken}).catchError((e) => debugPrint("Token infrastructure break: $e"));
+            .update({'fcmToken': newToken}).catchError(
+                (e) => debugPrint("Token infrastructure break: $e"));
       }
     });
   }
 
   void _subscribeToTopics() async {
     try {
-      NotificationSettings settings = await FirebaseMessaging.instance.requestPermission();
+      NotificationSettings settings =
+          await FirebaseMessaging.instance.requestPermission();
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         await FirebaseMessaging.instance.subscribeToTopic("offers");
         await FirebaseMessaging.instance.subscribeToTopic("all_users");
@@ -437,7 +462,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _loadServiceLocations() async {
     if (_serviceLocationsLoaded) return;
     try {
-      final snap = await FirebaseFirestore.instance.collection('service_areas').get().timeout(const Duration(seconds: 10));
+      final snap = await FirebaseFirestore.instance
+          .collection('service_areas')
+          .get()
+          .timeout(const Duration(seconds: 10));
       _serviceLocations = snap.docs.map((d) {
         final data = d.data();
         return _ServiceLocation(
@@ -457,7 +485,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     const bufferKm = 0.05;
     for (final loc in _serviceLocations) {
       final distanceKm = Geolocator.distanceBetween(
-          pos.latitude, pos.longitude, loc.latitude, loc.longitude) / 1000;
+              pos.latitude, pos.longitude, loc.latitude, loc.longitude) /
+          1000;
       if (distanceKm <= loc.radiusKm + bufferKm) return true;
     }
     return false;
@@ -481,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       Position? initialPosition = await Geolocator.getLastKnownPosition();
       initialPosition ??= await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high, 
+        desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 8),
       );
 
@@ -489,47 +518,66 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       _positionStreamSubscription?.cancel();
       _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 100),
+        locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high, distanceFilter: 100),
       ).listen((Position position) {
         if (mounted) _handlePositionUpdate(position, isManual: false);
       });
-
     } catch (e) {
-      if (_currentPosition == null && mounted) setState(() => _gateState = GateState.locationOffOrDenied);
+      if (_currentPosition == null && mounted) {
+        setState(() => _gateState = GateState.locationOffOrDenied);
+      }
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
     }
   }
 
-  Future<void> _handlePositionUpdate(Position position, {required bool isManual}) async {
+  Future<void> _handlePositionUpdate(Position position,
+      {required bool isManual}) async {
     if (!isManual && _currentPosition != null) {
-      final dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, position.latitude, position.longitude);
+      final dist = Geolocator.distanceBetween(_currentPosition!.latitude,
+          _currentPosition!.longitude, position.latitude, position.longitude);
       if (dist < 50) return;
     }
     _resolvePlaceName(position);
     bool inside = _isInsideAnyServiceLocation(position);
-    if (mounted) setState(() { _currentPosition = position; _gateState = inside ? GateState.allowed : GateState.outOfArea; });
+    if (mounted) {
+      setState(() {
+        _currentPosition = position;
+        _gateState = inside ? GateState.allowed : GateState.outOfArea;
+      });
+    }
   }
 
   Future<bool> _ensureLocationAvailable() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      try { await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.low, timeLimit: Duration(seconds: 2))); } catch (_) {}
+      try {
+        await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.low,
+                timeLimit: Duration(seconds: 2)));
+      } catch (_) {}
       serviceEnabled = await Geolocator.isLocationServiceEnabled();
     }
     if (!serviceEnabled) return false;
 
     LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
-    return permission != LocationPermission.denied && permission != LocationPermission.deniedForever;
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    return permission != LocationPermission.denied &&
+        permission != LocationPermission.deniedForever;
   }
 
   Future<void> _resolvePlaceName(Position position) async {
     try {
-      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      final placemarks = await placemarkFromCoordinates(
+          position.latitude, position.longitude);
       if (mounted && placemarks.isNotEmpty) {
         final place = placemarks.first;
-        setState(() => _currentLocation = "${place.locality ?? place.subLocality ?? 'Unknown Segment'}, ${place.administrativeArea ?? ''}");
+        setState(() => _currentLocation =
+            "${place.locality ?? place.subLocality ?? 'Unknown Segment'}, ${place.administrativeArea ?? ''}");
       }
     } catch (_) {
       if (mounted) setState(() => _currentLocation = "Active Deployment Zone");
@@ -539,17 +587,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _selectManualLocation(_ServiceLocation location) {
     _positionStreamSubscription?.cancel();
     Position manualPosition = Position(
-      latitude: location.latitude, longitude: location.longitude,
-      timestamp: DateTime.now(), accuracy: 0, altitude: 0, heading: 0, speed: 0,
-      speedAccuracy: 0, altitudeAccuracy: 0, headingAccuracy: 0,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      heading: 0,
+      speed: 0,
+      speedAccuracy: 0,
+      altitudeAccuracy: 0,
+      headingAccuracy: 0,
     );
-    setState(() { _currentPosition = manualPosition; _currentLocation = "${location.name} (Override)"; _gateState = GateState.allowed; });
+    setState(() {
+      _currentPosition = manualPosition;
+      _currentLocation = "${location.name} (Override)";
+      _gateState = GateState.allowed;
+    });
   }
 
   Future<void> _launchURL(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) { await launchUrl(uri); }
-    else { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Link integration failure"))); }
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Link integration failure")),
+        );
+      }
+    }
   }
 
   bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
@@ -584,10 +650,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
           return AlertDialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             title: Text(
-              isDeletedSuccess ? "Account Deleted" : "Delete Account", 
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)
+              isDeletedSuccess ? "Account Deleted" : "Delete Account",
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.primary),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -595,35 +663,62 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 if (isDeleting) ...[
                   const CircularProgressIndicator(color: AppColors.accent),
                   const SizedBox(height: 20),
-                  const Text("Deleting your profile...", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
+                  const Text("Deleting your profile...",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accent)),
                 ] else if (isDeletedSuccess) ...[
-                  const Icon(Icons.check_circle, color: AppColors.success, size: 60),
+                  const Icon(Icons.check_circle,
+                      color: AppColors.success, size: 60),
                   const SizedBox(height: 12),
-                  const Text("Your account and personal data have been removed.", textAlign: TextAlign.center),
+                  const Text(
+                      "Your account and personal data have been removed.",
+                      textAlign: TextAlign.center),
                 ] else
-                  const Text("Are you sure you want to delete your account? This action is permanent and cannot be undone."),
+                  const Text(
+                      "Are you sure you want to delete your account? This action is permanent and cannot be undone."),
               ],
             ),
             actions: [
               if (!isDeleting && !isDeletedSuccess) ...[
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: AppColors.textLight))),
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Cancel",
+                        style: TextStyle(color: AppColors.textLight))),
                 TextButton(
                   onPressed: () async {
                     setDialogState(() => isDeleting = true);
                     try {
                       final uid = user.uid;
-                      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(uid)
+                          .delete();
                       await user.reload();
                       await FirebaseAuth.instance.currentUser?.delete();
-                      if (mounted) setDialogState(() { isDeleting = false; isDeletedSuccess = true; });
+                      if (mounted) {
+                        setDialogState(() {
+                          isDeleting = false;
+                          isDeletedSuccess = true;
+                        });
+                      }
                     } catch (e) {
                       if (mounted) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Session expired. Please log in again to delete your account."), backgroundColor: AppColors.accent));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                "Session expired. Please log in again to delete your account."),
+                            backgroundColor: AppColors.accent,
+                          ),
+                        );
                       }
                     }
                   },
-                  child: const Text("DELETE ACCOUNT", style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+                  child: const Text("DELETE ACCOUNT",
+                      style: TextStyle(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.bold)),
                 ),
               ],
               if (isDeletedSuccess)
@@ -639,69 +734,115 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   List<Map<String, dynamic>> get services => [
-    {
-      'key': 'food_delivery',
-      'title': 'Food Delivery', 
-      'subtitle': 'Hot meals from restaurants',
-      'tag': '20 min',
-      'gradient': [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-      'image': 'assets/instahub/s1.png', 
-      'screen': const FoodHomeScreen(), 
-      'requiresAuth': false,
-    },
-    {
-      'key': 'instahub',
-      'title': 'Instahub', 
-      'subtitle': 'Groceries delivered instantly',
-      'tag': '10 min',
-      'gradient': [const Color(0xFF11998e), const Color(0xFF38ef7d)],
-      'image': 'assets/instahub/s2.png', 
-      'screen': const InstantOrderHomeScreen(), 
-      'requiresAuth': false,
-    },
-    {
-      'key': 'morning_orders',
-      'title': 'Morning Orders', 
-      'subtitle': 'Daily fresh essentials',
-      'tag': 'Before 7 AM',
-      'gradient': [const Color(0xFF00c6ff), const Color(0xFF0072ff)],
-      'image': 'assets/instahub/s6.png', 
-      'screen': const MorningOrderHomeScreen(), 
-      'requiresAuth': false,
-    },
-    {
-      'key': 'other_services',
-      'title': 'Other Services', 
-      'subtitle': 'Home care & premium hubs',
-      'tag': 'Explore',
-      'gradient': [const Color(0xFF7F00FF), const Color(0xFFE100FF)],
-      'image': 'assets/instahub/s9.png', 
-      'screen': const OtherServicesScreen(), 
-      'requiresAuth': false,
-    },
-  ];
+        {
+          'key': 'food_delivery',
+          'title': 'Food Delivery',
+          'subtitle': 'Hot meals from restaurants',
+          'tag': '20 min',
+          'gradient': [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
+          'image': 'assets/instahub/s1.png',
+          'screen': const FoodHomeScreen(),
+          'requiresAuth': false,
+        },
+        {
+          'key': 'instahub',
+          'title': 'Instahub',
+          'subtitle': 'Groceries delivered instantly',
+          'tag': '10 min',
+          'gradient': [const Color(0xFF11998e), const Color(0xFF38ef7d)],
+          'image': 'assets/instahub/s2.png',
+          'screen': const InstantOrderHomeScreen(),
+          'requiresAuth': false,
+        },
+        {
+          'key': 'morning_orders',
+          'title': 'Morning Orders',
+          'subtitle': 'Daily fresh essentials',
+          'tag': 'Before 7 AM',
+          'gradient': [const Color(0xFF00c6ff), const Color(0xFF0072ff)],
+          'image': 'assets/instahub/s6.png',
+          'screen': const MorningOrderHomeScreen(),
+          'requiresAuth': false,
+        },
+        {
+          'key': 'other_services',
+          'title': 'Other Services',
+          'subtitle': 'Home care & premium hubs',
+          'tag': 'Explore',
+          'gradient': [const Color(0xFF7F00FF), const Color(0xFFE100FF)],
+          'image': 'assets/instahub/s9.png',
+          'screen': const OtherServicesScreen(),
+          'requiresAuth': false,
+        },
+      ];
 
   List<Map<String, dynamic>> get exploreServices => [
-    {'key': 'book_time', 'title': 'Turf Booking', 'image': 'assets/instahub/turff.png', 'screen': const TurfDirectoryScreen(), 'requiresAuth': true},
-    {'key': 'car_wash', 'title': 'Car Wash', 'image': 'assets/instahub/carwash.png', 'screen': const CarWashingCentresScreen(), 'requiresAuth': true},
-    {'key': 'lab_test', 'title': 'Lab Test', 'image': 'assets/instahub/lab.png', 'screen': LabsListScreen(), 'requiresAuth': true},
-    {'key': 'laundry', 'title': 'Laundry', 'image': 'assets/instahub/laundry.png', 'screen': const LaundryServiceForm(), 'requiresAuth': true}, 
-    {'key': 'cakes_bakery', 'title': 'Cakes & Gifts', 'image': 'assets/instahub/cakesss.png', 'screen': const CakeScreen(), 'requiresAuth': true},
-    {'key': 'home_service', 'title': 'Home Service', 'image': 'assets/instahub/home.png', 'screen': const HomeServicesScreen(), 'requiresAuth': true},
-    {'key': 'pharmacy', 'title': 'Pharmacy', 'image': 'assets/instahub/pharmacy.png', 'screen': const PharmacyOrderScreen(), 'requiresAuth': true}, 
-  ];
+        {
+          'key': 'book_time',
+          'title': 'Turf Booking',
+          'image': 'assets/instahub/turff.png',
+          'screen': const TurfDirectoryScreen(),
+          'requiresAuth': true
+        },
+        {
+          'key': 'car_wash',
+          'title': 'Car Wash',
+          'image': 'assets/instahub/carwash.png',
+          'screen': const CarWashingCentresScreen(),
+          'requiresAuth': true
+        },
+        {
+          'key': 'lab_test',
+          'title': 'Lab Test',
+          'image': 'assets/instahub/lab.png',
+          'screen': LabsListScreen(),
+          'requiresAuth': true
+        },
+        {
+          'key': 'laundry',
+          'title': 'Laundry',
+          'image': 'assets/instahub/laundry.png',
+          'screen': const LaundryServiceForm(),
+          'requiresAuth': true
+        },
+        {
+          'key': 'cakes_bakery',
+          'title': 'Cakes & Gifts',
+          'image': 'assets/instahub/cakesss.png',
+          'screen': const CakeScreen(),
+          'requiresAuth': true
+        },
+        {
+          'key': 'home_service',
+          'title': 'Home Service',
+          'image': 'assets/instahub/home.png',
+          'screen': const HomeServicesScreen(),
+          'requiresAuth': true
+        },
+        {
+          'key': 'pharmacy',
+          'title': 'Pharmacy',
+          'image': 'assets/instahub/pharmacy.png',
+          'screen': const PharmacyOrderScreen(),
+          'requiresAuth': true
+        },
+      ];
 
   @override
   Widget build(BuildContext context) {
     switch (_gateState) {
-      case GateState.loading: 
+      case GateState.loading:
         return const Scaffold(
           backgroundColor: AppColors.primary,
-          body: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+          body: Center(
+              child: CircularProgressIndicator(color: AppColors.accent)),
         );
-      case GateState.locationOffOrDenied: return _buildLocationRequiredScreen();
-      case GateState.outOfArea: return _buildComingSoonScreen(); 
-      case GateState.allowed: return _buildMainContent();
+      case GateState.locationOffOrDenied:
+        return _buildLocationRequiredScreen();
+      case GateState.outOfArea:
+        return _buildComingSoonScreen();
+      case GateState.allowed:
+        return _buildMainContent();
     }
   }
 
@@ -716,27 +857,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20)]),
-                child: const Icon(Icons.location_off_rounded, size: 80, color: AppColors.accent),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 20,
+                    )
+                  ],
+                ),
+                child: const Icon(Icons.location_off_rounded,
+                    size: 80, color: AppColors.accent),
               ),
               const SizedBox(height: 32),
-              const Text("Location Access Required", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
+              const Text("Location Access Required",
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                      letterSpacing: -0.5)),
               const SizedBox(height: 12),
-              const Text("FASTever needs your location to find nearby stores, services, and delivery options.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.textLight, fontSize: 14)),
+              const Text(
+                  "FASTever needs your location to find nearby stores, services, and delivery options.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textLight, fontSize: 14)),
               const SizedBox(height: 40),
               SizedBox(
-                width: double.infinity, 
+                width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary, 
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    padding: const EdgeInsets.symmetric(vertical: 18)
-                  ),
-                  onPressed: () => Geolocator.openLocationSettings(), 
-                  child: const Text("Enable Location", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))
-                ),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 18)),
+                    onPressed: () => Geolocator.openLocationSettings(),
+                    child: const Text("Enable Location",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15))),
               ),
             ],
           ),
@@ -755,12 +915,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const Text("Coming Soon\nTo Your Area", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary, height: 1.1)),
+              const Text("Coming Soon\nTo Your Area",
+                  style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                      height: 1.1)),
               const SizedBox(height: 12),
-              const Text("Your current location is outside our service area right now.", style: TextStyle(color: AppColors.textLight, fontSize: 15)),
+              const Text(
+                  "Your current location is outside our service area right now.",
+                  style: TextStyle(color: AppColors.textLight, fontSize: 15)),
               const SizedBox(height: 32),
               if (_serviceLocations.isNotEmpty) ...[
-                const Text("Select an available area:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primary, letterSpacing: 0.5)),
+                const Text("Select an available area:",
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: AppColors.primary,
+                        letterSpacing: 0.5)),
                 const SizedBox(height: 12),
                 Expanded(
                   child: ListView.separated(
@@ -769,12 +941,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     itemBuilder: (context, idx) {
                       final loc = _serviceLocations[idx];
                       return Container(
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.black.withOpacity(0.04))),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: Colors.black.withOpacity(0.04))),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                          title: Text(loc.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                          subtitle: Text("Service within ${loc.radiusKm} KM", style: const TextStyle(fontSize: 12)),
-                          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primary),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 4),
+                          title: Text(loc.name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary)),
+                          subtitle: Text("Service within ${loc.radiusKm} KM",
+                              style: const TextStyle(fontSize: 12)),
+                          trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                              size: 14, color: AppColors.primary),
                           onTap: () => _selectManualLocation(loc),
                         ),
                       );
@@ -786,11 +968,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Center(
                   child: TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: AppColors.accent),
-                    onPressed: _initGate, 
-                    icon: const Icon(Icons.refresh_rounded, size: 18), 
-                    label: const Text("Re-check My Location", style: TextStyle(fontWeight: FontWeight.bold))
-                  ),
+                      style: TextButton.styleFrom(
+                          foregroundColor: AppColors.accent),
+                      onPressed: _initGate,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text("Re-check My Location",
+                          style: TextStyle(fontWeight: FontWeight.bold))),
                 ),
               ),
             ],
@@ -806,42 +989,54 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       drawer: Drawer(
         backgroundColor: Colors.white,
         child: ListView(
-          padding: EdgeInsets.zero, 
+          padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: AppColors.primary), 
+              decoration: const BoxDecoration(color: AppColors.primary),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
-                mainAxisAlignment: MainAxisAlignment.end, 
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: const [
-                  Icon(Icons.layers_sharp, color: AppColors.accent, size: 40), 
+                  Icon(Icons.layers_sharp, color: AppColors.accent, size: 40),
                   SizedBox(height: 12),
-                  Text('FASTever', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                  Text('Everyday Services @ Doorstep', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  Text('FASTever',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5)),
+                  Text('Everyday Services @ Doorstep',
+                      style: TextStyle(color: Colors.white54, fontSize: 12)),
                 ],
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.home_rounded, color: AppColors.primary), 
-              title: const Text('Home', style: TextStyle(fontWeight: FontWeight.w600)), 
+              leading: const Icon(Icons.home_rounded, color: AppColors.primary),
+              title: const Text('Home',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
               onTap: () => Navigator.pop(context),
             ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.privacy_tip_outlined), 
-              title: const Text('Privacy Policy'), 
-              onTap: () => _launchURL('https://sites.google.com/view/fastever-privacy'),
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Privacy Policy'),
+              onTap: () =>
+                  _launchURL('https://sites.google.com/view/fastever-privacy'),
             ),
             ListTile(
-              leading: const Icon(Icons.description_outlined), 
-              title: const Text('Terms & Conditions'), 
-              onTap: () => _launchURL('https://sites.google.com/view/fastever-termsconditions/home'),
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Terms & Conditions'),
+              onTap: () => _launchURL(
+                  'https://sites.google.com/view/fastever-termsconditions/home'),
             ),
             const Divider(height: 1),
             if (_isLoggedIn) ...[
               ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                title: const Text('Delete Account', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                leading: const Icon(Icons.delete_outline_rounded,
+                    color: Colors.redAccent),
+                title: const Text('Delete Account',
+                    style: TextStyle(
+                        color: Colors.redAccent, fontWeight: FontWeight.bold)),
                 onTap: _deleteAccount,
               ),
               ListTile(
@@ -851,8 +1046,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ] else ...[
               ListTile(
-                leading: const Icon(Icons.login_rounded, color: AppColors.success),
-                title: const Text('Login / Register', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                leading:
+                    const Icon(Icons.login_rounded, color: AppColors.success),
+                title: const Text('Login / Register',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: AppColors.primary)),
                 onTap: _goToLogin,
               ),
             ],
@@ -860,7 +1058,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
       appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white), 
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: AppColors.primary,
         elevation: 6,
         shadowColor: Colors.black.withOpacity(0.3),
@@ -875,28 +1073,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.navigation_rounded, color: AppColors.accent, size: 18),
+              const Icon(Icons.navigation_rounded,
+                  color: AppColors.accent, size: 18),
               const SizedBox(width: 6),
               Flexible(
-                child: Text(
-                  _currentLocation, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white, overflow: TextOverflow.ellipsis)
-                ),
+                child: Text(_currentLocation,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.white,
+                        overflow: TextOverflow.ellipsis)),
               ),
-              const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.white)
+              const Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 18, color: Colors.white)
             ],
           ),
         ),
         actions: [
           const NotificationBellIconButton(),
           IconButton(
-            icon: const Icon(Icons.account_circle_outlined, color: Colors.white, size: 26),
+            icon: const Icon(Icons.account_circle_outlined,
+                color: Colors.white, size: 26),
             onPressed: () {
               if (!requireLoginGlobal("Please login to access profile")) return;
               Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const ProfileScreen2())
-              );
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ProfileScreen2()));
             },
           ),
           const SizedBox(width: 8),
@@ -905,15 +1108,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-
           // EXPLORE MORE SERVICES LABEL
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-              child: Text(
-                "Explore More Services 🌟", 
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textDark, letterSpacing: 0.3)
-              ),
+              child: Text("Explore More Services 🌟",
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                      letterSpacing: 0.3)),
             ),
           ),
 
@@ -930,8 +1134,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   final service = exploreServices[idx];
                   return GestureDetector(
                     onTap: () => _handleServiceTap(
-                      service['key'], 
-                      service['title'], 
+                      service['key'],
+                      service['title'],
                       service['screen'],
                       requiresAuth: service['requiresAuth'] ?? true,
                     ),
@@ -939,13 +1143,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       width: 135,
                       margin: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2))
-                        ],
-                        border: Border.all(color: Colors.black.withOpacity(0.025))
-                      ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2))
+                          ],
+                          border: Border.all(
+                              color: Colors.black.withOpacity(0.025))),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: Column(
@@ -957,12 +1164,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 width: double.infinity,
                                 height: double.infinity,
                                 child: Image.asset(
-                                  service['image'], 
+                                  service['image'],
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Container(
-                                      color: AppColors.primary.withOpacity(0.05),
-                                      child: const Icon(Icons.category_outlined, size: 18, color: AppColors.textLight),
+                                      color:
+                                          AppColors.primary.withOpacity(0.05),
+                                      child: const Icon(Icons.category_outlined,
+                                          size: 18, color: AppColors.textLight),
                                     );
                                   },
                                 ),
@@ -971,15 +1180,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             Expanded(
                               flex: 3,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      service['title'], 
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppColors.textDark),
-                                      maxLines: 1, 
+                                      service['title'],
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10,
+                                          color: AppColors.textDark),
+                                      maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
@@ -995,7 +1208,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-          
+
           // SECTION LABEL: MAIN RAPID MATRIX
           SliverToBoxAdapter(
             child: Padding(
@@ -1003,8 +1216,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text("Quick Services ⚡", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
-                  Text("Fast on-demand delivery at your doorstep", style: TextStyle(color: AppColors.textLight, fontSize: 12)),
+                  Text("Quick Services ⚡",
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                          letterSpacing: -0.5)),
+                  Text("Fast on-demand delivery at your doorstep",
+                      style: TextStyle(
+                          color: AppColors.textLight, fontSize: 12)),
                 ],
               ),
             ),
@@ -1015,29 +1235,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, 
-                mainAxisSpacing: 16, 
-                crossAxisSpacing: 16, 
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
                 childAspectRatio: 0.88,
               ),
               delegate: SliverChildBuilderDelegate((context, index) {
                 final item = services[index];
                 return GestureDetector(
                   onTap: () => _handleServiceTap(
-                    item['key'], 
-                    item['title'], 
+                    item['key'],
+                    item['title'],
                     item['screen'],
                     requiresAuth: item['requiresAuth'] ?? false,
                   ),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 12, offset: const Offset(0, 4))
-                      ],
-                      border: Border.all(color: Colors.black.withOpacity(0.03))
-                    ),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4))
+                        ],
+                        border:
+                            Border.all(color: Colors.black.withOpacity(0.03))),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: Stack(
@@ -1051,7 +1274,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   width: double.infinity,
                                   height: double.infinity,
                                   child: Image.asset(
-                                    item['image'], 
+                                    item['image'],
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -1059,23 +1282,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               Expanded(
                                 flex: 3,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        item['title'], 
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
+                                        item['title'],
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: AppColors.primary),
                                         maxLines: 1,
-                                        overflow: TextOverflow.ellipsis
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 1),
                                       Text(
-                                        item['subtitle'], 
-                                        style: const TextStyle(fontSize: 10, color: AppColors.textLight, fontWeight: FontWeight.w500), 
-                                        maxLines: 1, 
-                                        overflow: TextOverflow.ellipsis
+                                        item['subtitle'],
+                                        style: const TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.textLight,
+                                            fontWeight: FontWeight.w500),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
                                   ),
@@ -1087,11 +1318,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             top: 10,
                             right: 10,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(30)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(30)),
                               child: Text(
-                                item['tag'], 
-                                style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                                item['tag'],
+                                style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold),
                                 maxLines: 1,
                               ),
                             ),
@@ -1113,15 +1350,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // ==================================================================
-          // 🎂 FULL WIDTH CAKE SCREEN NAVIGATION BANNER BUTTON WITH IMAGE
-          // ==================================================================
+          // CAKE BANNER
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: InkWell(
                 onTap: () {
-                  if (!requireLoginGlobal("Please login to view cakes & Gifts")) return;
+                  if (!requireLoginGlobal(
+                      "Please login to view cakes & Gifts")) return;
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CakeScreen()),
@@ -1130,7 +1367,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   width: double.infinity,
-                  height: 130, // 👈 Height optimized for the asset image banner
+                  height: 130,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
@@ -1149,7 +1386,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: Image.asset(
                             'assets/instahub/todaycake&gift1.png',
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
                               color: const Color(0xFF111827),
                             ),
                           ),
@@ -1169,12 +1407,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 16),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: const [
                                     Text(
@@ -1228,201 +1468,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Popular Today 🔥", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary, letterSpacing: -0.5)),
+                  const Text("Popular Today 🔥",
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                          letterSpacing: -0.5)),
                   GestureDetector(
-                    onTap: () => _handleServiceTap('food_delivery', 'Food Delivery', const FoodHomeScreen(), requiresAuth: false),
-                    child: const Text("View All", style: TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.bold)),
+                    onTap: () => _handleServiceTap(
+                        'food_delivery', 'Food Delivery', const FoodHomeScreen(),
+                        requiresAuth: false),
+                    child: const Text("View All",
+                        style: TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
           ),
 
-          // 🔥 EXACT COMBO / BIG DEALS CAROUSEL LAYOUT FROM FOODHOME (REQUIRES LOGIN)
+          // ==================================================================
+          // 🔥 1. POPULAR TODAY: BIG DEALS CROSS-FADE SHOWCASE CARD
+          // ==================================================================
           SliverToBoxAdapter(
-            child: SizedBox(
-              height: 160,
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('combodeals')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Shimmer.fromColors(
-                      baseColor: Colors.grey.shade200,
-                      highlightColor: Colors.grey.shade50,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: 3,
-                        itemBuilder: (_, __) => Container(
-                          width: 260,
-                          margin: const EdgeInsets.symmetric(horizontal: 6),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-                        ),
-                      ),
-                    );
-                  }
+            child: const PopularOffersBannerCard(offerTag: 'bigdeal'),
+          ),
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                  final docs = snapshot.data!.docs;
-
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      final doc = docs[index];
-                      final item = doc.data() as Map<String, dynamic>;
-                      final String name = item['name'] ?? item['title'] ?? 'Special Deal';
-                      final double originalPrice = parseDouble(item['originalPrice'] ?? item['price']);
-                      final double comboPrice = parseDouble(item['comboPrice'] ?? item['offerPrice'] ?? originalPrice);
-                      final String imageUrl = (item['image'] ?? item['imageUrl'] ?? '').toString();
-
-                      String discountTag = "SPECIAL OFFER";
-                      if (originalPrice > comboPrice && originalPrice > 0) {
-                        int discountPercent = (((originalPrice - comboPrice) / originalPrice) * 100).round();
-                        if (discountPercent > 0) {
-                          discountTag = "$discountPercent% OFF";
-                        }
-                      }
-
-                      return GestureDetector(
-                        onTap: () {
-                          if (!requireLoginGlobal("Please login to view deal")) return;
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ComboScreen(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 260,
-                          margin: const EdgeInsets.symmetric(horizontal: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              )
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Stack(
-                              children: [
-                                if (imageUrl.isNotEmpty)
-                                  Positioned.fill(
-                                    child: CachedNetworkImage(
-                                      imageUrl: imageUrl,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(color: AppColors.primary),
-                                      errorWidget: (_, __, ___) => Container(color: AppColors.primary),
-                                    ),
-                                  ),
-                                Positioned.fill(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          Colors.transparent,
-                                          Colors.black.withOpacity(0.85),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.accent,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          discountTag,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 10,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                          letterSpacing: -0.5,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            "₹${comboPrice.toInt()}",
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          if (originalPrice > comboPrice) ...[
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              "₹${originalPrice.toInt()}",
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(0.6),
-                                                fontSize: 11,
-                                                decoration: TextDecoration.lineThrough,
-                                              ),
-                                            ),
-                                          ],
-                                          const Spacer(),
-                                          const Text(
-                                            "Order →",
-                                            style: TextStyle(
-                                              color: AppColors.accent,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
+          // ==================================================================
+          // ⚡ 2. POPULAR TODAY: MEGA COMBO DEALS CROSS-FADE SHOWCASE CARD
+          // ==================================================================
+          SliverToBoxAdapter(
+            child: const PopularComboDealsBannerCard(),
           ),
 
           // DYNAMIC HELP & CUSTOMER SERVICE DESK FOOTER
@@ -1432,41 +1512,556 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))]
-                ),
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                          color: AppColors.primary.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10))
+                    ]),
                 child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
-                          Text("Need Help?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text("Need Help?",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16)),
                           SizedBox(height: 4),
-                          Text("Our support team is active 24/7.", style: TextStyle(color: Colors.white60, fontSize: 12)),
+                          Text("Our support team is active 24/7.",
+                              style: TextStyle(
+                                  color: Colors.white60, fontSize: 12)),
                         ],
                       ),
                     ),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
-                      ),
-                      onPressed: () => _launchURL("https://sites.google.com/view/fastever-privacy"), 
-                      child: const Text("Support", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))
-                    )
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12)),
+                        onPressed: () => _launchURL(
+                            "https://sites.google.com/view/fastever-privacy"),
+                        child: const Text("Support",
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold)))
                   ],
                 ),
               ),
             ),
           ),
-
         ],
       ),
+    );
+  }
+}
+
+// ----------------------------------------------------------------------
+// 🔥 1. Popular Offers Banner (STRICTLY "bigdeal" with In-Place Cross-Fade)
+// ----------------------------------------------------------------------
+class PopularOffersBannerCard extends StatefulWidget {
+  final String offerTag;
+  const PopularOffersBannerCard({super.key, this.offerTag = 'bigdeal'});
+
+  @override
+  State<PopularOffersBannerCard> createState() =>
+      _PopularOffersBannerCardState();
+}
+
+class _PopularOffersBannerCardState extends State<PopularOffersBannerCard> {
+  int _currentIndex = 0;
+  Timer? _timer;
+
+  void _startTimer(int itemCount) {
+    _timer?.cancel();
+    if (itemCount <= 1) return;
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentIndex = (_currentIndex + 1) % itemCount;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collectionGroup('menu')
+          .where('tags', arrayContains: widget.offerTag)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const SizedBox.shrink();
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade200,
+              highlightColor: Colors.grey.shade50,
+              child: Container(
+                height: 165,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Strict Filter: Ensure only items that explicitly include 'bigdeal'
+        final docs = (snapshot.data?.docs ?? []).where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          final tags = data['tags'];
+          if (tags is List) {
+            return tags.contains('bigdeal');
+          }
+          return false;
+        }).toList();
+
+        if (docs.isEmpty) return const SizedBox.shrink();
+
+        if (_currentIndex >= docs.length) {
+          _currentIndex = 0;
+        }
+
+        _startTimer(docs.length);
+
+        final currentDoc = docs[_currentIndex];
+        final data = currentDoc.data() as Map<String, dynamic>;
+        final String name = data['name'] ?? 'Big Deal';
+        final double price = parseDouble(data['price']);
+        final double originalPrice =
+            parseDouble(data['mrp'] ?? data['originalPrice']);
+        final String imageUrl =
+            (data['imageUrl'] ?? data['image'] ?? '').toString();
+
+        String discountBadge = "BIG DEAL";
+        if (originalPrice > price && originalPrice > 0) {
+          final int percent =
+              (((originalPrice - price) / originalPrice) * 100).round();
+          if (percent > 0) discountBadge = "$percent% OFF";
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GestureDetector(
+            onTap: () {
+              if (!requireLoginGlobal("Please login to view offers")) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OfferScreen(
+                    title: "Today's Big Deals",
+                    offerTag: 'bigdeal',
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              height: 165,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1E43),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(
+                  children: [
+                    // Smooth Blink / Cross-Fade Image Transition
+                    Positioned.fill(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 600),
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                        child: imageUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                key: ValueKey<String>(imageUrl),
+                                imageUrl: imageUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                placeholder: (_, __) =>
+                                    Container(color: const Color(0xFF1A1E43)),
+                                errorWidget: (_, __, ___) =>
+                                    Container(color: const Color(0xFF1A1E43)),
+                              )
+                            : Container(
+                                key: const ValueKey<String>('empty_image'),
+                                color: const Color(0xFF1A1E43),
+                              ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.85),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              discountBadge,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: Text(
+                              name,
+                              key: ValueKey<String>(name),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                letterSpacing: -0.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                "₹${price.toInt()}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              if (originalPrice > price) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  "₹${originalPrice.toInt()}",
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.6),
+                                    fontSize: 12,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                              const Spacer(),
+                              const Text(
+                                "View Deals →",
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ----------------------------------------------------------------------
+// ⚡ 2. Popular Combo Deals Banner (STRICTLY "combo_deals" with In-Place Cross-Fade)
+// ----------------------------------------------------------------------
+class PopularComboDealsBannerCard extends StatefulWidget {
+  const PopularComboDealsBannerCard({super.key});
+
+  @override
+  State<PopularComboDealsBannerCard> createState() =>
+      _PopularComboDealsBannerCardState();
+}
+
+class _PopularComboDealsBannerCardState
+    extends State<PopularComboDealsBannerCard> {
+  int _currentIndex = 0;
+  Timer? _timer;
+
+  void _startTimer(int itemCount) {
+    _timer?.cancel();
+    if (itemCount <= 1) return;
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentIndex = (_currentIndex + 1) % itemCount;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collectionGroup('menu')
+          .where('tags', arrayContains: 'combo_deals')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const SizedBox.shrink();
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade200,
+              highlightColor: Colors.grey.shade50,
+              child: Container(
+                height: 165,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Strict Filter: Ensure only items that explicitly include 'combo_deals'
+        final docs = (snapshot.data?.docs ?? []).where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          final tags = data['tags'];
+          if (tags is List) {
+            return tags.contains('combo_deals');
+          }
+          return false;
+        }).toList();
+
+        if (docs.isEmpty) return const SizedBox.shrink();
+
+        if (_currentIndex >= docs.length) {
+          _currentIndex = 0;
+        }
+
+        _startTimer(docs.length);
+
+        final currentDoc = docs[_currentIndex];
+        final item = currentDoc.data() as Map<String, dynamic>;
+        final String name = item['name'] ?? item['title'] ?? 'Combo Deal';
+        final double price = parseDouble(item['price']);
+        final double mrp = parseDouble(
+          item['mrp'] ?? item['promoOfferPrice'] ?? price,
+        );
+        final String imageUrl =
+            (item['imageUrl'] ?? item['image'] ?? '').toString();
+
+        String discountBadge = "MEGA COMBO";
+        if (mrp > price && mrp > 0) {
+          final int percent = (((mrp - price) / mrp) * 100).round();
+          if (percent > 0) discountBadge = "🔥 $percent% OFF";
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GestureDetector(
+            onTap: () {
+              if (!requireLoginGlobal("Please login to view combo deals")) {
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ComboScreen(),
+                ),
+              );
+            },
+            child: Container(
+              height: 165,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(
+                  children: [
+                    // Smooth Blink / Cross-Fade Image Transition
+                    Positioned.fill(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 600),
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                        child: imageUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                key: ValueKey<String>(imageUrl),
+                                imageUrl: imageUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                placeholder: (_, __) =>
+                                    Container(color: AppColors.primary),
+                                errorWidget: (_, __, ___) =>
+                                    Container(color: AppColors.primary),
+                              )
+                            : Container(
+                                key: const ValueKey<String>('empty_combo_img'),
+                                color: AppColors.primary,
+                              ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.85),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.offer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              discountBadge,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: Text(
+                              name,
+                              key: ValueKey<String>(name),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                letterSpacing: -0.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                "₹${price.toInt()}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              if (mrp > price) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  "₹${mrp.toInt()}",
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.6),
+                                    fontSize: 12,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                              const Spacer(),
+                              const Text(
+                                "Order Combo →",
+                                style: TextStyle(
+                                  color: AppColors.offer,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1506,7 +2101,8 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
     });
   }
 
-  void _handleServiceTap(String serviceKey, String serviceTitle, Widget? screen) {
+  void _handleServiceTap(
+      String serviceKey, String serviceTitle, Widget? screen) {
     if (!requireLoginGlobal("Please login to access $serviceTitle")) {
       return;
     }
@@ -1535,28 +2131,36 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            const Icon(Icons.build_circle_rounded, color: AppColors.offer, size: 28),
+            const Icon(Icons.build_circle_rounded,
+                color: AppColors.offer, size: 28),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 "Under Maintenance",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppColors.primary),
               ),
             ),
           ],
         ),
         content: Text(
           "$serviceTitle is currently undergoing scheduled upgrades to serve you better. Please check back shortly!",
-          style: const TextStyle(color: AppColors.textDark, fontSize: 14, height: 1.4),
+          style: const TextStyle(
+              color: AppColors.textDark, fontSize: 14, height: 1.4),
         ),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text("Got It", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text("Got It",
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1566,14 +2170,54 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> allServices = [
-      {'key': 'home_service', 'title': 'Home Service', 'image': 'assets/instahub/homee.png', 'screen': const HomeServicesScreen()},
-      {'key': 'laundry', 'title': 'Laundry', 'image': 'assets/instahub/laundryy.png', 'screen': const LaundryServiceForm()},
-      {'key': 'car_wash', 'title': 'Car Wash', 'image': 'assets/instahub/carwashh.png', 'screen': const CarWashingCentresScreen()},
-      {'key': 'book_time', 'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.png', 'screen': const BookTimeHubScreen()},
-      {'key': 'take_ride', 'title': 'Take Ride', 'image': 'assets/instahub/ridey.png', 'screen': const TakeRideScreen()},
-      {'key': 'pharmacy', 'title': 'Pharmacy', 'image': 'assets/instahub/pharmacyy.png', 'screen': const PharmacyOrderScreen()},
-      {'key': 'lab_test', 'title': 'Lab Test', 'image': 'assets/instahub/labyy.png', 'screen': LabsListScreen()},
-      {'key': 'cakes_bakery', 'title': 'Cakes & Gifts', 'image': 'assets/instahub/cakess.png', 'screen': const CakeScreen()},
+      {
+        'key': 'home_service',
+        'title': 'Home Service',
+        'image': 'assets/instahub/homee.png',
+        'screen': const HomeServicesScreen()
+      },
+      {
+        'key': 'laundry',
+        'title': 'Laundry',
+        'image': 'assets/instahub/laundryy.png',
+        'screen': const LaundryServiceForm()
+      },
+      {
+        'key': 'car_wash',
+        'title': 'Car Wash',
+        'image': 'assets/instahub/carwashh.png',
+        'screen': const CarWashingCentresScreen()
+      },
+      {
+        'key': 'book_time',
+        'title': 'Book Your Time',
+        'image': 'assets/instahub/bookyy.png',
+        'screen': const BookTimeHubScreen()
+      },
+      {
+        'key': 'take_ride',
+        'title': 'Take Ride',
+        'image': 'assets/instahub/ridey.png',
+        'screen': const TakeRideScreen()
+      },
+      {
+        'key': 'pharmacy',
+        'title': 'Pharmacy',
+        'image': 'assets/instahub/pharmacyy.png',
+        'screen': const PharmacyOrderScreen()
+      },
+      {
+        'key': 'lab_test',
+        'title': 'Lab Test',
+        'image': 'assets/instahub/labyy.png',
+        'screen': LabsListScreen()
+      },
+      {
+        'key': 'cakes_bakery',
+        'title': 'Cakes & Gifts',
+        'image': 'assets/instahub/cakess.png',
+        'screen': const CakeScreen()
+      },
     ];
 
     return Scaffold(
@@ -1593,7 +2237,8 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
         ),
         title: const Text(
           "All Services 🌟",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
         actions: [
@@ -1616,13 +2261,17 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
             itemBuilder: (context, index) {
               final item = allServices[index];
               return GestureDetector(
-                onTap: () => _handleServiceTap(item['key'], item['title'], item['screen']),
+                onTap: () => _handleServiceTap(
+                    item['key'], item['title'], item['screen']),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 12, offset: const Offset(0, 4))
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4))
                     ],
                     border: Border.all(color: Colors.black.withOpacity(0.03)),
                   ),
@@ -1639,9 +2288,11 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
                             child: Image.asset(
                               item['image'],
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
                                 color: AppColors.primary.withOpacity(0.05),
-                                child: const Icon(Icons.cake_outlined, size: 36, color: AppColors.accent),
+                                child: const Icon(Icons.cake_outlined,
+                                    size: 36, color: AppColors.accent),
                               ),
                             ),
                           ),
@@ -1649,21 +2300,28 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
                         Expanded(
                           flex: 3,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   item['title'],
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppColors.primary),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 2),
                                 const Text(
                                   "Tap to order",
-                                  style: TextStyle(fontSize: 10, color: AppColors.textLight, fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textLight,
+                                      fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
