@@ -1,13 +1,10 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../home/home_screen.dart';
-import '../profile/profile_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -37,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
   int _secondsRemaining = 30;
   bool _canResend = false;
 
-  // Matching Theme Color Token
+  // Matching FASTever Theme Color Token
   static const Color _brandYellow = Color(0xFFFFC400);
 
   final String _privacyUrl = "https://sites.google.com/view/fastever-privacy";
@@ -54,19 +51,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _otpController.dispose();
     _timer?.cancel();
     super.dispose();
-  }
-
-  void _setLoading({
-    required bool value,
-    String title = "Please wait...",
-    String subtitle = "This may take a few seconds.",
-  }) {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = value;
-      _loadingTitle = title;
-      _loadingSubtitle = subtitle;
-    });
   }
 
   void _resetLoadingStates() {
@@ -175,7 +159,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               backgroundColor: Colors.black87,
-              content: Text("OTP sent successfully.", style: TextStyle(color: _brandYellow)),
+              content: Text(
+                "OTP sent successfully.",
+                style: TextStyle(color: _brandYellow),
+              ),
             ),
           );
         },
@@ -214,8 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _isVerifyingOtp = true;
       _loadingTitle = "Verifying OTP...";
-      _loadingSubtitle =
-          "Please wait. This may take a few seconds.";
+      _loadingSubtitle = "Please wait. This may take a few seconds.";
     });
 
     final PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -240,73 +226,26 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      bool isProfileComplete = false;
-
-      try {
-        final prefs = await SharedPreferences.getInstance()
-            .timeout(const Duration(seconds: 5));
-
-        isProfileComplete = prefs.getBool('profile_${user.uid}') ?? false;
-
-        if (!isProfileComplete) {
-          final doc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get()
-              .timeout(const Duration(seconds: 5));
-
-          final data = doc.data();
-          final name = data?['name']?.toString().trim();
-
-          if (doc.exists && name != null && name.isNotEmpty) {
-            isProfileComplete = true;
-            await prefs.setBool('profile_${user.uid}', true);
-          }
-        }
-      } catch (e) {
-        debugPrint("Profile check error: $e");
-        isProfileComplete = true;
-      }
-
       if (!mounted) return;
 
       _resetLoadingStates();
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              isProfileComplete ? const HomeScreen() : const ProfileScreen(),
-        ),
-        (route) => false,
-      );
-    } on TimeoutException {
-      _resetLoadingStates();
-
-      if (!mounted) return;
-
-      _showError("Login is taking longer than usual. Please try again.");
-
+      // Directly open HomeScreen without intermediary profile or address forms
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
         (route) => false,
       );
+    } on TimeoutException {
+      _resetLoadingStates();
+      _showError("Login is taking longer than usual. Please try again.");
     } on FirebaseAuthException catch (e) {
       _resetLoadingStates();
       _showError(e.message ?? "Login failed. Please try again.");
     } catch (e) {
       debugPrint("Login Error: $e");
-
       _resetLoadingStates();
-
-      if (!mounted) return;
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
-      );
+      _showError("An unexpected error occurred. Please try again.");
     }
   }
 
@@ -489,7 +428,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               hintText: "Enter phone number",
-              hintStyle: const TextStyle(color: Colors.black38, fontWeight: FontWeight.normal),
+              hintStyle: const TextStyle(
+                color: Colors.black38,
+                fontWeight: FontWeight.normal,
+              ),
               counterText: "",
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -512,10 +454,9 @@ class _LoginScreenState extends State<LoginScreen> {
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed:
-                  (_isSendingOtp || _otpRequestLocked || _isLoading)
-                      ? null
-                      : _sendOTP,
+              onPressed: (_isSendingOtp || _otpRequestLocked || _isLoading)
+                  ? null
+                  : _sendOTP,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: _brandYellow,
@@ -594,7 +535,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             decoration: InputDecoration(
               hintText: "• • • • • •",
-              hintStyle: const TextStyle(color: Colors.black38, letterSpacing: 6.0),
+              hintStyle:
+                  const TextStyle(color: Colors.black38, letterSpacing: 6.0),
               counterText: "",
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -616,10 +558,9 @@ class _LoginScreenState extends State<LoginScreen> {
           Center(
             child: _canResend
                 ? TextButton(
-                    onPressed:
-                        (_isSendingOtp || _otpRequestLocked || _isLoading)
-                            ? null
-                            : _sendOTP,
+                    onPressed: (_isSendingOtp || _otpRequestLocked || _isLoading)
+                        ? null
+                        : _sendOTP,
                     child: const Text(
                       "Resend OTP",
                       style: TextStyle(
