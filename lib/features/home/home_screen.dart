@@ -14,6 +14,9 @@ import 'package:shimmer/shimmer.dart';
 // ✅ IMPORT GLOBAL AUTH GUARD
 import 'package:fastevergo_v1/utils/auth_guards.dart';
 
+// ✅ IMPORT GLOBAL LOADER
+import 'package:fastevergo_v1/features/loading/global_loader.dart';
+
 import '../food/food_home_screen.dart';
 import '../food/combo_screen.dart';
 import '../food/offer_screen.dart';
@@ -24,7 +27,6 @@ import '../home_services/home_services_screen.dart';
 import '../laundry/LaundryServiceForm.dart';
 import '../car_wash/CarWashingCentresScreen.dart';
 import '../book_time/book_time_screens.dart';
-import '../notification/notificationscreen.dart';
 import '../takearide/takeridescreen.dart';
 import '../pharmacy/pharmacy_order_screen.dart';
 import '../lab_test/labs_list_screen.dart';
@@ -366,7 +368,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     if (screen != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+      GlobalLoader.run(
+        duration: const Duration(milliseconds: 1800),
+        task: () async {
+          if (mounted) {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+          }
+        },
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("$serviceTitle coming soon!")),
@@ -420,6 +429,212 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ],
       ),
+    );
+  }
+
+  void _showSupportBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return FutureBuilder<QuerySnapshot>(
+          future: FirebaseFirestore.instance.collection('customer_supprt').limit(1).get(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 250,
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.accent),
+                ),
+              );
+            }
+
+            String supportCall = "";
+            String supportMail = "";
+
+            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+              final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+              supportCall = (data['support_call'] ?? '').toString();
+              supportMail = (data['support_mail'] ?? '').toString();
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: const [
+                        Icon(Icons.headset_mic_rounded, color: AppColors.accent, size: 28),
+                        SizedBox(width: 10),
+                        Text(
+                          "FASTever Support",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Our customer support team is always active and ready to assist you. Choose how you'd like to reach us:",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textLight,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    if (supportCall.isNotEmpty) ...[
+                      InkWell(
+                        onTap: () async {
+                          final uri = Uri.parse("tel:$supportCall");
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Could not make call")),
+                              );
+                            }
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFBBF7D0)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.success,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.phone_rounded, color: Colors.white, size: 20),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Call Us Directly",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      supportCall,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.success,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.success),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (supportMail.isNotEmpty) ...[
+                      InkWell(
+                        onTap: () async {
+                          final uri = Uri.parse("mailto:$supportMail?subject=FASTever Support Request");
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Could not open mail app")),
+                              );
+                            }
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF1F2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFFECDD3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.accent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.email_rounded, color: Colors.white, size: 20),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Send an Email",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      supportMail,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.accent,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.accent),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -621,18 +836,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
 
   void _goToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    GlobalLoader.run(
+      duration: const Duration(milliseconds: 1800),
+      task: () async {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        }
+      },
     );
   }
 
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (r) => false,
+    GlobalLoader.run(
+      duration: const Duration(milliseconds: 1800),
+      task: () async {
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (r) => false,
+          );
+        }
+      },
     );
   }
 
@@ -739,8 +968,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'title': 'Food Delivery',
           'subtitle': 'Hot meals from restaurants',
           'tag': '20 min',
-          'gradient': [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-          'image': 'assets/instahub/s1.png',
+          'image': 'assets/instahub/s1.jpeg',
           'screen': const FoodHomeScreen(),
           'requiresAuth': false,
         },
@@ -749,8 +977,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'title': 'Instahub',
           'subtitle': 'Groceries delivered instantly',
           'tag': '10 min',
-          'gradient': [const Color(0xFF11998e), const Color(0xFF38ef7d)],
-          'image': 'assets/instahub/s2.png',
+          'image': 'assets/instahub/s2.jpeg',
           'screen': const InstantOrderHomeScreen(),
           'requiresAuth': false,
         },
@@ -759,8 +986,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'title': 'Morning Orders',
           'subtitle': 'Daily fresh essentials',
           'tag': 'Before 7 AM',
-          'gradient': [const Color(0xFF00c6ff), const Color(0xFF0072ff)],
-          'image': 'assets/instahub/s6.png',
+          'image': 'assets/instahub/s6.jpeg',
           'screen': const MorningOrderHomeScreen(),
           'requiresAuth': false,
         },
@@ -769,8 +995,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'title': 'Other Services',
           'subtitle': 'Home care & premium hubs',
           'tag': 'Explore',
-          'gradient': [const Color(0xFF7F00FF), const Color(0xFFE100FF)],
-          'image': 'assets/instahub/s9.png',
+          'image': 'assets/instahub/s9.jpeg',
           'screen': const OtherServicesScreen(),
           'requiresAuth': false,
         },
@@ -780,49 +1005,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         {
           'key': 'book_time',
           'title': 'Turf Booking',
-          'image': 'assets/instahub/turff.png',
+          'image': 'assets/instahub/turff.jpeg',
           'screen': const TurfDirectoryScreen(),
           'requiresAuth': true
         },
         {
           'key': 'car_wash',
           'title': 'Car Wash',
-          'image': 'assets/instahub/carwash.png',
+          'image': 'assets/instahub/carwash.jpeg',
           'screen': const CarWashingCentresScreen(),
           'requiresAuth': true
         },
         {
           'key': 'lab_test',
           'title': 'Lab Test',
-          'image': 'assets/instahub/lab.png',
+          'image': 'assets/instahub/lab.jpeg',
           'screen': LabsListScreen(),
           'requiresAuth': true
         },
         {
           'key': 'laundry',
           'title': 'Laundry',
-          'image': 'assets/instahub/laundry.png',
+          'image': 'assets/instahub/laundry.jpeg',
           'screen': const LaundryServiceForm(),
           'requiresAuth': true
         },
         {
           'key': 'cakes_bakery',
           'title': 'Cakes & Gifts',
-          'image': 'assets/instahub/cakesss.png',
+          'image': 'assets/instahub/cakesss.jpeg',
           'screen': const CakeScreen(),
           'requiresAuth': true
         },
         {
           'key': 'home_service',
           'title': 'Home Service',
-          'image': 'assets/instahub/home.png',
+          'image': 'assets/instahub/home.jpeg',
           'screen': const HomeServicesScreen(),
           'requiresAuth': true
         },
         {
           'key': 'pharmacy',
           'title': 'Pharmacy',
-          'image': 'assets/instahub/pharmacy.png',
+          'image': 'assets/instahub/pharmacy.jpeg',
           'screen': const PharmacyOrderScreen(),
           'requiresAuth': true
         },
@@ -1051,7 +1276,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 title: const Text('Login / Register',
                     style: TextStyle(
                         fontWeight: FontWeight.bold, color: AppColors.primary)),
-                onTap: _goToLogin,
+                onTap: () {
+                  Navigator.pop(context);
+                  _goToLogin();
+                },
               ),
             ],
           ],
@@ -1068,38 +1296,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
         centerTitle: false,
-        title: GestureDetector(
-          onTap: () => setState(() => _gateState = GateState.outOfArea),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.navigation_rounded,
-                  color: AppColors.accent, size: 18),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(_currentLocation,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Colors.white,
-                        overflow: TextOverflow.ellipsis)),
-              ),
-              const Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 18, color: Colors.white)
-            ],
+        title: const Text(
+          "FASTever",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            letterSpacing: -0.5,
           ),
         ),
         actions: [
-          const NotificationBellIconButton(),
           IconButton(
             icon: const Icon(Icons.account_circle_outlined,
                 color: Colors.white, size: 26),
             onPressed: () {
               if (!requireLoginGlobal("Please login to access profile")) return;
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const ProfileScreen2()));
+              GlobalLoader.run(
+                duration: const Duration(milliseconds: 1800),
+                task: () async {
+                  if (mounted) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ProfileScreen2()));
+                  }
+                },
+              );
             },
           ),
           const SizedBox(width: 8),
@@ -1112,7 +1334,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-              child: Text("Explore More Services 🌟",
+              child: const Text("Explore More Services 🌟",
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -1350,18 +1572,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // CAKE BANNER
+          // CAKE BANNER (NOW CHECKING service_status['cakes_bakery'])
           SliverToBoxAdapter(
             child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: InkWell(
                 onTap: () {
-                  if (!requireLoginGlobal(
-                      "Please login to view cakes & Gifts")) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CakeScreen()),
+                  _handleServiceTap(
+                    'cakes_bakery',
+                    'Cakes & Gifts',
+                    const CakeScreen(),
+                    requiresAuth: true,
                   );
                 },
                 borderRadius: BorderRadius.circular(20),
@@ -1384,7 +1606,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       children: [
                         Positioned.fill(
                           child: Image.asset(
-                            'assets/instahub/todaycake&gift1.png',
+                            'assets/instahub/todaycakegift1.jpeg',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
                                 Container(
@@ -1547,8 +1769,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12)),
-                        onPressed: () => _launchURL(
-                            "https://sites.google.com/view/fastever-privacy"),
+                        onPressed: _showSupportBottomSheet,
                         child: const Text("Support",
                             style: TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.bold)))
@@ -1624,7 +1845,6 @@ class _PopularOffersBannerCardState extends State<PopularOffersBannerCard> {
           );
         }
 
-        // Strict Filter: Ensure only items that explicitly include 'bigdeal'
         final docs = (snapshot.data?.docs ?? []).where((d) {
           final data = d.data() as Map<String, dynamic>;
           final tags = data['tags'];
@@ -1663,14 +1883,21 @@ class _PopularOffersBannerCardState extends State<PopularOffersBannerCard> {
           child: GestureDetector(
             onTap: () {
               if (!requireLoginGlobal("Please login to view offers")) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => OfferScreen(
-                    title: "Today's Big Deals",
-                    offerTag: 'bigdeal',
-                  ),
-                ),
+              GlobalLoader.run(
+                duration: const Duration(milliseconds: 1800),
+                task: () async {
+                  if (mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OfferScreen(
+                          title: "Today's Big Deals",
+                          offerTag: 'bigdeal',
+                        ),
+                      ),
+                    );
+                  }
+                },
               );
             },
             child: Container(
@@ -1690,7 +1917,6 @@ class _PopularOffersBannerCardState extends State<PopularOffersBannerCard> {
                 borderRadius: BorderRadius.circular(24),
                 child: Stack(
                   children: [
-                    // Smooth Blink / Cross-Fade Image Transition
                     Positioned.fill(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 600),
@@ -1876,7 +2102,6 @@ class _PopularComboDealsBannerCardState
           );
         }
 
-        // Strict Filter: Ensure only items that explicitly include 'combo_deals'
         final docs = (snapshot.data?.docs ?? []).where((d) {
           final data = d.data() as Map<String, dynamic>;
           final tags = data['tags'];
@@ -1917,11 +2142,18 @@ class _PopularComboDealsBannerCardState
               if (!requireLoginGlobal("Please login to view combo deals")) {
                 return;
               }
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ComboScreen(),
-                ),
+              GlobalLoader.run(
+                duration: const Duration(milliseconds: 1800),
+                task: () async {
+                  if (mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ComboScreen(),
+                      ),
+                    );
+                  }
+                },
               );
             },
             child: Container(
@@ -1941,7 +2173,6 @@ class _PopularComboDealsBannerCardState
                 borderRadius: BorderRadius.circular(24),
                 child: Stack(
                   children: [
-                    // Smooth Blink / Cross-Fade Image Transition
                     Positioned.fill(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 600),
@@ -2115,7 +2346,14 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
     }
 
     if (screen != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+      GlobalLoader.run(
+        duration: const Duration(milliseconds: 1800),
+        task: () async {
+          if (mounted) {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+          }
+        },
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("$serviceTitle coming soon!")),
@@ -2173,49 +2411,49 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
       {
         'key': 'home_service',
         'title': 'Home Service',
-        'image': 'assets/instahub/homee.png',
+        'image': 'assets/instahub/homee.jpeg',
         'screen': const HomeServicesScreen()
       },
       {
         'key': 'laundry',
         'title': 'Laundry',
-        'image': 'assets/instahub/laundryy.png',
+        'image': 'assets/instahub/laundryy.jpeg',
         'screen': const LaundryServiceForm()
       },
       {
         'key': 'car_wash',
         'title': 'Car Wash',
-        'image': 'assets/instahub/carwashh.png',
+        'image': 'assets/instahub/carwashh.jpeg',
         'screen': const CarWashingCentresScreen()
       },
       {
         'key': 'book_time',
         'title': 'Book Your Time',
-        'image': 'assets/instahub/bookyy.png',
+        'image': 'assets/instahub/bookyy.jpeg',
         'screen': const BookTimeHubScreen()
       },
       {
         'key': 'take_ride',
         'title': 'Take Ride',
-        'image': 'assets/instahub/ridey.png',
+        'image': 'assets/instahub/ridey.jpeg',
         'screen': const TakeRideScreen()
       },
       {
         'key': 'pharmacy',
         'title': 'Pharmacy',
-        'image': 'assets/instahub/pharmacyy.png',
+        'image': 'assets/instahub/pharmacyy.jpeg',
         'screen': const PharmacyOrderScreen()
       },
       {
         'key': 'lab_test',
         'title': 'Lab Test',
-        'image': 'assets/instahub/labyy.png',
+        'image': 'assets/instahub/labyy.jpeg',
         'screen': LabsListScreen()
       },
       {
         'key': 'cakes_bakery',
         'title': 'Cakes & Gifts',
-        'image': 'assets/instahub/cakess.png',
+        'image': 'assets/instahub/cakess.jpeg',
         'screen': const CakeScreen()
       },
     ];
@@ -2241,10 +2479,6 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
               color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
-        actions: [
-          const NotificationBellIconButton(),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SafeArea(
         child: Padding(

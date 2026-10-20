@@ -107,7 +107,7 @@ class _CartScreenState extends State<CartScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  String selectedAddress = "No address saved yet";
+  String selectedAddress = "Loading address...";
   String selectedPayment = "COD";
   String? appliedCoupon;
   double discountAmount = 0;
@@ -165,6 +165,8 @@ class _CartScreenState extends State<CartScreen> {
     final user = _auth.currentUser;
     if (user != null) {
       _loadSavedAddress(user.uid);
+    } else {
+      selectedAddress = "No address saved yet";
     }
   }
 
@@ -244,33 +246,82 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _loadSavedAddress(String uid) async {
-    final doc = await _firestore.collection("users").doc(uid).collection("profile").doc("address").get();
-    if (doc.exists) {
-      final data = doc.data()!;
-      final double savedLat = parseDouble(data['latitude']);
-      final double savedLon = parseDouble(data['longitude']);
-      final String fullAddress = "${data['name'] ?? ''}\n${data['phone'] ?? ''}\n${data['address'] ?? ''}\n${data['landmark'] ?? ''}";
+    try {
+      // 1. Try to load user profile saved/last used address
+      final doc = await _firestore.collection("users").doc(uid).collection("profile").doc("address").get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final double savedLat = parseDouble(data['latitude']);
+        final double savedLon = parseDouble(data['longitude']);
+        final String fullAddress = "${data['name'] ?? ''}\n${data['phone'] ?? ''}\n${data['address'] ?? ''}\n${data['landmark'] ?? ''}";
+
+        if (mounted) {
+          setState(() {
+            selectedAddress = fullAddress.trim().isEmpty ? "No address saved yet" : fullAddress.trim();
+            if (savedLat != 0.0 && savedLon != 0.0) {
+              currentDeliveryPosition = Position(
+                latitude: savedLat, 
+                longitude: savedLon, 
+                timestamp: DateTime.now(),
+                accuracy: 1, 
+                altitude: 0, 
+                heading: 0, 
+                speed: 0, 
+                speedAccuracy: 0, 
+                altitudeAccuracy: 1, 
+                headingAccuracy: 1,
+              );
+              _cachedFeesFuture = _calculateTotalFees();
+            }
+          });
+          return;
+        }
+      }
+
+      // 2. Fallback to last placed delivered order address
+      final lastOrderQuery = await _firestore
+          .collection("orders")
+          .where("userId", isEqualTo: uid)
+          .orderBy("timestamp", descending: true)
+          .limit(1)
+          .get();
+
+      if (lastOrderQuery.docs.isNotEmpty) {
+        final orderData = lastOrderQuery.docs.first.data();
+        final double oLat = parseDouble(orderData['deliveryLatitude'] ?? orderData['latitude']);
+        final double oLon = parseDouble(orderData['deliveryLongitude'] ?? orderData['longitude']);
+        final String oAddr = (orderData['address'] ?? '').toString();
+
+        if (mounted && oAddr.isNotEmpty) {
+          setState(() {
+            selectedAddress = oAddr;
+            if (oLat != 0.0 && oLon != 0.0) {
+              currentDeliveryPosition = Position(
+                latitude: oLat,
+                longitude: oLon,
+                timestamp: DateTime.now(),
+                accuracy: 1,
+                altitude: 0,
+                heading: 0,
+                speed: 0,
+                speedAccuracy: 0,
+                altitudeAccuracy: 1,
+                headingAccuracy: 1,
+              );
+              _cachedFeesFuture = _calculateTotalFees();
+            }
+          });
+          return;
+        }
+      }
 
       if (mounted) {
-        setState(() {
-          selectedAddress = fullAddress.trim().isEmpty ? "No address saved yet" : fullAddress;
-          if (savedLat != 0.0 && savedLon != 0.0) {
-            // ✅ Fix 1: iOS Stability optimized Position
-            currentDeliveryPosition = Position(
-              latitude: savedLat, 
-              longitude: savedLon, 
-              timestamp: DateTime.now(),
-              accuracy: 1, 
-              altitude: 0, 
-              heading: 0, 
-              speed: 0,
-              speedAccuracy: 0, 
-              altitudeAccuracy: 1, 
-              headingAccuracy: 1,
-            );
-            _cachedFeesFuture = _calculateTotalFees();
-          }
-        });
+        setState(() => selectedAddress = "No address saved yet");
+      }
+    } catch (e) {
+      debugPrint("Error loading saved address: $e");
+      if (mounted) {
+        setState(() => selectedAddress = "No address saved yet");
       }
     }
   }
@@ -379,11 +430,12 @@ class _CartScreenState extends State<CartScreen> {
     if (result != null && result is Map<String, dynamic>) {
       final double newLat = parseDouble(result['lat']);
       final double newLon = parseDouble(result['lng']);
+      final String fullAddress = "${result['recipient_name'] ?? ''}\n${result['phone'] ?? ''}\n${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}\n${result['landmark'] ?? ''}\n${result['full_display_address'] ?? ''}".trim();
+
       if (mounted) {
         setState(() {
-          selectedAddress = "${result['recipient_name'] ?? ''}\n${result['phone'] ?? ''}\n${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}\n${result['landmark'] ?? ''}\n${result['full_display_address'] ?? ''}";
+          selectedAddress = fullAddress;
           
-          // ✅ Fix 1: iOS Stability optimized Position
           currentDeliveryPosition = Position(
             latitude: newLat, 
             longitude: newLon, 
@@ -391,13 +443,27 @@ class _CartScreenState extends State<CartScreen> {
             accuracy: 1, 
             altitude: 0, 
             heading: 0, 
-            speed: 0,
+            speed: 0, 
             speedAccuracy: 0, 
             altitudeAccuracy: 1, 
             headingAccuracy: 1,
           );
           _cachedFeesFuture = _calculateTotalFees();
         });
+      }
+
+      // Automatically persist to Firestore so future sessions auto-display this address
+      final user = _auth.currentUser;
+      if (user != null) {
+        _firestore.collection("users").doc(user.uid).collection("profile").doc("address").set({
+          'name': result['recipient_name'] ?? '',
+          'phone': result['phone'] ?? '',
+          'address': "${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}".trim(),
+          'landmark': "${result['landmark'] ?? ''} ${result['full_display_address'] ?? ''}".trim(),
+          'latitude': newLat,
+          'longitude': newLon,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true)).catchError((e) => debugPrint("Error saving address: $e"));
       }
     }
   }
@@ -611,8 +677,13 @@ class _CartScreenState extends State<CartScreen> {
         const SizedBox(width: 8),
         ElevatedButton(
           onPressed: () => _applyCoupon(subtotal),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          child: const Text("Apply"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text("Apply", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
       ],
     );

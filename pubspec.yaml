@@ -2,7 +2,7 @@ name: fastevergo_v1
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.3+17
+version: 1.0.4+18
 
 environment:
   sdk: ^3.8.1
@@ -57,6 +57,7 @@ flutter:
   assets:
     # images
     - assets/logo.json
+    - assets/loading.json
 
     - assets/images/desserts.png
     - assets/images/fried.png
@@ -86,46 +87,46 @@ flutter:
     - assets/animations/m3.json
 
     # instahub
-    - assets/instahub/s1.png
-    - assets/instahub/s2.png
-    - assets/instahub/s4.png
-    - assets/instahub/s5.png
-    - assets/instahub/s6.png
-    - assets/instahub/s7.png
-    - assets/instahub/s8.png
-    - assets/instahub/s9.png
+    - assets/instahub/s1.jpeg
+    - assets/instahub/s2.jpeg
+    - assets/instahub/s4.jpeg
+    - assets/instahub/s5.jpeg
+    - assets/instahub/s6.jpeg
+    - assets/instahub/s7.jpeg
+    - assets/instahub/s8.jpeg
+    - assets/instahub/s9.jpeg
 
-    - assets/instahub/home.png
-    - assets/instahub/laundry.png
-    - assets/instahub/pharmacy.png
-    - assets/instahub/events.png
-    - assets/instahub/healthcare.png
-    - assets/instahub/beauty.png
+    - assets/instahub/home.jpeg
+    - assets/instahub/laundry.jpeg
+    - assets/instahub/pharmacy.jpeg
+    - assets/instahub/events.jpeg
+    - assets/instahub/healthcare.jpeg
+    - assets/instahub/beauty.jpeg
 
-    - assets/instahub/homee.png
-    - assets/instahub/laundryy.png
-    - assets/instahub/pharmacyy.png
-    - assets/instahub/carwashh.png
-    - assets/instahub/bookyy.png
-    - assets/instahub/ridey.png
-    - assets/instahub/labyy.png
-    - assets/instahub/cakess.png
+    - assets/instahub/homee.jpeg
+    - assets/instahub/laundryy.jpeg
+    - assets/instahub/pharmacyy.jpeg
+    - assets/instahub/carwashh.jpeg
+    - assets/instahub/bookyy.jpeg
+    - assets/instahub/ridey.jpeg
+    - assets/instahub/labyy.jpeg
+    - assets/instahub/cakess.jpeg
 
-    - assets/instahub/salon.png
-    - assets/instahub/petcare.png
-    - assets/instahub/turf.png
+    - assets/instahub/salon.jpeg
+    - assets/instahub/petcare.jpeg
+    - assets/instahub/turf.jpeg
 
-    - assets/instahub/cakesss.png
-    - assets/instahub/carwash.png
-    - assets/instahub/turff.png
-    - assets/instahub/lab.png
+    - assets/instahub/cakesss.jpeg
+    - assets/instahub/carwash.jpeg
+    - assets/instahub/turff.jpeg
+    - assets/instahub/lab.jpeg
 
-    - assets/instahub/taxi.png
-    - assets/instahub/pickup.png
-    - assets/instahub/truck.png
-    - assets/instahub/torist.png
-    - assets/instahub/bestcake.png
-    - assets/instahub/todaycake&gift1.png
+    - assets/instahub/taxi.jpeg
+    - assets/instahub/pickup.jpeg
+    - assets/instahub/truck.jpeg
+    - assets/instahub/torist.jpeg
+    - assets/instahub/bestcake.jpeg
+    - assets/instahub/todaycakegift1.jpeg
 
     # icons
     - assets/icons/fv.jpeg
@@ -148,7 +149,7 @@ flutter:
     - assets/animations/waiting.json
     - assets/images/scooter_pin.png
 
-    - assets/main.png
+    
 
 
 # App icon configuration

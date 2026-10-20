@@ -16,6 +16,9 @@ import 'package:shimmer/shimmer.dart';
 // ✅ IMPORT AUTH GUARDS
 import 'package:fastevergo_v1/utils/auth_guards.dart'; 
 
+// ✅ IMPORT GLOBAL LOADER
+import 'package:fastevergo_v1/features/loading/global_loader.dart';
+
 import '../profile/profile_screen2.dart';
 import 'RestaurantMenuScreen.dart';
 import 'CategoryScreen.dart';
@@ -503,14 +506,21 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                   child: InkWell(
                     onTap: () {
                       _searchFocusNode.unfocus();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RestaurantMenuScreen(
-                            restaurantId: itemDoc.reference.parent.parent!.id,
-                            userPosition: _currentPosition,
-                          ),
-                        ),
+                      GlobalLoader.run(
+                        duration: const Duration(milliseconds: 1800),
+                        task: () async {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RestaurantMenuScreen(
+                                  restaurantId: itemDoc.reference.parent.parent!.id,
+                                  userPosition: _currentPosition,
+                                ),
+                              ),
+                            );
+                          }
+                        },
                       );
                     },
                     child: _FoodCard(
@@ -853,9 +863,16 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 InkWell(
                   onTap: () {
                     if (!requireLoginGlobal("Please login to access profile")) return;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen2()),
+                    GlobalLoader.run(
+                      duration: const Duration(milliseconds: 1800),
+                      task: () async {
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ProfileScreen2()),
+                          );
+                        }
+                      },
                     );
                   },
                   child: const CircleAvatar(
@@ -998,19 +1015,33 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                 child: InkWell(
                   onTap: () {
                     if (tag == 'bigdeal') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              OfferScreen(title: offerTitle, offerTag: 'bigdeal'),
-                        ),
+                      GlobalLoader.run(
+                        duration: const Duration(milliseconds: 1800),
+                        task: () async {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    OfferScreen(title: offerTitle, offerTag: 'bigdeal'),
+                              ),
+                            );
+                          }
+                        },
                       );
                     } else if (tag == 'combo') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ComboScreen(),
-                        ),
+                      GlobalLoader.run(
+                        duration: const Duration(milliseconds: 1800),
+                        task: () async {
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ComboScreen(),
+                              ),
+                            );
+                          }
+                        },
                       );
                     }
                   },
@@ -1195,11 +1226,18 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
   Widget _buildCategoryItem(String name, String imagePath) {
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CategoryScreen(category: name.toLowerCase()),
-          ),
+        GlobalLoader.run(
+          duration: const Duration(milliseconds: 1800),
+          task: () async {
+            if (context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CategoryScreen(category: name.toLowerCase()),
+                ),
+              );
+            }
+          },
         );
       },
       child: Padding(
@@ -1408,14 +1446,21 @@ class _FoodHomeScreenState extends State<FoodHomeScreen> {
                         return InkWell(
                           onTap: () {
                             _searchFocusNode.unfocus();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RestaurantMenuScreen(
-                                  restaurantId: dataMap['resId'],
-                                  userPosition: _currentPosition,
-                                ),
-                              ),
+                            GlobalLoader.run(
+                              duration: const Duration(milliseconds: 1800),
+                              task: () async {
+                                if (context.mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => RestaurantMenuScreen(
+                                        restaurantId: dataMap['resId'],
+                                        userPosition: _currentPosition,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                             );
                           },
                           child: _FoodCard(
@@ -1767,14 +1812,21 @@ class _AllPopularFoodsScreenState extends State<AllPopularFoodsScreen> {
 
                                   return InkWell(
                                     onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => RestaurantMenuScreen(
-                                            restaurantId: dataMap['resId'],
-                                            userPosition: widget.userPosition,
-                                          ),
-                                        ),
+                                      GlobalLoader.run(
+                                        duration: const Duration(milliseconds: 1800),
+                                        task: () async {
+                                          if (context.mounted) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => RestaurantMenuScreen(
+                                                  restaurantId: dataMap['resId'],
+                                                  userPosition: widget.userPosition,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
                                       );
                                     },
                                     child: _FoodCard(
@@ -2501,15 +2553,22 @@ class _RestaurantCardState extends State<_RestaurantCard>
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        RestaurantMenuScreen(
-                          restaurantId: widget.restaurantId,
-                          userPosition: widget.userPosition,
+                GlobalLoader.run(
+                  duration: const Duration(milliseconds: 1800),
+                  task: () async {
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              RestaurantMenuScreen(
+                                restaurantId: widget.restaurantId,
+                                userPosition: widget.userPosition,
+                              ),
                         ),
-                  ),
+                      );
+                    }
+                  },
                 );
               },
               child: Column(

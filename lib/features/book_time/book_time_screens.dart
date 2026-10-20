@@ -59,19 +59,19 @@ class BookTimeHubScreen extends StatelessWidget {
           final List<Map<String, dynamic>> categories = [
             {
               'title': 'Salon & Grooming', 
-              'image': 'assets/instahub/salon.png', 
+              'image': 'assets/instahub/salon.jpeg', 
               'active': salonActive,
               'key': 'salons'
             },
             {
               'title': 'Pet Care', 
-              'image': 'assets/instahub/petcare.png', 
+              'image': 'assets/instahub/petcare.jpeg', 
               'active': petActive,
               'key': 'pet_care'
             },
             {
               'title': 'Turf Booking', 
-              'image': 'assets/instahub/turf.png', 
+              'image': 'assets/instahub/turf.jpeg', 
               'active': turfActive,
               'key': 'turf'
             },

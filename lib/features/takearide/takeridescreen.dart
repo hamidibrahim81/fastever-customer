@@ -31,7 +31,7 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
       'icon': Icons.local_taxi_rounded,
       'badge': 'Fastest',
       'color': const Color(0xFFFFB703),
-      'image': 'assets/instahub/taxi.png',
+      'image': 'assets/instahub/taxi.jpeg',
     },
     {
       'id': 'pickup',
@@ -41,7 +41,7 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
       'icon': Icons.agriculture_rounded,
       'badge': 'Goods',
       'color': const Color(0xFF2A9D8F),
-      'image': 'assets/instahub/pickup.png',
+      'image': 'assets/instahub/pickup.jpeg',
     },
     {
       'id': 'mini_truck',
@@ -51,7 +51,7 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
       'icon': Icons.local_shipping_rounded,
       'badge': 'Heavy Freight',
       'color': const Color(0xFFE76F51),
-      'image': 'assets/instahub/truck.png',
+      'image': 'assets/instahub/truck.jpeg',
     },
   ];
 
@@ -355,7 +355,7 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                               child: Opacity(
                                 opacity: 0.12,
                                 child: Image.asset(
-                                  'assets/instahub/torist.png',
+                                  'assets/instahub/torist.jpeg',
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                                 ),

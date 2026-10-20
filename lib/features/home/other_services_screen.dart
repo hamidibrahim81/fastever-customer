@@ -14,13 +14,13 @@ class OtherServicesScreen extends StatelessWidget {
 
   List<Map<String, dynamic>> get allServices => [
         // Updated the image path to homee.png below
-        {'title': 'Home Service', 'image': 'assets/instahub/homee.png', 'screen': const HomeServicesScreen()},
-        {'title': 'Laundry', 'image': 'assets/instahub/laundryy.png', 'screen': null},
-        {'title': 'Car Wash', 'image': 'assets/instahub/carwashh.png', 'screen': null}, 
-        {'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.png', 'screen': null}, // Replace with destination when ready
-        {'title': 'Events', 'image': 'assets/instahub/eventyy.png', 'screen': null},
-        {'title': 'Take Ride', 'image': 'assets/instahub/ridey.png', 'screen': null},
-        {'title': 'Pharmacy', 'image': 'assets/instahub/pharmacyy.png', 'screen': null},
+        {'title': 'Home Service', 'image': 'assets/instahub/homee.jpeg', 'screen': const HomeServicesScreen()},
+        {'title': 'Laundry', 'image': 'assets/instahub/laundryy.jpeg', 'screen': null},
+        {'title': 'Car Wash', 'image': 'assets/instahub/carwashh.jpeg', 'screen': null}, 
+        {'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.jpeg', 'screen': null}, // Replace with destination when ready
+        {'title': 'Events', 'image': 'assets/instahub/eventyy.jpeg', 'screen': null},
+        {'title': 'Take Ride', 'image': 'assets/instahub/ridey.jpeg', 'screen': null},
+        {'title': 'Pharmacy', 'image': 'assets/instahub/pharmacyy.jpeg', 'screen': null},
       ];
 
   @override

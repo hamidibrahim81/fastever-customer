@@ -22,6 +22,9 @@ import 'features/food/cart/cart_provider.dart';
 import 'features/cart/morning_cart_provider.dart';
 import 'features/instahub/instahub_cart_provider.dart';
 
+// Global Loader
+import 'features/loading/global_loader.dart';
+
 // GLOBAL KEYS
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
@@ -132,7 +135,10 @@ class FASTeverGoApp extends StatelessWidget {
           ),
         ),
         builder: (context, child) {
-          return MaintenanceGateWrapper(child: child!);
+          return GlobalLoader.wrapper(
+            context,
+            MaintenanceGateWrapper(child: child!),
+          );
         },
         home: const SplashScreen(),
         routes: {

@@ -129,7 +129,7 @@ class TouristBusesScreen extends StatelessWidget {
                                   imageUrl,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Image.asset(
-                                    'assets/instahub/torist.png',
+                                    'assets/instahub/torist.jpeg',
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, __, ___) => Container(
                                       color: backgroundColor,
@@ -142,7 +142,7 @@ class TouristBusesScreen extends StatelessWidget {
                                   ),
                                 )
                               : Image.asset(
-                                  'assets/instahub/torist.png',
+                                  'assets/instahub/torist.jpeg',
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
                                     color: backgroundColor,

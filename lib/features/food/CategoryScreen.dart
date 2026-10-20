@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
-import 'dart:math';
 
 // ✅ IMPORT AUTH GUARD
 import 'package:fastevergo_v1/utils/auth_guards.dart';
@@ -101,7 +100,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   bool _isLoading = true;
   bool _hasMore = true;
   DocumentSnapshot? _lastDocument;
-  final int _documentLimit = 80; // Larger batch so multiple restaurants can be pulled and interleaved
+  final int _documentLimit = 80;
   bool _isFetchingMore = false;
   bool _fetchError = false;
   Position? _userPosition;
@@ -115,6 +114,278 @@ class _CategoryScreenState extends State<CategoryScreen> {
     {"label": "🌱 Pure Veg", "tag": "veg"},
   ];
 
+  // ============================================================
+  // FASTever Smart Category Ranking Dictionaries & Logic
+  // ============================================================
+
+  static const Map<String, List<List<String>>> _foodKeywords = {
+    'arabian': [
+      [
+        'shawarma', 'shavarma', 'shawerma', 'shwarma',
+        'alfaham', 'alfahm', 'alfam', 'al faham',
+        'al fahm', 'al-faham', 'kanthari alfaham',
+      ],
+      [
+        'mandi', 'mandhi', 'manthi', 'kuzhimandi',
+        'kuzhi mandi', 'kabsa', 'majboos', 'machboos',
+        'shawai', 'shaway', 'shawayi', 'shwai',
+      ],
+      [
+        'arabian', 'arabic', 'lebanese', 'turkish',
+        'kebab', 'kabab', 'kebap', 'hummus',
+        'falafel', 'pita', 'grilled chicken',
+        'bbq chicken', 'barbecue chicken',
+      ],
+    ],
+    'biriyani': [
+      [
+        'biriyani', 'biryani', 'biriyany', 'briyani', 'biryany',
+        'biriani', 'briyany', 'biriyani rice', 'dum biriyani',
+        'dum biryani', 'pothi biriyani', 'pothi biryani',
+        'thalassery biriyani', 'hyderabadi biryani',
+      ],
+    ],
+    'shawarma': [
+      ['shawarma', 'shwarma', 'shavarma', 'shawerma', 'shawarma plate'],
+    ],
+    'alfaham': [
+      ['alfaham', 'alfahm', 'al faham', 'al fahm', 'alfam', 'al-faham', 'kanthari alfaham'],
+    ],
+    'mandi': [
+      ['mandi', 'mandhi', 'manthi', 'kuzhimandi', 'kuzhi mandi'],
+    ],
+    'pizza': [
+      ['pizza', 'piza', 'pizzas', 'margherita', 'margarita pizza'],
+    ],
+    'burger': [
+      ['burger', 'burgers', 'zinger burger', 'cheese burger', 'cheeseburger'],
+    ],
+    'chinese': [
+      ['fried rice', 'friedrice', 'noodles', 'noodle', 'schezwan', 'szechuan', 'chowmein', 'chow mein'],
+      ['manchurian', 'chilli chicken', 'chilli beef', 'dragon chicken', 'hakka', 'chopsuey', 'spring roll', 'gobi manchurian'],
+    ],
+    'south indian': [
+      ['dosa', 'dosha', 'idli', 'idly', 'puttu', 'appam', 'appa', 'idiyappam', 'porotta', 'parotta', 'paratha', 'pathiri'],
+      ['upma', 'uttapam', 'uthappam', 'sambar', 'vada', 'puri', 'poori', 'kadala curry'],
+    ],
+    'north indian': [
+      ['naan', 'roti', 'chapati', 'chapathi', 'kulcha', 'paneer', 'butter chicken', 'tandoori', 'dal makhani'],
+      ['chole', 'rajma', 'palak', 'malai kofta', 'kadai'],
+    ],
+    'fried chicken': [
+      ['fried chicken', 'broasted', 'broast', 'crispy chicken', 'chicken strips', 'chicken popcorn', 'chicken wings', 'hot wings'],
+    ],
+    'sandwich': [
+      ['sandwich', 'sandwitch', 'club sandwich', 'grilled sandwich', 'toast sandwich'],
+    ],
+    'rolls': [
+      ['roll', 'wrap', 'kathi roll', 'frankie', 'chicken wrap'],
+    ],
+    'juice': [
+      ['juice', 'fresh juice', 'lime', 'lemonade', 'naranga', 'orange juice', 'watermelon juice'],
+    ],
+    'shakes': [
+      ['milkshake', 'milk shake', 'shake', 'thick shake', 'thickshake', 'smoothie'],
+    ],
+    'desserts': [
+      ['ice cream', 'icecream', 'sundae', 'brownie', 'cake', 'pastry', 'pudding', 'falooda', 'kunafa', 'gulab jamun'],
+    ],
+    'tea': [
+      ['tea', 'chai', 'chaya', 'chaaya', 'sulaimani', 'black tea', 'masala tea'],
+    ],
+    'coffee': [
+      ['coffee', 'cappuccino', 'latte', 'espresso', 'mocha', 'cold coffee'],
+    ],
+    'breakfast': [
+      ['puttu', 'appam', 'idli', 'dosa', 'idiyappam', 'poori', 'upma', 'bread omelette', 'omelette'],
+    ],
+  };
+
+  String _normalizeFoodText(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll('&', ' and ')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  bool _matchesFoodKeyword(String name, String keyword) {
+    final normalizedName = _normalizeFoodText(name);
+    final normalizedKeyword = _normalizeFoodText(keyword);
+
+    if (normalizedKeyword.isEmpty) return false;
+
+    final nameWithSpaces = ' $normalizedName ';
+    final keywordWithSpaces = ' $normalizedKeyword ';
+
+    if (nameWithSpaces.contains(keywordWithSpaces)) {
+      return true;
+    }
+
+    final compactName = normalizedName.replaceAll(' ', '');
+    final compactKeyword = normalizedKeyword.replaceAll(' ', '');
+
+    return compactKeyword.length >= 5 && compactName.contains(compactKeyword);
+  }
+
+  String _resolveFoodCategory(String category) {
+    final normalized = _normalizeFoodText(category);
+
+    const aliases = <String, String>{
+      'arabic': 'arabian',
+      'arabian foods': 'arabian',
+      'arabian food': 'arabian',
+      'arabian cuisine': 'arabian',
+      'biryani': 'biriyani',
+      'biriyany': 'biriyani',
+      'briyani': 'biriyani',
+      'biriani': 'biriyani',
+      'pizzas': 'pizza',
+      'burgers': 'burger',
+      'chinese food': 'chinese',
+      'chinese foods': 'chinese',
+      'south indian food': 'south indian',
+      'north indian food': 'north indian',
+      'broasted chicken': 'fried chicken',
+      'broast': 'fried chicken',
+      'milkshake': 'shakes',
+      'milkshakes': 'shakes',
+      'shake': 'shakes',
+      'dessert': 'desserts',
+      'sweet': 'desserts',
+      'sweet dishes': 'desserts',
+      'roll': 'rolls',
+      'sandwiches': 'sandwich',
+      'fresh juice': 'juice',
+      'juices': 'juice',
+      'mandhi': 'mandi',
+      'manthi': 'mandi',
+      'kuzhimandi': 'mandi',
+      'al faham': 'alfaham',
+      'alfahm': 'alfaham',
+      'al fahm': 'alfaham',
+      'shwarma': 'shawarma',
+      'shavarma': 'shawarma',
+    };
+
+    if (aliases.containsKey(normalized)) {
+      return aliases[normalized]!;
+    }
+
+    if (_foodKeywords.containsKey(normalized)) {
+      return normalized;
+    }
+
+    for (final entry in _foodKeywords.entries) {
+      if (_matchesFoodKeyword(normalized, entry.key)) {
+        return entry.key;
+      }
+    }
+
+    return normalized;
+  }
+
+  int _foodRelevanceScore(Map<String, dynamic> food) {
+    final category = _resolveFoodCategory(widget.category);
+
+    if (category.isEmpty ||
+        category == 'all' ||
+        category == 'top_sell' ||
+        category == 'best_offer' ||
+        category == 'veg') {
+      return 0;
+    }
+
+    final name = (food['name'] ?? food['productName'] ?? '').toString();
+    final keywordGroups = _foodKeywords[category];
+
+    if (keywordGroups != null) {
+      for (var groupIndex = 0; groupIndex < keywordGroups.length; groupIndex++) {
+        for (final keyword in keywordGroups[groupIndex]) {
+          if (_matchesFoodKeyword(name, keyword)) {
+            return groupIndex;
+          }
+        }
+      }
+    }
+
+    if (_matchesFoodKeyword(name, category)) {
+      return 0;
+    }
+
+    return 100; // Unrelated dishes placed last
+  }
+
+  int _availableStock(Map<String, dynamic> food) {
+    return parseInt(
+      food['stock'] ?? food['stockLevels'],
+      defaultValue: 0,
+    );
+  }
+
+  List<Map<String, dynamic>> _interleaveByRestaurant(List<Map<String, dynamic>> items) {
+    if (items.isEmpty) return [];
+
+    final Map<int, List<Map<String, dynamic>>> relevanceGroups = {};
+    for (final food in items) {
+      final score = _foodRelevanceScore(food);
+      relevanceGroups.putIfAbsent(score, () => []).add(food);
+    }
+
+    final scores = relevanceGroups.keys.toList()..sort();
+    final result = <Map<String, dynamic>>[];
+
+    for (final score in scores) {
+      final groupItems = relevanceGroups[score]!;
+      final available = groupItems.where((food) => _availableStock(food) > 0).toList();
+      final soldOut = groupItems.where((food) => _availableStock(food) <= 0).toList();
+
+      result.addAll(_roundRobinRestaurants(available));
+      result.addAll(_roundRobinRestaurants(soldOut));
+    }
+
+    return result;
+  }
+
+  List<Map<String, dynamic>> _roundRobinRestaurants(List<Map<String, dynamic>> items) {
+    if (items.isEmpty) return [];
+
+    final Map<String, List<Map<String, dynamic>>> groups = {};
+    for (final item in items) {
+      final restaurantId = item['restaurantId']?.toString() ?? 'unknown';
+      groups.putIfAbsent(restaurantId, () => []).add(item);
+    }
+
+    for (final group in groups.values) {
+      group.sort((a, b) {
+        final nameA = (a['name'] ?? a['productName'] ?? '').toString();
+        final nameB = (b['name'] ?? b['productName'] ?? '').toString();
+        return nameA.toLowerCase().compareTo(nameB.toLowerCase());
+      });
+    }
+
+    final restaurantIds = groups.keys.toList()..sort();
+    final indexes = <String, int>{for (final id in restaurantIds) id: 0};
+    final result = <Map<String, dynamic>>[];
+    bool hasMore = true;
+
+    while (hasMore) {
+      hasMore = false;
+      for (final id in restaurantIds) {
+        final group = groups[id]!;
+        final index = indexes[id]!;
+        if (index < group.length) {
+          result.add(group[index]);
+          indexes[id] = index + 1;
+          hasMore = true;
+        }
+      }
+    }
+
+    return result;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -125,14 +396,37 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _initData() async {
-    try {
-      _userPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-    } catch (e) {
-      debugPrint("Location error: $e");
-    }
+    // 🚀 Start loading menu data immediately without waiting for GPS
     _loadData();
+
+    // Fetch position in background with timeout
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+      ).timeout(const Duration(seconds: 3));
+
+      if (!mounted) return;
+
+      setState(() {
+        _userPosition = position;
+        // Recalculate distances for items already loaded
+        for (var doc in _documents) {
+          final restLat = parseDouble(doc['restLat']);
+          final restLng = parseDouble(doc['restLng']);
+          if (restLat != 0.0 && restLng != 0.0) {
+            doc['distance'] = Geolocator.distanceBetween(
+                  _userPosition!.latitude,
+                  _userPosition!.longitude,
+                  restLat,
+                  restLng,
+                ) /
+                1000;
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint("Location background fetch error: $e");
+    }
   }
 
   @override
@@ -161,42 +455,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
       });
     }
     await _loadMoreData();
-  }
-
-  /// 🔀 Interleaves items across different restaurants in round-robin fashion
-  List<Map<String, dynamic>> _interleaveByRestaurant(List<Map<String, dynamic>> items) {
-    if (items.isEmpty) return [];
-
-    // Group items by restaurant
-    final Map<String, List<Map<String, dynamic>>> grouped = {};
-    for (var item in items) {
-      final restId = item['restaurantId']?.toString() ?? 'unknown';
-      grouped.putIfAbsent(restId, () => []).add(item);
-    }
-
-    // Shuffle inside each restaurant queue so items within that restaurant vary
-    for (var list in grouped.values) {
-      list.shuffle(Random());
-    }
-
-    // Round-robin selection: Pick 1 item from Restaurant A, 1 from B, 1 from C, then repeat
-    final List<Map<String, dynamic>> result = [];
-    final List<String> restaurantKeys = grouped.keys.toList()..shuffle(Random());
-
-    bool itemsRemaining = true;
-    while (itemsRemaining) {
-      itemsRemaining = false;
-      for (var key in restaurantKeys) {
-        final list = grouped[key]!;
-        if (list.isNotEmpty) {
-          result.add(list.removeAt(0));
-          if (list.isNotEmpty) {
-            itemsRemaining = true;
-          }
-        }
-      }
-    }
-    return result;
   }
 
   Future<void> _loadMoreData() async {
@@ -283,6 +541,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
           data['restaurantName'] = restData['name'] ?? 'Restaurant Unknown';
           data['restaurantRating'] = parseDouble(restData['rating']);
+          data['restLat'] = restData['latitude'];
+          data['restLng'] = restData['longitude'];
 
           if (_userPosition != null) {
             dist = Geolocator.distanceBetween(
@@ -301,13 +561,16 @@ class _CategoryScreenState extends State<CategoryScreen> {
         rawBatch.add(data);
       }
 
-      // Mix completely across multiple restaurants
-      final interleavedBatch = _interleaveByRestaurant(rawBatch);
-
-      _documents.addAll(interleavedBatch);
+      // 🔄 Merge and re-rank all loaded documents so late-arriving matches rise to the top
+      final allItems = <Map<String, dynamic>>[
+        ..._documents,
+        ...rawBatch,
+      ];
+      final rankedItems = _interleaveByRestaurant(allItems);
 
       if (mounted) {
         setState(() {
+          _documents = rankedItems;
           _lastDocument = newDocs.last;
           if (newDocs.length < _documentLimit) _hasMore = false;
           _isLoading = false;
