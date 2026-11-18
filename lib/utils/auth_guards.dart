@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fastevergo_v1/main.dart'; 
+import 'package:fastevergo_v1/main.dart';
 import 'package:fastevergo_v1/features/auth/login_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -11,7 +11,7 @@ bool requireLoginGlobal(String message) {
   final context = appNavigatorKey.currentContext;
   if (context == null) return false;
 
-  // Use a BottomSheet instead of a SnackBar. 
+  // Use a BottomSheet instead of a SnackBar.
   // It is immune to the "Deactivated Widget" error.
   showModalBottomSheet(
     context: context,
@@ -50,7 +50,9 @@ bool requireLoginGlobal(String message) {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFF1A1E43),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () {
                 Navigator.pop(context); // Close sheet
@@ -58,13 +60,19 @@ bool requireLoginGlobal(String message) {
                   MaterialPageRoute(builder: (_) => const LoginScreen()),
                 );
               },
-              child: const Text("LOGIN NOW", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                "LOGIN NOW",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Maybe Later", style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              "Maybe Later",
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
         ],
       ),

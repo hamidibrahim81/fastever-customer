@@ -20,7 +20,11 @@ class Address {
   });
 
   // Helper function for safe double parsing, with GeoPoint support
-  static double _parseDouble(dynamic value, {double defaultValue = 0.0, bool isLatitude = true}) {
+  static double _parseDouble(
+    dynamic value, {
+    double defaultValue = 0.0,
+    bool isLatitude = true,
+  }) {
     if (value is GeoPoint) {
       return isLatitude ? value.latitude : value.longitude;
     }

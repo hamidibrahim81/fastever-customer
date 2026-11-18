@@ -62,9 +62,12 @@ class InstahubCartProvider with ChangeNotifier {
   bool get isInitialized => _isInitialized;
   Map<String, InstahubCartItem> get items => {..._items};
   int get distinctItemCount => _items.length;
-  int get totalItems => _items.values.fold(0, (sum, item) => sum + item.quantity);
-  double get totalAmount =>
-      _items.values.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+  int get totalItems =>
+      _items.values.fold(0, (sum, item) => sum + item.quantity);
+  double get totalAmount => _items.values.fold(
+    0.0,
+    (sum, item) => sum + (item.price * item.quantity),
+  );
   bool get isEmpty => _items.isEmpty;
   bool get isNotEmpty => _items.isNotEmpty;
 
@@ -80,16 +83,19 @@ class InstahubCartProvider with ChangeNotifier {
         .doc(userId)
         .collection('instahub_cart')
         .snapshots()
-        .listen((snapshot) {
-      _items.clear();
-      for (var doc in snapshot.docs) {
-        _items[doc.id] = InstahubCartItem.fromMap(doc.data()); 
-      }
-      _isInitialized = true;
-      notifyListeners();
-    }, onError: (error) {
-      if (kDebugMode) print("⚠️ Instahub Cart Listener Error: $error");
-    });
+        .listen(
+          (snapshot) {
+            _items.clear();
+            for (var doc in snapshot.docs) {
+              _items[doc.id] = InstahubCartItem.fromMap(doc.data());
+            }
+            _isInitialized = true;
+            notifyListeners();
+          },
+          onError: (error) {
+            if (kDebugMode) print("⚠️ Instahub Cart Listener Error: $error");
+          },
+        );
   }
 
   /// 🔹 Add item (instant local update + async Firestore write)
@@ -141,7 +147,7 @@ class InstahubCartProvider with ChangeNotifier {
           .doc(userId)
           .collection('instahub_cart')
           .doc(id);
-          
+
       if (quantity <= 0) {
         _items.remove(id);
         notifyListeners();
@@ -200,8 +206,10 @@ class InstahubCartProvider with ChangeNotifier {
   /// 🔹 Clear entire cart with high-performance batch commit
   Future<void> clearCart() async {
     try {
-      final cartRef =
-          _firestore.collection('users').doc(userId).collection('instahub_cart');
+      final cartRef = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('instahub_cart');
       final snapshots = await cartRef.get();
       final batch = _firestore.batch();
 

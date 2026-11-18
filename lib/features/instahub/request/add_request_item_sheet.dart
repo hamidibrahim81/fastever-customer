@@ -6,8 +6,7 @@ class AddRequestItemSheet extends StatefulWidget {
   const AddRequestItemSheet({super.key, required this.onAdd});
 
   @override
-  State<AddRequestItemSheet> createState() =>
-      _AddRequestItemSheetState();
+  State<AddRequestItemSheet> createState() => _AddRequestItemSheetState();
 }
 
 class _AddRequestItemSheetState extends State<AddRequestItemSheet> {
@@ -59,20 +58,17 @@ class _AddRequestItemSheetState extends State<AddRequestItemSheet> {
 
           TextField(
             controller: brandController,
-            decoration:
-                const InputDecoration(labelText: "Brand (optional)"),
+            decoration: const InputDecoration(labelText: "Brand (optional)"),
           ),
 
           TextField(
             controller: qtyController,
-            decoration:
-                const InputDecoration(labelText: "Weight / Quantity"),
+            decoration: const InputDecoration(labelText: "Weight / Quantity"),
           ),
 
           TextField(
             controller: phoneController,
-            decoration:
-                const InputDecoration(labelText: "Contact Number"),
+            decoration: const InputDecoration(labelText: "Contact Number"),
             keyboardType: TextInputType.phone,
           ),
 

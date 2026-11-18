@@ -25,7 +25,9 @@ double _getSlabDeliveryFee(double distanceKm) {
 
 /// Finds the distance to the nearest Instahub store that has a specific item.
 Future<double> _findNearestStoreDistance(
-    String itemId, Position userPos) async {
+  String itemId,
+  Position userPos,
+) async {
   final firestore = FirebaseFirestore.instance;
   try {
     final instahubStores = await firestore
@@ -44,7 +46,8 @@ Future<double> _findNearestStoreDistance(
       final storeLon = _parseDouble(data['longitude']);
 
       if (storeLat != 0 && storeLon != 0) {
-        final distance = Geolocator.distanceBetween(
+        final distance =
+            Geolocator.distanceBetween(
               userPos.latitude,
               userPos.longitude,
               storeLat,
@@ -84,7 +87,8 @@ Future<double> calculateDeliveryFee({
       if (rdata != null) {
         final rlat = _parseDouble(rdata['latitude']);
         final rlon = _parseDouble(rdata['longitude']);
-        distanceKm = Geolocator.distanceBetween(
+        distanceKm =
+            Geolocator.distanceBetween(
               userPos.latitude,
               userPos.longitude,
               rlat,

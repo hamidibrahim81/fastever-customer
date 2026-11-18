@@ -32,7 +32,11 @@ class OrderHistoryScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _primaryDark, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: _primaryDark,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -46,7 +50,9 @@ class OrderHistoryScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: _accentOrange));
+            return const Center(
+              child: CircularProgressIndicator(color: _accentOrange),
+            );
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -60,7 +66,11 @@ class OrderHistoryScreen extends StatelessWidget {
                       color: _accentOrange.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.receipt_long_rounded, size: 50, color: _accentOrange),
+                    child: const Icon(
+                      Icons.receipt_long_rounded,
+                      size: 50,
+                      color: _accentOrange,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -74,7 +84,10 @@ class OrderHistoryScreen extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     "Your completed orders will appear here.",
-                    style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: const Color(0xFF64748B),
+                    ),
                   ),
                 ],
               ),
@@ -90,15 +103,20 @@ class OrderHistoryScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final doc = orders[index];
               final order = doc.data() as Map<String, dynamic>;
-              
+
               final String orderId = doc.id;
               final List items = order['items'] ?? [];
-              final double total = double.tryParse(order['total'].toString()) ?? 0.0;
-              final double deliveryFee = double.tryParse(order['deliveryFee']?.toString() ?? '0') ?? 0.0;
-              final double discount = double.tryParse(order['discount']?.toString() ?? '0') ?? 0.0;
+              final double total =
+                  double.tryParse(order['total'].toString()) ?? 0.0;
+              final double deliveryFee =
+                  double.tryParse(order['deliveryFee']?.toString() ?? '0') ??
+                  0.0;
+              final double discount =
+                  double.tryParse(order['discount']?.toString() ?? '0') ?? 0.0;
               final String address = order['address'] ?? "N/A";
               final String createdAtStr = order['createdAt'] ?? "";
-              final String status = order['status']?.toString().toUpperCase() ?? 'PENDING';
+              final String status =
+                  order['status']?.toString().toUpperCase() ?? 'PENDING';
 
               // Format Date
               String formattedDate = "Recent Order";
@@ -136,10 +154,17 @@ class OrderHistoryScreen extends StatelessWidget {
                   border: Border.all(color: _cardBorder.withOpacity(0.6)),
                 ),
                 child: ExpansionTile(
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  collapsedShape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -152,7 +177,10 @@ class OrderHistoryScreen extends StatelessWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -174,14 +202,18 @@ class OrderHistoryScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          formattedDate, 
-                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                          formattedDate,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           "Total: ₹${total.toStringAsFixed(2)}",
                           style: GoogleFonts.montserrat(
-                            color: _accentOrange, 
+                            color: _accentOrange,
                             fontWeight: FontWeight.w900,
                             fontSize: 15,
                           ),
@@ -190,15 +222,23 @@ class OrderHistoryScreen extends StatelessWidget {
                     ),
                   ),
                   children: [
-                    const Divider(height: 1, thickness: 0.5, color: Color(0xFFF1F5F9)),
+                    const Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      color: Color(0xFFF1F5F9),
+                    ),
                     const SizedBox(height: 14),
-                    
+
                     // Items Section Title
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         "Items Ordered",
-                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, fontSize: 13, color: _primaryDark),
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: _primaryDark,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -208,7 +248,8 @@ class OrderHistoryScreen extends StatelessWidget {
                       final itemMap = item as Map<String, dynamic>;
                       final name = itemMap['name'] ?? 'Item';
                       final qty = itemMap['quantity'] ?? 1;
-                      final price = double.tryParse(itemMap['price'].toString()) ?? 0.0;
+                      final price =
+                          double.tryParse(itemMap['price'].toString()) ?? 0.0;
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -218,13 +259,21 @@ class OrderHistoryScreen extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 "$qty x $name",
-                                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF334155)),
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF334155),
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Text(
                               "₹${(price * qty).toStringAsFixed(2)}",
-                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _primaryDark),
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: _primaryDark,
+                              ),
                             ),
                           ],
                         ),
@@ -233,16 +282,27 @@ class OrderHistoryScreen extends StatelessWidget {
 
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(height: 1, thickness: 0.5, color: Color(0xFFF1F5F9)),
+                      child: Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: Color(0xFFF1F5F9),
+                      ),
                     ),
 
                     // Fee Breakdowns
-                    _buildDetailRow("Delivery Fee", "₹${deliveryFee.toStringAsFixed(2)}"),
+                    _buildDetailRow(
+                      "Delivery Fee",
+                      "₹${deliveryFee.toStringAsFixed(2)}",
+                    ),
                     const SizedBox(height: 4),
-                    _buildDetailRow("Discount", "-₹${discount.toStringAsFixed(2)}", isGreen: discount > 0),
-                    
+                    _buildDetailRow(
+                      "Discount",
+                      "-₹${discount.toStringAsFixed(2)}",
+                      isGreen: discount > 0,
+                    ),
+
                     const SizedBox(height: 12),
-                    
+
                     // Delivery Address Block
                     Container(
                       width: double.infinity,
@@ -257,18 +317,30 @@ class OrderHistoryScreen extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.location_on_rounded, size: 14, color: _accentOrange),
+                              const Icon(
+                                Icons.location_on_rounded,
+                                size: 14,
+                                color: _accentOrange,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 "Delivery Address",
-                                style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, fontSize: 12, color: _primaryDark),
+                                style: GoogleFonts.montserrat(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: _primaryDark,
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
                             address,
-                            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B), height: 1.3),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFF64748B),
+                              height: 1.3,
+                            ),
                           ),
                         ],
                       ),
@@ -287,12 +359,18 @@ class OrderHistoryScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B))),
         Text(
-          value, 
+          label,
           style: GoogleFonts.inter(
-            fontSize: 13, 
-            fontWeight: FontWeight.w600, 
+            fontSize: 13,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
             color: isGreen ? _successGreen : const Color(0xFF334155),
           ),
         ),

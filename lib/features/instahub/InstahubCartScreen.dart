@@ -1,4 +1,4 @@
-import 'package:fastevergo_v1/features/food/address/address_model.dart'; 
+import 'package:fastevergo_v1/features/food/address/address_model.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,15 +7,15 @@ import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/foundation.dart';
 
-import 'instahub_cart_provider.dart'; 
+import 'instahub_cart_provider.dart';
 import 'package:fastevergo_v1/features/food/cart/AddressFlow.dart';
 import 'package:fastevergo_v1/features/food/order_confirmation_screen.dart';
 import 'package:fastevergo_v1/features/food/cart/ManageAddressScreen.dart';
 
 // ===============================================
-// HELPER FUNCTIONS 
+// HELPER FUNCTIONS
 // ===============================================
 
 double parseDouble(dynamic value, {double defaultValue = 0.0}) {
@@ -31,11 +31,17 @@ int parseInt(dynamic value, {int defaultValue = 0}) {
 }
 
 /// Calculates distance between two lat/lon points in kilometers using Haversine formula.
-double _calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
-  const R = 6371.0; 
+double _calculateDistanceKm(
+  double lat1,
+  double lon1,
+  double lat2,
+  double lon2,
+) {
+  const R = 6371.0;
   final latDistance = (lat2 - lat1) * (math.pi / 180);
   final lonDistance = (lon2 - lon1) * (math.pi / 180);
-  final a = math.sin(latDistance / 2) * math.sin(latDistance / 2) +
+  final a =
+      math.sin(latDistance / 2) * math.sin(latDistance / 2) +
       math.cos(lat1 * (math.pi / 180)) *
           math.cos(lat2 * (math.pi / 180)) *
           math.sin(lonDistance / 2) *
@@ -55,19 +61,19 @@ class DeliverySettings {
   final double platformFee;
 
   DeliverySettings.fromFirestore(Map<String, dynamic> data)
-      : baseFee = parseDouble(data['baseFee']),
-        baseKm = parseDouble(data['baseKm']),
-        maxDistanceKm = parseDouble(data['maxDistance']),
-        perKmFee = parseDouble(data['perKmFee']),
-        platformFee = parseDouble(data['platformFee']);
+    : baseFee = parseDouble(data['baseFee']),
+      baseKm = parseDouble(data['baseKm']),
+      maxDistanceKm = parseDouble(data['maxDistance']),
+      perKmFee = parseDouble(data['perKmFee']),
+      platformFee = parseDouble(data['platformFee']);
 
   static DeliverySettings get zero => DeliverySettings.fromFirestore({
-        'baseFee': 0.0,
-        'baseKm': 0.0,
-        'maxDistance': 0.0,
-        'perKmFee': 0.0,
-        'platformFee': 0.0,
-      });
+    'baseFee': 0.0,
+    'baseKm': 0.0,
+    'maxDistance': 0.0,
+    'perKmFee': 0.0,
+    'platformFee': 0.0,
+  });
 }
 
 // ===============================================
@@ -79,20 +85,23 @@ class InstahubStoreLocation {
   final double storeRadiusKm;
 
   InstahubStoreLocation.fromFirestore(Map<String, dynamic> data)
-      : latitude = parseDouble(data['latitude']),
-        longitude = parseDouble(data['longitude']),
-        storeRadiusKm = parseDouble(data['radiusKm']);
+    : latitude = parseDouble(data['latitude']),
+      longitude = parseDouble(data['longitude']),
+      storeRadiusKm = parseDouble(data['radiusKm']);
 
-  static InstahubStoreLocation get zero =>
-      InstahubStoreLocation.fromFirestore({'latitude': 0, 'longitude': 0, 'radiusKm': 0});
+  static InstahubStoreLocation get zero => InstahubStoreLocation.fromFirestore({
+    'latitude': 0,
+    'longitude': 0,
+    'radiusKm': 0,
+  });
 }
 
 class FeeBreakdown {
   final double deliveryCharge;
   final double platformFee;
   final double totalFee;
-  final double maxDistanceKm; 
-  final double currentDistanceKm; 
+  final double maxDistanceKm;
+  final double currentDistanceKm;
   final bool isDeliveryAvailable;
 
   FeeBreakdown({
@@ -155,15 +164,14 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
       return fees;
     });
 
-    Provider.of<InstahubCartProvider>(context, listen: false)
-        .addListener(_onCartChange);
+    Provider.of<InstahubCartProvider>(
+      context,
+      listen: false,
+    ).addListener(_onCartChange);
   }
-  
+
   Future<FeeBreakdown> _initData() async {
-    await Future.wait([
-      _loadDeliverySettings(),
-      _loadInstahubStoreLocation(),
-    ]);
+    await Future.wait([_loadDeliverySettings(), _loadInstahubStoreLocation()]);
     return _calculateTotalFees();
   }
 
@@ -192,8 +200,9 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
           .get();
 
       if (doc.exists && doc.data() != null && mounted) {
-        _instahubStoreLocation =
-            InstahubStoreLocation.fromFirestore(doc.data()!);
+        _instahubStoreLocation = InstahubStoreLocation.fromFirestore(
+          doc.data()!,
+        );
       }
     } catch (e) {
       debugPrint("Error loading InstahubStoreLocation: $e");
@@ -210,8 +219,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
 
   @override
   void dispose() {
-    Provider.of<InstahubCartProvider>(context, listen: false)
-        .removeListener(_onCartChange);
+    Provider.of<InstahubCartProvider>(
+      context,
+      listen: false,
+    ).removeListener(_onCartChange);
     _couponController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
@@ -229,7 +240,8 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) return;
+          permission == LocationPermission.deniedForever)
+        return;
 
       Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -259,9 +271,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
 
       if (mounted) {
         setState(() {
-          selectedAddress =
-              fullAddress.trim().isEmpty ? "No address saved yet" : fullAddress;
-          
+          selectedAddress = fullAddress.trim().isEmpty
+              ? "No address saved yet"
+              : fullAddress;
+
           if (savedLat != 0.0 && savedLon != 0.0) {
             currentDeliveryPosition = Position(
               latitude: savedLat,
@@ -288,12 +301,12 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
   double _calculateDeliveryCharge(double distanceKm) {
     if (_deliverySettings == null) return 0.0;
     final settings = _deliverySettings!;
-    if (distanceKm <= 0.0) return settings.baseFee; 
+    if (distanceKm <= 0.0) return settings.baseFee;
     if (distanceKm <= settings.baseKm) {
       return settings.baseFee;
     } else {
       final extraDistance = distanceKm - settings.baseKm;
-      final extraCharge = extraDistance * settings.perKmFee; 
+      final extraCharge = extraDistance * settings.perKmFee;
       return settings.baseFee + extraCharge;
     }
   }
@@ -309,11 +322,11 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     final deliverySettings = _deliverySettings!;
     final storeLocation = _instahubStoreLocation!;
     Position? deliveryPosition = currentDeliveryPosition;
-    
+
     if (deliveryPosition == null) {
       deliveryPosition = widget.userPosition;
     }
-    
+
     if (deliveryPosition == null) {
       await _initUserLocation();
       deliveryPosition = currentPosition;
@@ -322,7 +335,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     if (deliveryPosition == null) {
       return FeeBreakdown(isDeliveryAvailable: false);
     }
-    
+
     final double distanceKm = _calculateDistanceKm(
       storeLocation.latitude,
       storeLocation.longitude,
@@ -331,7 +344,9 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     );
 
     final double effectiveMaxDistanceKm = math.min(
-        deliverySettings.maxDistanceKm, storeLocation.storeRadiusKm);
+      deliverySettings.maxDistanceKm,
+      storeLocation.storeRadiusKm,
+    );
 
     bool isAvailable = distanceKm <= effectiveMaxDistanceKm;
     double deliveryCharge = 0.0;
@@ -355,33 +370,45 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
   }
 
   void _navigateToOrderConfirmation(
-      double subtotal, double discount, FeeBreakdown fees) {
-    
+    double subtotal,
+    double discount,
+    FeeBreakdown fees,
+  ) {
     if (currentDeliveryPosition == null) {
-      _showSnackBar("Please select a precise delivery address before checkout.",
-          color: Colors.red);
+      _showSnackBar(
+        "Please select a precise delivery address before checkout.",
+        color: Colors.red,
+      );
       return;
     }
 
     final double deliveryLat = currentDeliveryPosition!.latitude;
     final double deliveryLon = currentDeliveryPosition!.longitude;
-    
+
     if (deliveryLat == 0.0 && deliveryLon == 0.0) {
-        _showSnackBar("Missing or invalid location coordinates for delivery address. Please re-select on map.", color: Colors.red);
-        return;
+      _showSnackBar(
+        "Missing or invalid location coordinates for delivery address. Please re-select on map.",
+        color: Colors.red,
+      );
+      return;
     }
 
     if (!fees.isDeliveryAvailable) {
-      _showSnackBar("Your location is outside the delivery range of this store.",
-          color: Colors.red);
+      _showSnackBar(
+        "Your location is outside the delivery range of this store.",
+        color: Colors.red,
+      );
       return;
     }
-    
-    final cartProvider =
-        Provider.of<InstahubCartProvider>(context, listen: false);
 
-    final List<Map<String, dynamic>> cartItems =
-        cartProvider.items.values.map((item) {
+    final cartProvider = Provider.of<InstahubCartProvider>(
+      context,
+      listen: false,
+    );
+
+    final List<Map<String, dynamic>> cartItems = cartProvider.items.values.map((
+      item,
+    ) {
       return {
         "name": item.name,
         "price": item.price,
@@ -392,7 +419,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
       };
     }).toList();
 
-    final double total = subtotal + fees.totalFee - discount; 
+    final double total = subtotal + fees.totalFee - discount;
 
     Navigator.push(
       context,
@@ -412,8 +439,8 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
           total: total,
           address: selectedAddress,
           payment: "Cash on Delivery",
-          deliveryFee: fees.deliveryCharge, 
-          platformFee: fees.platformFee,     
+          deliveryFee: fees.deliveryCharge,
+          platformFee: fees.platformFee,
           appliedCouponCode: appliedCoupon,
           deliveryLatitude: deliveryLat,
           deliveryLongitude: deliveryLon,
@@ -425,9 +452,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
   void _showAddressSelectionScreen() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const ManageAddressScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const ManageAddressScreen()),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -457,10 +482,13 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
 
       if (mounted) {
         setState(() {
-          selectedAddress = fullAddress.trim().isEmpty ? "No address saved yet" : fullAddress;
+          selectedAddress = fullAddress.trim().isEmpty
+              ? "No address saved yet"
+              : fullAddress;
           _nameController.text = result['recipient_name'] ?? '';
           _phoneController.text = result['phone'] ?? '';
-          _addressController.text = "${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}";
+          _addressController.text =
+              "${result['house_no'] ?? ''}, ${result['street_area'] ?? ''}";
           _landmarkController.text = result['landmark'] ?? '';
 
           currentDeliveryPosition = newDeliveryPosition;
@@ -469,8 +497,9 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
 
         if (newDeliveryPosition == null) {
           _showSnackBar(
-              "Warning: Missing or invalid location data. Please ensure a precise location is picked on the map.",
-              color: Colors.orange);
+            "Warning: Missing or invalid location data. Please ensure a precise location is picked on the map.",
+            color: Colors.orange,
+          );
         }
       }
     }
@@ -478,12 +507,9 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
 
   void _showSnackBar(String message, {Color color = Colors.red}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   Future<void> _applyCoupon(double subtotal) async {
@@ -505,8 +531,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
           .get();
 
       if (usageCheck.docs.isNotEmpty) {
-        _showSnackBar("This coupon has already been used by you.",
-            color: Colors.orange);
+        _showSnackBar(
+          "This coupon has already been used by you.",
+          color: Colors.orange,
+        );
         _couponController.clear();
         setState(() {
           appliedCoupon = null;
@@ -563,8 +591,9 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
       }
 
       _showSnackBar(
-          'Coupon applied successfully! You saved ₹${discount.toStringAsFixed(2)}',
-          color: Colors.green);
+        'Coupon applied successfully! You saved ₹${discount.toStringAsFixed(2)}',
+        color: Colors.green,
+      );
     } catch (e) {
       _showSnackBar('Failed to apply coupon: $e');
     }
@@ -584,8 +613,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     );
   }
 
-  Widget _buildOutOfRangeWarning(
-      double distanceKm, double maxDistanceKm) {
+  Widget _buildOutOfRangeWarning(double distanceKm, double maxDistanceKm) {
     if (distanceKm > maxDistanceKm && maxDistanceKm > 0) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16.0),
@@ -654,8 +682,11 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.fastfood, size: 50, color: Colors.grey),
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.fastfood,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -685,7 +716,11 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove, color: Colors.orange, size: 20),
+                      icon: const Icon(
+                        Icons.remove,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
                       onPressed: () => cart.reduceQuantity(docId),
                     ),
                     Text(
@@ -696,7 +731,11 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add, color: Colors.orange, size: 20),
+                      icon: const Icon(
+                        Icons.add,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
                       onPressed: () => cart.addItem(
                         id: docId,
                         name: item['name'] ?? 'Unnamed',
@@ -715,8 +754,14 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     );
   }
 
-  Widget _buildTotals(double subtotal, double deliveryCharge,
-      double platformFee, double discount, double total, bool isAvailable) {
+  Widget _buildTotals(
+    double subtotal,
+    double deliveryCharge,
+    double platformFee,
+    double discount,
+    double total,
+    bool isAvailable,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -730,8 +775,12 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
             _buildTotalRow("Delivery Charge", deliveryCharge),
             _buildTotalRow("Platform Fee", platformFee),
           ] else
-            _buildTotalRow("Delivery Charge & Fees", 0.0,
-                isUnavailable: true, color: Colors.red),
+            _buildTotalRow(
+              "Delivery Charge & Fees",
+              0.0,
+              isUnavailable: true,
+              color: Colors.red,
+            ),
           _buildTotalRow("Discount", -discount, color: Colors.green),
           const SizedBox(height: 8),
           const Divider(height: 1),
@@ -742,26 +791,33 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
     );
   }
 
-  Widget _buildTotalRow(String label, double value,
-      {bool isBold = false,
-      double fontSize = 16.0,
-      Color? color,
-      bool isUnavailable = false}) {
+  Widget _buildTotalRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    double fontSize = 16.0,
+    Color? color,
+    bool isUnavailable = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                  fontSize: fontSize)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: fontSize,
+            ),
+          ),
           Text(
             isUnavailable ? "N/A" : "₹${value.abs().toStringAsFixed(2)}",
             style: TextStyle(
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                fontSize: fontSize,
-                color: isUnavailable ? Colors.red : color),
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: fontSize,
+              color: isUnavailable ? Colors.red : color,
+            ),
           ),
         ],
       ),
@@ -769,8 +825,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
   }
 
   Widget _buildAddress() {
-    final bool hasValidCoords = currentDeliveryPosition != null && 
-        (currentDeliveryPosition!.latitude != 0.0 || currentDeliveryPosition!.longitude != 0.0);
+    final bool hasValidCoords =
+        currentDeliveryPosition != null &&
+        (currentDeliveryPosition!.latitude != 0.0 ||
+            currentDeliveryPosition!.longitude != 0.0);
 
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -801,12 +859,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
           Row(
             children: [
               Icon(
-                  hasValidCoords
-                      ? Icons.location_on
-                      : Icons.warning_amber,
-                  color:
-                      hasValidCoords ? Colors.orange : Colors.red,
-                  size: 20),
+                hasValidCoords ? Icons.location_on : Icons.warning_amber,
+                color: hasValidCoords ? Colors.orange : Colors.red,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -823,7 +879,11 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
                 "Warning: Location coordinates are missing or zero. Tap 'Change' to set a precise location on the map.",
-                style: TextStyle(fontSize: 12, color: Colors.red.shade700, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
         ],
@@ -869,12 +929,16 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
                     ),
                     fillColor: Colors.white,
                     filled: true,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     suffixIcon: appliedCoupon != null
                         ? IconButton(
-                            icon:
-                                const Icon(Icons.check_circle, color: Colors.green),
+                            icon: const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            ),
                             onPressed: () {
                               _couponController.clear();
                               setState(() {
@@ -890,17 +954,30 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
               ),
               const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: appliedCoupon != null ? null : () => _applyCoupon(subtotal),
+                onPressed: appliedCoupon != null
+                    ? null
+                    : () => _applyCoupon(subtotal),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: appliedCoupon != null ? Colors.green : Colors.orange,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  backgroundColor: appliedCoupon != null
+                      ? Colors.green
+                      : Colors.orange,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child:
-                    appliedCoupon != null ? const Text("Applied", style: TextStyle(color: Colors.white)) : const Text("Apply", style: TextStyle(color: Colors.white)),
+                child: appliedCoupon != null
+                    ? const Text(
+                        "Applied",
+                        style: TextStyle(color: Colors.white),
+                      )
+                    : const Text(
+                        "Apply",
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ],
           ),
@@ -948,10 +1025,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
                 SizedBox(height: 2),
                 Text(
                   "Pay in cash upon delivery",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -1018,9 +1092,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
               child: Text(
                 "Your cart is empty 🛒",
                 style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500),
+                  color: Colors.grey,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             );
           }
@@ -1034,7 +1109,7 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
           final double distanceKm = feeBreakdown.currentDistanceKm;
           final double maxDistanceKm = feeBreakdown.maxDistanceKm;
 
-          final double total = isAvailable 
+          final double total = isAvailable
               ? subtotal + totalFees - discount
               : subtotal - discount;
 
@@ -1044,22 +1119,30 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildOutOfRangeWarning(distanceKm, maxDistanceKm), 
+                  _buildOutOfRangeWarning(distanceKm, maxDistanceKm),
                   _buildSectionTitle("Cart Items"),
-                  _buildCartItems(cart.items.values.map((item) {
-                    return {
-                      "name": item.name,
-                      "price": item.price,
-                      "quantity": item.quantity,
-                      "id": item.id,
-                      "image": item.image,
-                      "restaurantId": item.restaurantId,
-                    };
-                  }).toList()),
+                  _buildCartItems(
+                    cart.items.values.map((item) {
+                      return {
+                        "name": item.name,
+                        "price": item.price,
+                        "quantity": item.quantity,
+                        "id": item.id,
+                        "image": item.image,
+                        "restaurantId": item.restaurantId,
+                      };
+                    }).toList(),
+                  ),
                   const SizedBox(height: 24),
                   _buildSectionTitle("Order Summary"),
-                  _buildTotals(subtotal, deliveryCharge, platformFee,
-                      discount, total, isAvailable),
+                  _buildTotals(
+                    subtotal,
+                    deliveryCharge,
+                    platformFee,
+                    discount,
+                    total,
+                    isAvailable,
+                  ),
                   const SizedBox(height: 24),
                   _buildSectionTitle("Delivery Address"),
                   _buildAddress(),
@@ -1081,12 +1164,12 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
           if (cart.isEmpty) {
             return const SizedBox.shrink();
           }
-          
+
           final subtotal = cart.totalAmount;
           final discount = discountAmount;
           final bool isAvailable = feeBreakdown.isDeliveryAvailable;
 
-          final double total = isAvailable 
+          final double total = isAvailable
               ? subtotal + feeBreakdown.totalFee - discount
               : subtotal - discount;
 
@@ -1110,7 +1193,10 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
                   ? null
                   : () {
                       _navigateToOrderConfirmation(
-                          subtotal, discount, feeBreakdown);
+                        subtotal,
+                        discount,
+                        feeBreakdown,
+                      );
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: canPlaceOrder ? Colors.orange : Colors.grey,
@@ -1122,9 +1208,9 @@ class _InstahubCartScreenState extends State<InstahubCartScreen> {
               child: Text(
                 !isAddressSet
                     ? "Select Delivery Address"
-                    : !isAvailable 
-                        ? "Out of Delivery Range"
-                        : "Place Order ₹${total.toStringAsFixed(2)}",
+                    : !isAvailable
+                    ? "Out of Delivery Range"
+                    : "Place Order ₹${total.toStringAsFixed(2)}",
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),

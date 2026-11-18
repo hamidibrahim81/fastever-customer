@@ -22,9 +22,7 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
   Future<void> _selectAddress() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const ManageAddressScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const ManageAddressScreen()),
     );
 
     if (result != null) {
@@ -39,7 +37,10 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
     if (selectedAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Please select a delivery address", style: GoogleFonts.inter()),
+          content: Text(
+            "Please select a delivery address",
+            style: GoogleFonts.inter(),
+          ),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -67,7 +68,9 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
         barrierDismissible: false,
         builder: (BuildContext context) {
           return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
             elevation: 10,
             child: Padding(
               padding: const EdgeInsets.all(28),
@@ -81,19 +84,32 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                       color: Colors.orange.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.rocket_launch_rounded, color: Colors.orange, size: 38),
+                    child: const Icon(
+                      Icons.rocket_launch_rounded,
+                      color: Colors.orange,
+                      size: 38,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     "Custom Item Requests – Coming Soon",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.montserrat(fontWeight: FontWeight.w900, fontSize: 18, color: const Color(0xFF121212)),
+                    style: GoogleFonts.montserrat(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      color: const Color(0xFF121212),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     "We're currently enhancing our Custom Item Request service to provide you with a faster and more reliable experience.\n\nThis feature is temporarily unavailable. We apologize for the inconvenience and appreciate your patience.\n\nWe'll be launching this service very soon—please check back later!",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey.shade600, height: 1.5),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 28),
                   SizedBox(
@@ -102,15 +118,26 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context); // Dismiss dialog
-                        Navigator.popUntil(context, (route) => route.isFirst); // Route to Root Home Screen
+                        Navigator.popUntil(
+                          context,
+                          (route) => route.isFirst,
+                        ); // Route to Root Home Screen
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 0,
                       ),
-                      child: Text("Got it, thanks!", style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, fontSize: 15)),
+                      child: Text(
+                        "Got it, thanks!",
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -123,7 +150,10 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
       setState(() => isPlacingOrder = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Failed to place order: $e", style: GoogleFonts.inter()),
+          content: Text(
+            "Failed to place order: $e",
+            style: GoogleFonts.inter(),
+          ),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -139,7 +169,11 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
       appBar: AppBar(
         title: Text(
           "Request Cart",
-          style: GoogleFonts.montserrat(fontWeight: FontWeight.w800, fontSize: 18, color: const Color(0xFF121212)),
+          style: GoogleFonts.montserrat(
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            color: const Color(0xFF121212),
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -159,17 +193,28 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                   children: [
                     Text(
                       "Requested Items",
-                      style: GoogleFonts.montserrat(fontWeight: FontWeight.w800, fontSize: 16, color: const Color(0xFF121212)),
+                      style: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: const Color(0xFF121212),
+                      ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orange.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         "${widget.items.length} ${widget.items.length == 1 ? 'Item' : 'Items'}",
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.orange),
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          color: Colors.orange,
+                        ),
                       ),
                     ),
                   ],
@@ -189,11 +234,18 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         leading: Container(
                           height: 44,
                           width: 44,
@@ -201,17 +253,28 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                             color: const Color(0xFFF5F5F7),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+                          child: const Icon(
+                            Icons.shopping_bag_outlined,
+                            color: Colors.grey,
+                          ),
                         ),
                         title: Text(
                           item['name'] ?? 'Unknown Item',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: const Color(0xFF121212)),
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: const Color(0xFF121212),
+                          ),
                         ),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
                             "Quantity: ${item['qty'] ?? 1}",
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey.shade600),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ),
                       ),
@@ -224,7 +287,11 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                 // SECTION 2: ADDRESS HEADER
                 Text(
                   "Delivery Location",
-                  style: GoogleFonts.montserrat(fontWeight: FontWeight.w800, fontSize: 16, color: const Color(0xFF121212)),
+                  style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: const Color(0xFF121212),
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -237,11 +304,17 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: selectedAddress == null ? Colors.orange.withOpacity(0.3) : Colors.transparent,
+                        color: selectedAddress == null
+                            ? Colors.orange.withOpacity(0.3)
+                            : Colors.transparent,
                         width: selectedAddress == null ? 1.5 : 0,
                       ),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
                     ),
                     child: selectedAddress == null
@@ -254,16 +327,28 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                                   color: Colors.orange.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.location_on_rounded, color: Colors.orange, size: 22),
+                                child: const Icon(
+                                  Icons.location_on_rounded,
+                                  color: Colors.orange,
+                                  size: 22,
+                                ),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Text(
                                   "Select delivery address",
-                                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.grey.shade700),
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: Colors.grey.shade700,
+                                  ),
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
                             ],
                           )
                         : Row(
@@ -276,7 +361,11 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                                   color: Colors.orange.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.location_on_rounded, color: Colors.orange, size: 24),
+                                child: const Icon(
+                                  Icons.location_on_rounded,
+                                  color: Colors.orange,
+                                  size: 24,
+                                ),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -284,13 +373,27 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      selectedAddress!['category']?.toString().toUpperCase() ?? "DELIVERY ADDRESS",
-                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.orange, letterSpacing: 0.5),
+                                      selectedAddress!['category']
+                                              ?.toString()
+                                              .toUpperCase() ??
+                                          "DELIVERY ADDRESS",
+                                      style: GoogleFonts.montserrat(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 12,
+                                        color: Colors.orange,
+                                        letterSpacing: 0.5,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      selectedAddress!['full_display_address'] ?? "No address format configured",
-                                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: const Color(0xFF121212), height: 1.3),
+                                      selectedAddress!['full_display_address'] ??
+                                          "No address format configured",
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                        color: const Color(0xFF121212),
+                                        height: 1.3,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -298,8 +401,12 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                               const SizedBox(width: 10),
                               Text(
                                 "CHANGE",
-                                style: GoogleFonts.montserrat(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.orange),
-                              )
+                                style: GoogleFonts.montserrat(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                  color: Colors.orange,
+                                ),
+                              ),
                             ],
                           ),
                   ),
@@ -311,16 +418,23 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
           // ================= PLACE ORDER FOOTER BAR =================
           Container(
             padding: EdgeInsets.only(
-              left: 20, 
-              right: 20, 
-              top: 16, 
+              left: 20,
+              right: 20,
+              top: 16,
               bottom: MediaQuery.of(context).padding.bottom + 16,
             ),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28)),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(28),
+                topRight: Radius.circular(28),
+              ),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, -4))
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
+                ),
               ],
             ),
             child: SizedBox(
@@ -332,22 +446,31 @@ class _RequestCartScreenState extends State<RequestCartScreen> {
                   backgroundColor: const Color(0xFF121212),
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade400,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 child: isPlacingOrder
                     ? const SizedBox(
                         height: 24,
                         width: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
                       )
                     : Text(
                         "Place Request Order",
-                        style: GoogleFonts.montserrat(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5),
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                        ),
                       ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );

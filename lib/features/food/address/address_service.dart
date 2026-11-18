@@ -6,14 +6,12 @@ class AddressService {
 
   Future<void> saveAddress(String userId, Address address) async {
     final userDocRef = _db.collection('users').doc(userId);
-    
+
     // ⭐ FIX: Use set with merge: true for reliable saving.
-    // This creates the document if it doesn't exist, or safely merges 
+    // This creates the document if it doesn't exist, or safely merges
     // the 'address' field if it does exist, preventing errors.
-    await userDocRef.set({
-      'address': address.toMap(),
-    }, SetOptions(merge: true));
-    
+    await userDocRef.set({'address': address.toMap()}, SetOptions(merge: true));
+
     // address.toMap() now includes latitude and longitude from your updated Address model.
     // This resolves the storage issue.
   }

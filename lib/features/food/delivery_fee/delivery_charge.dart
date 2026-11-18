@@ -44,7 +44,7 @@ class DeliveryFeeConfig {
   }
 }
 
-// >>> ⚠️ FIX: Move DeliveryChargeResult definition up so it's defined before use 
+// >>> ⚠️ FIX: Move DeliveryChargeResult definition up so it's defined before use
 // Simple class to hold the calculated fees
 class DeliveryChargeResult {
   final double deliveryFee;
@@ -90,7 +90,9 @@ Future<DeliveryFeeConfig> fetchDeliveryFeeConfig() async {
 
 // 2. New calculation method using the Firestore configuration
 double calculateDeliveryChargeFromConfig(
-    double distanceKm, DeliveryFeeConfig config) {
+  double distanceKm,
+  DeliveryFeeConfig config,
+) {
   if (distanceKm > config.maxDistance) {
     return 0.0; // Outside service area
   }
@@ -111,8 +113,7 @@ double calculateDeliveryChargeFromConfig(
 }
 
 // 3. Method to find nearest Instahub distance (moved from CartScreen.dart)
-Future<double> findNearestStoreDistance(
-    String itemId, Position userPos) async {
+Future<double> findNearestStoreDistance(String itemId, Position userPos) async {
   final firestore = FirebaseFirestore.instance;
   try {
     final instahubStores = await firestore
@@ -131,7 +132,8 @@ Future<double> findNearestStoreDistance(
       final storeLon = parseDouble(data['longitude']);
 
       if (storeLat != 0 && storeLon != 0) {
-        final distance = Geolocator.distanceBetween(
+        final distance =
+            Geolocator.distanceBetween(
               userPos.latitude,
               userPos.longitude,
               storeLat,
@@ -150,8 +152,9 @@ Future<double> findNearestStoreDistance(
 
 // 4. Main public function to calculate the total delivery and platform fee
 Future<DeliveryChargeResult> calculateTotalDeliveryAndPlatformFee(
-    Map<String, dynamic> cartItems, Position? userPos) async {
-  
+  Map<String, dynamic> cartItems,
+  Position? userPos,
+) async {
   if (cartItems.isEmpty) {
     return DeliveryChargeResult(deliveryFee: 0.0, platformFee: 0.0);
   }
@@ -181,8 +184,13 @@ Future<DeliveryChargeResult> calculateTotalDeliveryAndPlatformFee(
       if (rdata != null) {
         final rlat = parseDouble(rdata['latitude']);
         final rlon = parseDouble(rdata['longitude']);
-        distanceKm = Geolocator.distanceBetween(
-              userPos.latitude, userPos.longitude, rlat, rlon) /
+        distanceKm =
+            Geolocator.distanceBetween(
+              userPos.latitude,
+              userPos.longitude,
+              rlat,
+              rlon,
+            ) /
             1000.0;
       }
     }
@@ -193,8 +201,10 @@ Future<DeliveryChargeResult> calculateTotalDeliveryAndPlatformFee(
   }
 
   // 4c. Calculate delivery fee using the new linear model
-  final double deliveryCharge =
-      calculateDeliveryChargeFromConfig(maxDistanceKm, config);
+  final double deliveryCharge = calculateDeliveryChargeFromConfig(
+    maxDistanceKm,
+    config,
+  );
 
   // 4d. Return the total result
   return DeliveryChargeResult(

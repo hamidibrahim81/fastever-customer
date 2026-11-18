@@ -67,7 +67,9 @@ class _NotificationScreenState extends State<NotificationScreen>
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     final year = date.year;
-    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    final hour = date.hour > 12
+        ? date.hour - 12
+        : (date.hour == 0 ? 12 : date.hour);
     final period = date.hour >= 12 ? "PM" : "AM";
     final minute = date.minute.toString().padLeft(2, '0');
 
@@ -191,7 +193,10 @@ class _NotificationScreenState extends State<NotificationScreen>
               dividerColor: Colors.transparent,
               labelColor: Colors.white,
               unselectedLabelColor: FoodNotificationColors.textMuted,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
               tabs: const [
                 Tab(text: "Live Updates"),
                 Tab(text: "Past Notifications"),
@@ -201,7 +206,9 @@ class _NotificationScreenState extends State<NotificationScreen>
         ),
       ),
       body: user == null
-          ? const Center(child: Text("Please sign in to view your notifications."))
+          ? const Center(
+              child: Text("Please sign in to view your notifications."),
+            )
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('orders')
@@ -220,15 +227,21 @@ class _NotificationScreenState extends State<NotificationScreen>
                   return _buildEmptyState("No notifications yet");
                 }
 
-                final List<Map<String, dynamic>> orders = snapshot.data!.docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  data['_id'] = doc.id;
-                  return data;
-                }).toList();
+                final List<Map<String, dynamic>> orders = snapshot.data!.docs
+                    .map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      data['_id'] = doc.id;
+                      return data;
+                    })
+                    .toList();
 
                 orders.sort((a, b) {
-                  DateTime dateA = _parseDateTime(a['createdAt'] ?? a['timestamp']);
-                  DateTime dateB = _parseDateTime(b['createdAt'] ?? b['timestamp']);
+                  DateTime dateA = _parseDateTime(
+                    a['createdAt'] ?? a['timestamp'],
+                  );
+                  DateTime dateB = _parseDateTime(
+                    b['createdAt'] ?? b['timestamp'],
+                  );
                   return dateB.compareTo(dateA);
                 });
 
@@ -269,7 +282,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                   color: Colors.black.withOpacity(0.04),
                   blurRadius: 15,
                   offset: const Offset(0, 4),
-                )
+                ),
               ],
             ),
             child: const Icon(
@@ -292,9 +305,14 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _buildNotificationList(List<Map<String, dynamic>> orders, {required bool isLiveTab}) {
+  Widget _buildNotificationList(
+    List<Map<String, dynamic>> orders, {
+    required bool isLiveTab,
+  }) {
     if (orders.isEmpty) {
-      return _buildEmptyState(isLiveTab ? "No active orders in progress" : "No past notifications");
+      return _buildEmptyState(
+        isLiveTab ? "No active orders in progress" : "No past notifications",
+      );
     }
 
     return ListView.builder(
@@ -316,7 +334,9 @@ class _NotificationScreenState extends State<NotificationScreen>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: FoodNotificationColors.cardBorder.withOpacity(0.7)),
+            border: Border.all(
+              color: FoodNotificationColors.cardBorder.withOpacity(0.7),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.02),
@@ -334,18 +354,27 @@ class _NotificationScreenState extends State<NotificationScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: isInstaHub ? const Color(0xFFEDE9FE) : const Color(0xFFFFF7ED),
+                        color: isInstaHub
+                            ? const Color(0xFFEDE9FE)
+                            : const Color(0xFFFFF7ED),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            isInstaHub ? Icons.flash_on_rounded : Icons.restaurant_rounded,
+                            isInstaHub
+                                ? Icons.flash_on_rounded
+                                : Icons.restaurant_rounded,
                             size: 13,
-                            color: isInstaHub ? const Color(0xFF7C3AED) : FoodNotificationColors.accentOrange,
+                            color: isInstaHub
+                                ? const Color(0xFF7C3AED)
+                                : FoodNotificationColors.accentOrange,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -354,7 +383,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
-                              color: isInstaHub ? const Color(0xFF7C3AED) : FoodNotificationColors.accentOrange,
+                              color: isInstaHub
+                                  ? const Color(0xFF7C3AED)
+                                  : FoodNotificationColors.accentOrange,
                             ),
                           ),
                         ],
@@ -379,9 +410,15 @@ class _NotificationScreenState extends State<NotificationScreen>
                       decoration: BoxDecoration(
                         color: statusCfg['bgColor'],
                         shape: BoxShape.circle,
-                        border: Border.all(color: (statusCfg['color'] as Color).withOpacity(0.2)),
+                        border: Border.all(
+                          color: (statusCfg['color'] as Color).withOpacity(0.2),
+                        ),
                       ),
-                      child: Icon(statusCfg['icon'], size: 22, color: statusCfg['color']),
+                      child: Icon(
+                        statusCfg['icon'],
+                        size: 22,
+                        color: statusCfg['color'],
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -412,14 +449,22 @@ class _NotificationScreenState extends State<NotificationScreen>
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFF1F5F9),
+                  ),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.receipt_rounded, size: 14, color: FoodNotificationColors.textMuted),
+                        const Icon(
+                          Icons.receipt_rounded,
+                          size: 14,
+                          color: FoodNotificationColors.textMuted,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           "ID: ${orderId.length > 8 ? orderId.substring(0, 8) : orderId}",
@@ -470,10 +515,12 @@ class NotificationBellIconButton extends StatefulWidget {
   });
 
   @override
-  State<NotificationBellIconButton> createState() => _NotificationBellIconButtonState();
+  State<NotificationBellIconButton> createState() =>
+      _NotificationBellIconButtonState();
 }
 
-class _NotificationBellIconButtonState extends State<NotificationBellIconButton> {
+class _NotificationBellIconButtonState
+    extends State<NotificationBellIconButton> {
   int _lastReadTimestamp = 0;
 
   @override
@@ -487,7 +534,8 @@ class _NotificationBellIconButtonState extends State<NotificationBellIconButton>
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && mounted) {
       setState(() {
-        _lastReadTimestamp = prefs.getInt('last_notification_read_${user.uid}') ?? 0;
+        _lastReadTimestamp =
+            prefs.getInt('last_notification_read_${user.uid}') ?? 0;
       });
     }
   }
@@ -503,7 +551,8 @@ class _NotificationBellIconButtonState extends State<NotificationBellIconButton>
 
   DateTime _parseTime(dynamic val) {
     if (val is Timestamp) return val.toDate();
-    if (val is String) return DateTime.tryParse(val) ?? DateTime.fromMillisecondsSinceEpoch(0);
+    if (val is String)
+      return DateTime.tryParse(val) ?? DateTime.fromMillisecondsSinceEpoch(0);
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
@@ -531,12 +580,17 @@ class _NotificationBellIconButtonState extends State<NotificationBellIconButton>
         if (snapshot.hasData && snapshot.data != null) {
           unreadCount = snapshot.data!.docs.where((d) {
             final data = d.data() as Map<String, dynamic>;
-            final status = (data['status'] ?? '').toString().toLowerCase().trim();
+            final status = (data['status'] ?? '')
+                .toString()
+                .toLowerCase()
+                .trim();
             final isActive = status != 'delivered' && status != 'cancelled';
 
             if (!isActive) return false;
 
-            final orderTime = _parseTime(data['createdAt'] ?? data['timestamp']);
+            final orderTime = _parseTime(
+              data['createdAt'] ?? data['timestamp'],
+            );
             return orderTime.millisecondsSinceEpoch > _lastReadTimestamp;
           }).length;
         }
@@ -545,7 +599,11 @@ class _NotificationBellIconButtonState extends State<NotificationBellIconButton>
           alignment: Alignment.center,
           children: [
             IconButton(
-              icon: Icon(Icons.notifications_rounded, color: widget.color, size: 26),
+              icon: Icon(
+                Icons.notifications_rounded,
+                color: widget.color,
+                size: 26,
+              ),
               color: widget.color,
               splashColor: Colors.white24,
               onPressed: _openNotifications,
@@ -561,7 +619,10 @@ class _NotificationBellIconButtonState extends State<NotificationBellIconButton>
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 1.5),
                   ),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
                   child: Text(
                     unreadCount > 9 ? '9+' : '$unreadCount',
                     style: const TextStyle(

@@ -1,9 +1,11 @@
+
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ✅ Added for Auth Check
+import 'package:firebase_auth/firebase_auth.dart';
 
-/// 🔹 Model representing a single item in the cart
+/// Model representing a single item in the cart.
 class CartItem {
   final String id;
   final String name;
@@ -23,7 +25,7 @@ class CartItem {
     this.isInstaHub = false,
   });
 
-  /// Convert CartItem to Map for Firestore
+  /// Convert CartItem to Map for Firestore.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -36,99 +38,155 @@ class CartItem {
     };
   }
 
-  /// Create CartItem from Firestore Map
+  /// Create CartItem from Firestore Map.
   factory CartItem.fromMap(Map<String, dynamic> map) {
     return CartItem(
-      id: map['id'] ?? '',
-      name: map['name'] ?? 'Unknown',
-      price: (map['price'] ?? 0).toDouble(),
-      restaurantId: map['restaurantId'] ?? '',
-      image: map['image'],
-      quantity: (map['quantity'] ?? 1) as int,
-      isInstaHub: map['isInstaHub'] ?? false,
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? 'Unknown',
+      price: _parseDouble(map['price']),
+      restaurantId: map['restaurantId']?.toString() ?? '',
+      image: map['image']?.toString(),
+      quantity: _parseInt(map['quantity'], fallback: 1),
+      isInstaHub: map['isInstaHub'] == true,
     );
+  }
+
+  /// Create a copy with updated values.
+  CartItem copyWith({
+    String? name,
+    double? price,
+    String? restaurantId,
+    String? image,
+    int? quantity,
+    bool? isInstaHub,
+  }) {
+    return CartItem(
+      id: id,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      restaurantId: restaurantId ?? this.restaurantId,
+      image: image ?? this.image,
+      quantity: quantity ?? this.quantity,
+      isInstaHub: isInstaHub ?? this.isInstaHub,
+    );
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0.0;
+  }
+
+  static int _parseInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
   }
 }
 
-/// 🔹 Provider to manage cart state with Firestore sync
+/// Provider to manage cart state with Firestore sync.
 class CartProvider with ChangeNotifier {
-  
-  // ✅ FIX: No userId in constructor. We listen to Auth changes dynamically.
   CartProvider() {
     _initAuthListener();
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
-  // Local state
+
+  // Local cart state.
   final Map<String, CartItem> _items = {};
-  
-  // Subscriptions
+
+  // Subscriptions.
   StreamSubscription? _cartSubscription;
   StreamSubscription? _authSubscription;
 
-  /// Helper to get current User ID safely
+  bool _isDisposed = false;
+
+  /// Current user ID.
   String? get _userId => _auth.currentUser?.uid;
 
-  /// Get all items
-  Map<String, CartItem> get items => {..._items};
+  /// Get all cart items.
+  Map<String, CartItem> get items => Map.unmodifiable(_items);
 
-  /// Number of distinct items
+  /// Number of distinct items.
   int get distinctItemCount => _items.length;
 
-  /// Total quantity
-  int get totalItems => _items.values.fold(0, (sum, item) => sum + item.quantity);
+  /// Total quantity.
+  int get totalItems =>
+      _items.values.fold(0, (sum, item) => sum + item.quantity);
 
-  /// Total price
-  double get totalAmount => _items.values
-      .fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+  /// Total cart amount using the latest locally stored prices.
+  double get totalAmount => _items.values.fold(
+        0.0,
+        (sum, item) => sum + (item.price * item.quantity),
+      );
 
-  /// Check if cart is empty
+  /// Check if cart is empty.
   bool get isEmpty => _items.isEmpty;
 
-  /// Check if cart is not empty
+  /// Check if cart is not empty.
   bool get isNotEmpty => !isEmpty;
 
-  /// 🔹 Initialize Auth Listener (Auto-detect Login/Logout)
+  /// Safely notify listeners.
+  void _notifyListenersSafely() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
+  /// Initialize authentication listener.
   void _initAuthListener() {
-    // Listen to Login/Logout events
-    _authSubscription = _auth.authStateChanges().listen((User? user) {
-      // 1. Always cancel old cart subscription first
-      _cartSubscription?.cancel();
-      
-      // 2. Clear local data to prevent showing old user's cart
+    _authSubscription = _auth.authStateChanges().listen((User? user) async {
+      // Cancel the previous user's cart subscription.
+      await _cartSubscription?.cancel();
+      _cartSubscription = null;
+
+      // Clear previous user's local cart.
       _items.clear();
+      _notifyListenersSafely();
+
+      if (_isDisposed) return;
 
       if (user != null) {
-        // 3. User is Logged In -> Subscribe to their Firestore Cart
         _subscribeToCart(user.uid);
-      } else {
-        // 4. User Logged Out -> Notify UI that cart is empty
-        notifyListeners();
       }
     });
   }
 
-  /// 🔹 Internal: Subscribe to Firestore for a specific User ID
+  /// Subscribe to Firestore cart for a specific user.
   void _subscribeToCart(String uid) {
     _cartSubscription = _firestore
         .collection('users')
         .doc(uid)
         .collection('cart')
         .snapshots()
-        .listen((snapshot) {
-      _items.clear();
-      for (var doc in snapshot.docs) {
-        _items[doc.id] = CartItem.fromMap(doc.data());
-      }
-      notifyListeners();
-    }, onError: (e) {
-      if (kDebugMode) print("❌ Error listening to cart: $e");
-    });
+        .listen(
+      (snapshot) {
+        // Do not apply an old user's data after an account switch.
+        if (_isDisposed || _userId != uid) return;
+
+        _items.clear();
+
+        for (final doc in snapshot.docs) {
+          try {
+            _items[doc.id] = CartItem.fromMap(doc.data());
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('Error reading cart item ${doc.id}: $e');
+            }
+          }
+        }
+
+        _notifyListenersSafely();
+      },
+      onError: (e) {
+        if (kDebugMode) {
+          debugPrint('Error listening to cart: $e');
+        }
+      },
+    );
   }
 
-  /// 🔹 Add item to cart
+  /// Add item to cart.
   Future<void> addItem({
     required String id,
     required String name,
@@ -139,9 +197,12 @@ class CartProvider with ChangeNotifier {
     bool isInstaHub = false,
   }) async {
     final uid = _userId;
-    if (uid == null) {
-      if (kDebugMode) print("⚠️ Cannot add item: User not logged in.");
-      return; // Stop if not logged in
+
+    if (uid == null || qty <= 0 || _isDisposed) {
+      if (kDebugMode && uid == null) {
+        debugPrint('Cannot add item: User not logged in.');
+      }
+      return;
     }
 
     try {
@@ -152,11 +213,20 @@ class CartProvider with ChangeNotifier {
           .doc(id);
 
       if (_items.containsKey(id)) {
-        // Item exists: update quantity
-        _items[id]!.quantity += qty;
-        await docRef.update({'quantity': _items[id]!.quantity});
+        final existingItem = _items[id]!;
+
+        final updatedItem = existingItem.copyWith(
+          quantity: existingItem.quantity + qty,
+        );
+
+        _items[id] = updatedItem;
+
+        _notifyListenersSafely();
+
+        await docRef.update({
+          'quantity': updatedItem.quantity,
+        });
       } else {
-        // New item: add to Firestore
         final newItem = CartItem(
           id: id,
           name: name,
@@ -166,20 +236,25 @@ class CartProvider with ChangeNotifier {
           quantity: qty,
           isInstaHub: isInstaHub,
         );
-        // Optimistically update local state for speed
-        _items[id] = newItem; 
+
+        // Optimistically update local state.
+        _items[id] = newItem;
+        _notifyListenersSafely();
+
         await docRef.set(newItem.toMap());
       }
-      notifyListeners();
     } catch (e) {
-      if (kDebugMode) print("❌ Error adding item: $e");
+      if (kDebugMode) {
+        debugPrint('Error adding item: $e');
+      }
     }
   }
 
-  /// 🔹 Reduce quantity by 1
+  /// Reduce quantity by one.
   Future<void> reduceQuantity(String id) async {
     final uid = _userId;
-    if (uid == null || !_items.containsKey(id)) return;
+
+    if (uid == null || !_items.containsKey(id) || _isDisposed) return;
 
     final docRef = _firestore
         .collection('users')
@@ -187,20 +262,38 @@ class CartProvider with ChangeNotifier {
         .collection('cart')
         .doc(id);
 
-    if (_items[id]!.quantity > 1) {
-      _items[id]!.quantity -= 1;
-      await docRef.update({'quantity': _items[id]!.quantity});
-    } else {
-      _items.remove(id);
-      await docRef.delete();
+    final existingItem = _items[id]!;
+
+    try {
+      if (existingItem.quantity > 1) {
+        final updatedItem = existingItem.copyWith(
+          quantity: existingItem.quantity - 1,
+        );
+
+        _items[id] = updatedItem;
+        _notifyListenersSafely();
+
+        await docRef.update({
+          'quantity': updatedItem.quantity,
+        });
+      } else {
+        _items.remove(id);
+        _notifyListenersSafely();
+
+        await docRef.delete();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error reducing cart quantity: $e');
+      }
     }
-    notifyListeners();
   }
 
-  /// 🔹 Remove a specific item completely
+  /// Remove a specific item completely.
   Future<void> removeItem(String id) async {
     final uid = _userId;
-    if (uid == null || !_items.containsKey(id)) return;
+
+    if (uid == null || !_items.containsKey(id) || _isDisposed) return;
 
     final docRef = _firestore
         .collection('users')
@@ -208,12 +301,25 @@ class CartProvider with ChangeNotifier {
         .collection('cart')
         .doc(id);
 
-    _items.remove(id);
-    await docRef.delete();
-    notifyListeners();
+    final removedItem = _items.remove(id);
+    _notifyListenersSafely();
+
+    try {
+      await docRef.delete();
+    } catch (e) {
+      // Restore the item if the Firestore operation failed.
+      if (removedItem != null && !_isDisposed && _userId == uid) {
+        _items[id] = removedItem;
+        _notifyListenersSafely();
+      }
+
+      if (kDebugMode) {
+        debugPrint('Error removing cart item: $e');
+      }
+    }
   }
 
-  /// 🔹 Update item quantity directly
+  /// Update item quantity directly.
   Future<void> updateItem({
     required String id,
     required String name,
@@ -224,7 +330,8 @@ class CartProvider with ChangeNotifier {
     bool isInstaHub = false,
   }) async {
     final uid = _userId;
-    if (uid == null) return;
+
+    if (uid == null || _isDisposed) return;
 
     final docRef = _firestore
         .collection('users')
@@ -232,54 +339,239 @@ class CartProvider with ChangeNotifier {
         .collection('cart')
         .doc(id);
 
-    if (qty <= 0) {
-      _items.remove(id);
-      await docRef.delete();
-    } else {
-      // Create temp item if not exists locally, just to save
-      final item = _items[id] ?? CartItem(
-        id: id, name: name, price: price, restaurantId: restaurantId, image: image, isInstaHub: isInstaHub
-      );
-      item.quantity = qty;
-      _items[id] = item;
-      await docRef.set(item.toMap());
+    try {
+      if (qty <= 0) {
+        _items.remove(id);
+        _notifyListenersSafely();
+
+        await docRef.delete();
+      } else {
+        final existingItem = _items[id];
+
+        final item = existingItem != null
+            ? existingItem.copyWith(
+                quantity: qty,
+                name: name,
+                price: price,
+                restaurantId: restaurantId,
+                image: image,
+                isInstaHub: isInstaHub,
+              )
+            : CartItem(
+                id: id,
+                name: name,
+                price: price,
+                restaurantId: restaurantId,
+                image: image,
+                quantity: qty,
+                isInstaHub: isInstaHub,
+              );
+
+        _items[id] = item;
+        _notifyListenersSafely();
+
+        await docRef.set(item.toMap());
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error updating cart item: $e');
+      }
     }
-    notifyListeners();
   }
 
-  /// 🔹 Clear the entire cart
+  /// Update the price of one existing cart item.
+  ///
+  /// Call this after fetching the current price from the relevant
+  /// restaurant/menu document in Firestore.
+  ///
+  /// Returns true when the local and Firestore cart price are updated.
+  Future<bool> updateItemPrice({
+    required String id,
+    required double price,
+  }) async {
+    final uid = _userId;
+
+    if (uid == null || _isDisposed || price < 0) return false;
+
+    final existingItem = _items[id];
+    if (existingItem == null) return false;
+
+    if (existingItem.price == price) return true;
+
+    final docRef = _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('cart')
+        .doc(id);
+
+    final previousItem = existingItem;
+
+    // Update locally so the displayed total changes immediately.
+    _items[id] = existingItem.copyWith(price: price);
+    _notifyListenersSafely();
+
+    try {
+      await docRef.update({
+        'price': price,
+      });
+
+      return true;
+    } catch (e) {
+      // Restore only if the same user is still active and the item
+      // has not been changed again in the meantime.
+      if (!_isDisposed && _userId == uid) {
+        final currentItem = _items[id];
+
+        if (currentItem != null && currentItem.price == price) {
+          _items[id] = previousItem;
+          _notifyListenersSafely();
+        }
+      }
+
+      if (kDebugMode) {
+        debugPrint('Error updating cart item price: $e');
+      }
+
+      return false;
+    }
+  }
+
+  /// Update multiple cart item prices together.
+  ///
+  /// Example:
+  /// {
+  ///   'menuItemId1': 149.0,
+  ///   'menuItemId2': 99.0,
+  /// }
+  ///
+  /// Prices must first be fetched and validated against the actual
+  /// menu documents by the CartScreen.
+  Future<bool> updateItemPrices(Map<String, double> updatedPrices) async {
+    final uid = _userId;
+
+    if (uid == null || _isDisposed || updatedPrices.isEmpty) {
+      return false;
+    }
+
+    final validPrices = <String, double>{};
+
+    for (final entry in updatedPrices.entries) {
+      if (entry.value < 0) continue;
+
+      if (_items.containsKey(entry.key) &&
+          _items[entry.key]!.price != entry.value) {
+        validPrices[entry.key] = entry.value;
+      }
+    }
+
+    if (validPrices.isEmpty) return true;
+
+    final previousItems = <String, CartItem>{};
+
+    for (final entry in validPrices.entries) {
+      final existingItem = _items[entry.key]!;
+
+      previousItems[entry.key] = existingItem;
+      _items[entry.key] = existingItem.copyWith(
+        price: entry.value,
+      );
+    }
+
+    // Update displayed prices and totals immediately.
+    _notifyListenersSafely();
+
+    final batch = _firestore.batch();
+
+    for (final entry in validPrices.entries) {
+      final docRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('cart')
+          .doc(entry.key);
+
+      batch.update(docRef, {
+        'price': entry.value,
+      });
+    }
+
+    try {
+      await batch.commit();
+      return true;
+    } catch (e) {
+      // Restore previous prices if the batch fails.
+      if (!_isDisposed && _userId == uid) {
+        for (final entry in previousItems.entries) {
+          final currentItem = _items[entry.key];
+
+          if (currentItem != null &&
+              currentItem.price == validPrices[entry.key]) {
+            _items[entry.key] = entry.value;
+          }
+        }
+
+        _notifyListenersSafely();
+      }
+
+      if (kDebugMode) {
+        debugPrint('Error updating cart item prices: $e');
+      }
+
+      return false;
+    }
+  }
+
+  /// Clear the entire cart.
   Future<void> clearCart() async {
     final uid = _userId;
-    if (uid == null) return;
 
-    // 1. Immediately clear local state to update UI
+    if (uid == null || _isDisposed) return;
+
+    // Immediately clear local state.
     _items.clear();
-    notifyListeners();
+    _notifyListenersSafely();
 
-    // 2. Clear Firestore in the background
     try {
-      final batch = _firestore.batch();
-      final cartCollection = _firestore.collection('users').doc(uid).collection('cart');
+      final cartCollection = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('cart');
 
-      var snapshots = await cartCollection.get();
-      for (var doc in snapshots.docs) {
-        batch.delete(doc.reference);
+      // Delete in batches to avoid Firestore batch limits.
+      while (true) {
+        if (_userId != uid || _isDisposed) return;
+
+        final snapshot = await cartCollection.limit(450).get();
+
+        if (snapshot.docs.isEmpty) break;
+
+        final batch = _firestore.batch();
+
+        for (final doc in snapshot.docs) {
+          batch.delete(doc.reference);
+        }
+
+        await batch.commit();
+
+        if (snapshot.docs.length < 450) break;
       }
-      
-      await batch.commit();
     } catch (e) {
-      if (kDebugMode) print("Error clearing Firestore cart: $e");
+      if (kDebugMode) {
+        debugPrint('Error clearing Firestore cart: $e');
+      }
     }
   }
 
-  /// 🔹 Get quantity of a specific item
+  /// Get quantity of a specific item.
   int getQuantity(String id) => _items[id]?.quantity ?? 0;
 
-  /// 🔹 Dispose Subscriptions
+  /// Dispose subscriptions.
   @override
   void dispose() {
+    _isDisposed = true;
+
     _cartSubscription?.cancel();
     _authSubscription?.cancel();
+
     super.dispose();
   }
 }

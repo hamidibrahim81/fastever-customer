@@ -73,8 +73,7 @@ class _AdPosterScreenState extends State<AdPosterScreen> {
             gaplessPlayback: true, // 🔑 prevents flicker
             errorBuilder: (_, error, __) {
               debugPrint('❌ Ad image failed: $error');
-              WidgetsBinding.instance
-                  .addPostFrameCallback((_) => _closeAd());
+              WidgetsBinding.instance.addPostFrameCallback((_) => _closeAd());
               return const SizedBox.shrink();
             },
           ),

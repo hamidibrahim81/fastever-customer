@@ -214,16 +214,21 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                         final int startMins = slot['start_minutes'];
                         final int endMins = slot['end_minutes'];
 
-                        final bool isSelected = _selectedSlots.any((element) =>
-                            element['start_minutes'] == startMins &&
-                            element['end_minutes'] == endMins);
+                        final bool isSelected = _selectedSlots.any(
+                          (element) =>
+                              element['start_minutes'] == startMins &&
+                              element['end_minutes'] == endMins,
+                        );
 
                         // Check non-cancelled reserved overlaps
                         bool isAlreadyBooked = false;
                         for (var reserved in _reservedSlotsOnSelectedDate) {
-                          if ((startMins >= reserved['start']! && startMins < reserved['end']!) ||
-                              (endMins > reserved['start']! && endMins <= reserved['end']!) ||
-                              (startMins <= reserved['start']! && endMins >= reserved['end']!)) {
+                          if ((startMins >= reserved['start']! &&
+                                  startMins < reserved['end']!) ||
+                              (endMins > reserved['start']! &&
+                                  endMins <= reserved['end']!) ||
+                              (startMins <= reserved['start']! &&
+                                  endMins >= reserved['end']!)) {
                             isAlreadyBooked = true;
                             break;
                           }
@@ -250,12 +255,18 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                           containerBg = TurfColors.accent;
                           textColor = Colors.white;
                           borderColor = TurfColors.accent;
-                          trailingWidget = const Icon(Icons.check_circle, color: Colors.white);
+                          trailingWidget = const Icon(
+                            Icons.check_circle,
+                            color: Colors.white,
+                          );
                         } else {
                           containerBg = const Color(0xFFFAFAFC);
                           textColor = TurfColors.primary;
                           borderColor = Colors.grey.shade200;
-                          trailingWidget = const Icon(Icons.add_circle_outline, color: Colors.grey);
+                          trailingWidget = const Icon(
+                            Icons.add_circle_outline,
+                            color: Colors.grey,
+                          );
                         }
 
                         return Padding(
@@ -267,12 +278,16 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                               border: Border.all(color: borderColor, width: 1),
                             ),
                             child: ListTile(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               enabled: !isAlreadyBooked,
                               title: Text(
                                 slot['label'],
                                 style: TextStyle(
-                                  fontWeight: (isSelected || isAlreadyBooked) ? FontWeight.bold : FontWeight.w500,
+                                  fontWeight: (isSelected || isAlreadyBooked)
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
                                   color: textColor,
                                 ),
                               ),
@@ -282,12 +297,20 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                                   : () {
                                       setBottomSheetState(() {
                                         if (isSelected) {
-                                          _selectedSlots.removeWhere((element) =>
-                                              element['start_minutes'] == startMins);
+                                          _selectedSlots.removeWhere(
+                                            (element) =>
+                                                element['start_minutes'] ==
+                                                startMins,
+                                          );
                                         } else {
                                           _selectedSlots.add(slot);
-                                          _selectedSlots.sort((a, b) => (a['start_minutes'] as int)
-                                              .compareTo(b['start_minutes'] as int));
+                                          _selectedSlots.sort(
+                                            (a, b) =>
+                                                (a['start_minutes'] as int)
+                                                    .compareTo(
+                                                      b['start_minutes'] as int,
+                                                    ),
+                                          );
                                         }
                                       });
                                       setState(() {});
@@ -305,12 +328,17 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                     child: FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: TurfColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text("CONFIRM SELECTED HOURS", style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        "CONFIRM SELECTED HOURS",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  )
+                  ),
                 ],
               ),
             );
@@ -324,7 +352,9 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
     if (_selectedSlots.isEmpty) return "Select Turf Hours *";
     if (_selectedSlots.length == 1) return _selectedSlots.first['label'];
 
-    final String joinedSlots = _selectedSlots.map((slot) => slot['label'] as String).join(" & ");
+    final String joinedSlots = _selectedSlots
+        .map((slot) => slot['label'] as String)
+        .join(" & ");
     return "$joinedSlots (${_selectedSlots.length} hrs)";
   }
 
@@ -336,7 +366,9 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
 
     if (chosenSports.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select at least one sport preference.")),
+        const SnackBar(
+          content: Text("Please select at least one sport preference."),
+        ),
       );
       return;
     }
@@ -345,14 +377,20 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
 
     if (!formValid || _selectedSlots.isEmpty || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please complete required fields and select at least one hour slot.")),
+        const SnackBar(
+          content: Text(
+            "Please complete required fields and select at least one hour slot.",
+          ),
+        ),
       );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Authentication required.")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Authentication required.")));
       return;
     }
 
@@ -388,7 +426,10 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
           const SnackBar(
             content: Text(
               "One or more selected slots were just booked. Please pick another time!",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             backgroundColor: Color(0xFFD32F2F),
             duration: Duration(seconds: 2),
@@ -398,7 +439,9 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
         return;
       }
 
-      final DocumentReference globalBookingRef = firestore.collection('booking_turf_service').doc();
+      final DocumentReference globalBookingRef = firestore
+          .collection('booking_turf_service')
+          .doc();
       final String orderId = globalBookingRef.id;
 
       final DocumentReference turfSubcollectionRef = firestore
@@ -443,7 +486,9 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Column(
@@ -451,19 +496,35 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(color: Color(0xFFFEF2F2), shape: BoxShape.circle),
-                  child: const Icon(Icons.sports_soccer_rounded, color: TurfColors.accent, size: 55),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFEF2F2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.sports_soccer_rounded,
+                    color: TurfColors.accent,
+                    size: 55,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   "Turf Reserved!",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF222222)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: Color(0xFF222222),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 const Text(
                   "Your turf slot has been successfully booked! Please arrive on time with your team for a smooth session.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF1F2937), fontSize: 14, fontWeight: FontWeight.w600, height: 1.4),
+                  style: TextStyle(
+                    color: Color(0xFF1F2937),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -477,15 +538,30 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                     children: [
                       const Text(
                         "Need Assistance?",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.phone_rounded, size: 14, color: TurfColors.accent),
+                          Icon(
+                            Icons.phone_rounded,
+                            size: 14,
+                            color: TurfColors.accent,
+                          ),
                           SizedBox(width: 6),
-                          Text("+918921752969", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
+                          Text(
+                            "+918921752969",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -498,13 +574,21 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF111827),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () {
                       Navigator.pop(context);
                       Navigator.pop(context);
                     },
-                    child: const Text("OK", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -513,7 +597,9 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Booking failed: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Booking failed: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -530,7 +616,11 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
         centerTitle: true,
         title: Text(
           widget.turfName,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -551,8 +641,12 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                         sport,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: isChecked ? FontWeight.bold : FontWeight.w500,
-                          color: isChecked ? TurfColors.accent : const Color(0xFF222222),
+                          fontWeight: isChecked
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: isChecked
+                              ? TurfColors.accent
+                              : const Color(0xFF222222),
                         ),
                       ),
                       value: isChecked,
@@ -561,7 +655,9 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       onChanged: (bool? val) {
-                        setState(() => _sportsSelectionMap[sport] = val ?? false);
+                        setState(
+                          () => _sportsSelectionMap[sport] = val ?? false,
+                        );
                       },
                     );
                   }).toList(),
@@ -572,9 +668,20 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
               _buildSectionContainer(
                 child: Column(
                   children: [
-                    _buildField(_nameController, "Your Name *", Icons.person_outline_rounded, TurfColors.accent),
+                    _buildField(
+                      _nameController,
+                      "Your Name *",
+                      Icons.person_outline_rounded,
+                      TurfColors.accent,
+                    ),
                     const SizedBox(height: 4),
-                    _buildField(_contactController, "Contact Number *", Icons.phone_android_rounded, TurfColors.accent, keyboardType: TextInputType.phone),
+                    _buildField(
+                      _contactController,
+                      "Contact Number *",
+                      Icons.phone_android_rounded,
+                      TurfColors.accent,
+                      keyboardType: TextInputType.phone,
+                    ),
                   ],
                 ),
               ),
@@ -587,7 +694,12 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                       child: InkWell(
                         onTap: _selectDate,
                         child: IgnorePointer(
-                          child: _buildField(_dateController, "Select Date *", Icons.calendar_month_rounded, TurfColors.accent),
+                          child: _buildField(
+                            _dateController,
+                            "Select Date *",
+                            Icons.calendar_month_rounded,
+                            TurfColors.accent,
+                          ),
                         ),
                       ),
                     ),
@@ -596,23 +708,37 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                       child: InkWell(
                         onTap: _showSlotPicker,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 18,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFAFAFC),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200, width: 1),
+                            border: Border.all(
+                              color: Colors.grey.shade200,
+                              width: 1,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.access_time_rounded, size: 22, color: Colors.grey.shade500),
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 22,
+                                color: Colors.grey.shade500,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   _getSlotsSummaryText(),
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: _selectedSlots.isNotEmpty ? const Color(0xFF111827) : Colors.grey,
-                                    fontWeight: _selectedSlots.isNotEmpty ? FontWeight.w600 : FontWeight.w500,
+                                    color: _selectedSlots.isNotEmpty
+                                        ? const Color(0xFF111827)
+                                        : Colors.grey,
+                                    fontWeight: _selectedSlots.isNotEmpty
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -628,7 +754,13 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
               const SizedBox(height: 22),
               _buildSectionHeader("Additional Instructions"),
               _buildSectionContainer(
-                child: _buildField(_commentController, "Add comments or special requests (Optional)", Icons.chat_bubble_outline_rounded, TurfColors.accent, maxLines: 3),
+                child: _buildField(
+                  _commentController,
+                  "Add comments or special requests (Optional)",
+                  Icons.chat_bubble_outline_rounded,
+                  TurfColors.accent,
+                  maxLines: 3,
+                ),
               ),
               const SizedBox(height: 35),
               Container(
@@ -637,17 +769,31 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: TurfColors.accent.withOpacity(0.25), blurRadius: 16, offset: const Offset(0, 6))
+                    BoxShadow(
+                      color: TurfColors.accent.withOpacity(0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
                   ],
                 ),
                 child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: TurfColors.accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: TurfColors.accent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   onPressed: _isSubmitting ? null : _submitBooking,
                   child: _isSubmitting
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           "CONFIRM TURF BOOKING",
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white, letterSpacing: 0.5),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                 ),
               ),
@@ -662,24 +808,48 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF111827), letterSpacing: 0.3)),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: Color(0xFF111827),
+          letterSpacing: 0.3,
+        ),
+      ),
     );
   }
 
-  Widget _buildSectionContainer({required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _buildSectionContainer({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+  }) {
     return Container(
       width: double.infinity,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
   }
 
-  Widget _buildField(TextEditingController controller, String label, IconData icon, Color focusColor, {int maxLines = 1, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildField(
+    TextEditingController controller,
+    String label,
+    IconData icon,
+    Color focusColor, {
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -689,15 +859,34 @@ class _TurfBookingFormScreenState extends State<TurfBookingFormScreen> {
         style: const TextStyle(fontSize: 15, color: Color(0xFF111827)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
+          labelStyle: const TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
           prefixIcon: Icon(icon, size: 22, color: Colors.grey.shade500),
           filled: true,
           fillColor: const Color(0xFFFAFAFC),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: focusColor, width: 1.8)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200, width: 1)),
-          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.red.shade400, width: 1)),
-          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.8)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: focusColor, width: 1.8),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 1.8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
         validator: (val) {
           if (label.contains("Optional")) return null;

@@ -40,14 +40,23 @@ class ProfileScreen2 extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Delete Account?", 
-            style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Delete Account?",
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: const Text(
-            "This action is permanent. All your profile data and order history will be deleted forever."),
+          "This action is permanent. All your profile data and order history will be deleted forever.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
           ),
           FilledButton(
             onPressed: () {
@@ -59,8 +68,19 @@ class ProfileScreen2 extends StatelessWidget {
               );
               _deleteAccountBackground(uid);
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              "Delete",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -81,13 +101,23 @@ class ProfileScreen2 extends StatelessWidget {
     return Scaffold(
       backgroundColor: _bgColor,
       appBar: AppBar(
-        title: const Text("My Profile",
-            style: TextStyle(fontWeight: FontWeight.bold, color: _primaryDark, fontSize: 18)),
+        title: const Text(
+          "My Profile",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: _primaryDark,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _primaryDark, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: _primaryDark,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -98,11 +128,15 @@ class ProfileScreen2 extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: _accentOrange));
+            return const Center(
+              child: CircularProgressIndicator(color: _accentOrange),
+            );
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: CircularProgressIndicator(color: _accentOrange));
+            return const Center(
+              child: CircularProgressIndicator(color: _accentOrange),
+            );
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -136,16 +170,24 @@ class ProfileScreen2 extends StatelessWidget {
                       Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: _accentOrange.withOpacity(0.3), width: 2),
+                          border: Border.all(
+                            color: _accentOrange.withOpacity(0.3),
+                            width: 2,
+                          ),
                         ),
                         child: CircleAvatar(
                           radius: 35,
                           backgroundColor: Colors.grey.shade100,
-                          backgroundImage: (profilePic != null && profilePic.isNotEmpty)
+                          backgroundImage:
+                              (profilePic != null && profilePic.isNotEmpty)
                               ? NetworkImage(profilePic)
                               : null,
                           child: (profilePic == null || profilePic.isEmpty)
-                              ? const Icon(Icons.person_rounded, size: 40, color: _primaryDark)
+                              ? const Icon(
+                                  Icons.person_rounded,
+                                  size: 40,
+                                  color: _primaryDark,
+                                )
                               : null,
                         ),
                       ),
@@ -157,8 +199,8 @@ class ProfileScreen2 extends StatelessWidget {
                             Text(
                               name,
                               style: const TextStyle(
-                                fontSize: 18, 
-                                fontWeight: FontWeight.bold, 
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                                 color: _primaryDark,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -167,8 +209,8 @@ class ProfileScreen2 extends StatelessWidget {
                             Text(
                               phone,
                               style: const TextStyle(
-                                fontSize: 13, 
-                                color: Color(0xFF64748B), 
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -178,9 +220,17 @@ class ProfileScreen2 extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                const Text("Orders & Activity", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+                const Text(
+                  "Orders & Activity",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF94A3B8),
+                    letterSpacing: 0.5,
+                  ),
+                ),
                 const SizedBox(height: 12),
 
                 // --- 📦 ORDERS & BOOKINGS SECTION ---
@@ -189,7 +239,11 @@ class ProfileScreen2 extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 4)),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                     border: Border.all(color: _cardBorder.withOpacity(0.6)),
                   ),
@@ -202,7 +256,8 @@ class ProfileScreen2 extends StatelessWidget {
                         iconColor: const Color(0xFFD97706),
                         title: "Edit Profile",
                         subtitle: "Change name and address",
-                        onTap: () => _showEditProfileDialog(context, user.uid, data),
+                        onTap: () =>
+                            _showEditProfileDialog(context, user.uid, data),
                       ),
                       _buildDivider(),
                       _buildMenuTile(
@@ -212,7 +267,8 @@ class ProfileScreen2 extends StatelessWidget {
                         iconColor: const Color(0xFF0284C7),
                         title: "Track Order",
                         subtitle: "See active order statuses",
-                        onTap: () => Navigator.pushNamed(context, 'track_order_screen'),
+                        onTap: () =>
+                            Navigator.pushNamed(context, 'track_order_screen'),
                       ),
                       _buildDivider(),
                       _buildMenuTile(
@@ -226,7 +282,8 @@ class ProfileScreen2 extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => OrderHistoryScreen(userId: user.uid),
+                              builder: (context) =>
+                                  OrderHistoryScreen(userId: user.uid),
                             ),
                           );
                         },
@@ -243,7 +300,8 @@ class ProfileScreen2 extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const MorningOrdersListScreen(),
+                              builder: (context) =>
+                                  const MorningOrdersListScreen(),
                             ),
                           );
                         },
@@ -253,7 +311,15 @@ class ProfileScreen2 extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 24),
-                const Text("Legal & Policies", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8), letterSpacing: 0.5)),
+                const Text(
+                  "Legal & Policies",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF94A3B8),
+                    letterSpacing: 0.5,
+                  ),
+                ),
                 const SizedBox(height: 12),
 
                 // --- 📜 LEGAL & POLICIES SECTION ---
@@ -262,7 +328,11 @@ class ProfileScreen2 extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 4)),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                     border: Border.all(color: _cardBorder.withOpacity(0.6)),
                   ),
@@ -274,7 +344,9 @@ class ProfileScreen2 extends StatelessWidget {
                         iconBg: const Color(0xFFF3E8FF),
                         iconColor: const Color(0xFF7E22CE),
                         title: "Privacy Policy",
-                        onTap: () => _launchURL("https://sites.google.com/view/fastever-privacy"),
+                        onTap: () => _launchURL(
+                          "https://sites.google.com/view/fastever-privacy",
+                        ),
                       ),
                       _buildDivider(),
                       _buildMenuTile(
@@ -283,7 +355,9 @@ class ProfileScreen2 extends StatelessWidget {
                         iconBg: const Color(0xFFF3E8FF),
                         iconColor: const Color(0xFF7E22CE),
                         title: "Terms and Conditions",
-                        onTap: () => _launchURL("https://sites.google.com/view/fastever-termsconditions"),
+                        onTap: () => _launchURL(
+                          "https://sites.google.com/view/fastever-termsconditions",
+                        ),
                       ),
                       _buildDivider(),
                       _buildMenuTile(
@@ -292,7 +366,9 @@ class ProfileScreen2 extends StatelessWidget {
                         iconBg: const Color(0xFFF3E8FF),
                         iconColor: const Color(0xFF7E22CE),
                         title: "Shopping Policy",
-                        onTap: () => _launchURL("https://sites.google.com/view/fastever-shopping-policy"),
+                        onTap: () => _launchURL(
+                          "https://sites.google.com/view/fastever-shopping-policy",
+                        ),
                       ),
                       _buildDivider(),
                       _buildMenuTile(
@@ -301,7 +377,9 @@ class ProfileScreen2 extends StatelessWidget {
                         iconBg: const Color(0xFFF3E8FF),
                         iconColor: const Color(0xFF7E22CE),
                         title: "Refund & Cancellation",
-                        onTap: () => _launchURL("https://sites.google.com/view/fastever-refund-policy"),
+                        onTap: () => _launchURL(
+                          "https://sites.google.com/view/fastever-refund-policy",
+                        ),
                       ),
                     ],
                   ),
@@ -315,7 +393,11 @@ class ProfileScreen2 extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 4)),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                     border: Border.all(color: _cardBorder.withOpacity(0.6)),
                   ),
@@ -347,20 +429,32 @@ class ProfileScreen2 extends StatelessWidget {
                       if (context.mounted) {
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
                           (route) => false,
                         );
                       }
                     },
-                    icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 20),
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     label: const Text(
                       "Logout",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _primaryDark,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 ),
@@ -410,26 +504,43 @@ class ProfileScreen2 extends StatelessWidget {
         ),
       ),
       subtitle: subtitle != null
-          ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))
+          ? Text(
+              subtitle,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            )
           : null,
-      trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF94A3B8)),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        size: 20,
+        color: Color(0xFF94A3B8),
+      ),
       onTap: onTap,
     );
   }
 
   // --- ✏️ EDIT PROFILE DIALOG ---
   void _showEditProfileDialog(
-      BuildContext context, String uid, Map<String, dynamic> currentData) {
+    BuildContext context,
+    String uid,
+    Map<String, dynamic> currentData,
+  ) {
     final nameController = TextEditingController(text: currentData['name']);
-    final addressController = TextEditingController(text: currentData['address']);
-    final locationController = TextEditingController(text: currentData['location']);
+    final addressController = TextEditingController(
+      text: currentData['address'],
+    );
+    final locationController = TextEditingController(
+      text: currentData['location'],
+    );
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Edit Profile", style: TextStyle(fontWeight: FontWeight.bold, color: _primaryDark)),
+        title: const Text(
+          "Edit Profile",
+          style: TextStyle(fontWeight: FontWeight.bold, color: _primaryDark),
+        ),
         content: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Column(
@@ -442,7 +553,10 @@ class ProfileScreen2 extends StatelessWidget {
                   labelText: "Full Name",
                   filled: true,
                   fillColor: _bgColor,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -452,7 +566,10 @@ class ProfileScreen2 extends StatelessWidget {
                   labelText: "Address",
                   filled: true,
                   fillColor: _bgColor,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -462,19 +579,31 @@ class ProfileScreen2 extends StatelessWidget {
                   labelText: "Location Link (Google Maps)",
                   filled: true,
                   fillColor: _bgColor,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text("Phone number cannot be changed.",
-                  style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.w600)),
+              const Text(
+                "Phone number cannot be changed.",
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
           ),
           FilledButton(
             onPressed: () async {
@@ -482,15 +611,26 @@ class ProfileScreen2 extends StatelessWidget {
                   .collection("users")
                   .doc(uid)
                   .update({
-                'name': nameController.text.trim(),
-                'address': addressController.text.trim(),
-                'location': locationController.text.trim(),
-                'updatedAt': FieldValue.serverTimestamp(),
-              });
+                    'name': nameController.text.trim(),
+                    'address': addressController.text.trim(),
+                    'location': locationController.text.trim(),
+                    'updatedAt': FieldValue.serverTimestamp(),
+                  });
               if (context.mounted) Navigator.pop(context);
             },
-            style: FilledButton.styleFrom(backgroundColor: _primaryDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: FilledButton.styleFrom(
+              backgroundColor: _primaryDark,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              "Save",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

@@ -6,10 +6,7 @@ import 'ad_poster_screen.dart';
 class PostAuthAdGate extends StatefulWidget {
   final Widget nextScreen;
 
-  const PostAuthAdGate({
-    Key? key,
-    required this.nextScreen,
-  }) : super(key: key);
+  const PostAuthAdGate({Key? key, required this.nextScreen}) : super(key: key);
 
   @override
   State<PostAuthAdGate> createState() => _PostAuthAdGateState();
@@ -79,9 +76,7 @@ class _PostAuthAdGateState extends State<PostAuthAdGate> {
     if (_loading) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.white70),
-        ),
+        body: Center(child: CircularProgressIndicator(color: Colors.white70)),
       );
     }
 
@@ -91,9 +86,6 @@ class _PostAuthAdGateState extends State<PostAuthAdGate> {
     }
 
     // 🖼️ Ad (instant display, no delay)
-    return AdPosterScreen(
-      imageUrl: _imageUrl!,
-      nextScreen: widget.nextScreen,
-    );
+    return AdPosterScreen(imageUrl: _imageUrl!, nextScreen: widget.nextScreen);
   }
 }

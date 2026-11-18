@@ -60,8 +60,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
   void _clearMorningCartBar() {
     // ✅ Hide/clear cart when reaching confirmation screen
     Future.delayed(Duration.zero, () {
-      final cartProvider =
-          Provider.of<MorningCartProvider>(context, listen: false);
+      final cartProvider = Provider.of<MorningCartProvider>(
+        context,
+        listen: false,
+      );
       cartProvider.clearCart();
     });
   }
@@ -73,43 +75,58 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return;
 
-      final bookingRef =
-          FirebaseFirestore.instance.collection('morningbooking').doc();
+      final bookingRef = FirebaseFirestore.instance
+          .collection('morningbooking')
+          .doc();
 
       // Platform fee calculation logic to mirror structural segregation requirements
-      double platformFee = widget.total - (widget.subtotal - widget.discount + widget.deliveryFee);
+      double platformFee =
+          widget.total -
+          (widget.subtotal - widget.discount + widget.deliveryFee);
       if (platformFee < 0) platformFee = 0.0;
 
       final bookingData = {
         "orderId": bookingRef.id,
         "userId": currentUser.uid, // ✅ Matches screenshot user ID
-        "items": widget.items.map((item) => {
-              "id": item['id'] ?? '',
-              "name": item['name'] ?? '',
-              "price": (item['price'] ?? 0).toDouble(),
-              "quantity": item['quantity'] ?? 1,
-              "image": item['image'] ?? '', // ✅ Supports Base64 string
-            }).toList(),
+        "items": widget.items
+            .map(
+              (item) => {
+                "id": item['id'] ?? '',
+                "name": item['name'] ?? '',
+                "price": (item['price'] ?? 0).toDouble(),
+                "quantity": item['quantity'] ?? 1,
+                "image": item['image'] ?? '', // ✅ Supports Base64 string
+              },
+            )
+            .toList(),
         "subtotal": widget.subtotal, // ✅ Stored separately
         "discount": widget.discount, // ✅ Stored separately
         "deliveryFee": widget.deliveryFee, // ✅ Stored separately
-        "platformFee": double.parse(platformFee.toStringAsFixed(2)), // ✅ Stored separately
+        "platformFee": double.parse(
+          platformFee.toStringAsFixed(2),
+        ), // ✅ Stored separately
         "total": widget.total, // ✅ Stored separately
         "address": widget.address,
         "payment": widget.payment,
-        "paymentStatus": "waiting for grant", // 👈 Added paymentStatus field here
+        "paymentStatus":
+            "waiting for grant", // 👈 Added paymentStatus field here
         "deliveryTime": widget.deliveryTime, // ✅ Matches screenshot slot
-        "deliveryDate": Timestamp.fromDate(widget.deliveryDate), // <-- NEW: Storing delivery date
+        "deliveryDate": Timestamp.fromDate(
+          widget.deliveryDate,
+        ), // <-- NEW: Storing delivery date
         "latitude": widget.latitude, // <-- NEW: Storing latitude
         "longitude": widget.longitude, // <-- NEW: Storing longitude
         "status": "booked",
-        "timestamp": FieldValue.serverTimestamp(), // ✅ Matches screenshot timestamp
+        "timestamp":
+            FieldValue.serverTimestamp(), // ✅ Matches screenshot timestamp
       };
 
       await bookingRef.set(bookingData);
       setState(() => _orderSaved = true);
 
-      debugPrint("✅ Morning order saved: ${bookingRef.id} with Lat: ${widget.latitude}, Lng: ${widget.longitude}");
+      debugPrint(
+        "✅ Morning order saved: ${bookingRef.id} with Lat: ${widget.latitude}, Lng: ${widget.longitude}",
+      );
     } catch (e) {
       debugPrint("❌ Error saving morning order: $e");
     }
@@ -125,7 +142,8 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-              builder: (context) => const MorningOrderHomeScreen()),
+            builder: (context) => const MorningOrderHomeScreen(),
+          ),
           (Route<dynamic> route) => false,
         );
         return false; // prevent going back to cart
@@ -133,9 +151,13 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text("Morning Order Confirmation",
-              style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold, color: Colors.white)),
+          title: Text(
+            "Morning Order Confirmation",
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
           backgroundColor: primaryColor,
           iconTheme: const IconThemeData(color: Colors.white),
           automaticallyImplyLeading:
@@ -156,15 +178,19 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.check_circle_outline,
-                        size: 60, color: primaryColor),
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 60,
+                      color: primaryColor,
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       "Your Morning Order is Booked!",
                       style: GoogleFonts.poppins(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: primaryColor),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: primaryColor,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -186,8 +212,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
-                    children:
-                        widget.items.map((item) => _buildItemRow(item)).toList()),
+                  children: widget.items
+                      .map((item) => _buildItemRow(item))
+                      .toList(),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -197,7 +225,8 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const MorningOrderHomeScreen()),
+                        builder: (_) => const MorningOrderHomeScreen(),
+                      ),
                       (route) => false,
                     );
                   },
@@ -205,10 +234,13 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                     backgroundColor: Colors.orange.shade400,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text("Change Items",
-                      style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    "Change Items",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
 
               const SizedBox(height: 24),
@@ -218,41 +250,60 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12)),
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Delivery Address:",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      "Delivery Address:",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
                     Text(widget.address),
-                    
+
                     // NEW: Display Coordinates for verification (Optional, can remove in production)
-                    if (widget.latitude != null && widget.longitude != null) ...[
+                    if (widget.latitude != null &&
+                        widget.longitude != null) ...[
                       const SizedBox(height: 8),
-                      Text("Lat: ${widget.latitude!.toStringAsFixed(6)}, Lng: ${widget.longitude!.toStringAsFixed(6)}",
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Text(
+                        "Lat: ${widget.latitude!.toStringAsFixed(6)}, Lng: ${widget.longitude!.toStringAsFixed(6)}",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
                     ],
-                    
+
                     const Divider(height: 20),
-                    const Text("Delivery Slot:",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      "Delivery Slot:",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6)),
-                      child: Text(widget.deliveryTime,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: primaryColor)),
+                        color: primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        widget.deliveryTime,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                        ),
+                      ),
                     ),
                     const Divider(height: 20),
-                    const Text("Payment Method:",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      "Payment Method:",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
                     Text(widget.payment),
                   ],
@@ -265,17 +316,26 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12)),
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   children: [
                     _buildSummaryRow("Item Total", widget.subtotal),
                     _buildSummaryRow("Delivery Fee", widget.deliveryFee),
-                    _buildSummaryRow("Discount", -widget.discount,
-                        color: Colors.green),
+                    _buildSummaryRow(
+                      "Discount",
+                      -widget.discount,
+                      color: Colors.green,
+                    ),
                     const Divider(height: 20, thickness: 1.5),
-                    _buildSummaryRow("Grand Total", widget.total,
-                        isBold: true, fontSize: 20, color: primaryColor),
+                    _buildSummaryRow(
+                      "Grand Total",
+                      widget.total,
+                      isBold: true,
+                      fontSize: 20,
+                      color: primaryColor,
+                    ),
                   ],
                 ),
               ),
@@ -285,22 +345,28 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
               ElevatedButton(
                 onPressed: () {
                   Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const MorningOrderHomeScreen()),
-                      (route) => false);
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MorningOrderHomeScreen(),
+                    ),
+                    (route) => false,
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("Back to Home",
-                    style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "Back to Home",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -310,11 +376,16 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
   }
 
   Widget _buildSectionTitle(String title, Color color) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(title,
-            style: GoogleFonts.poppins(
-                fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-      );
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text(
+      title,
+      style: GoogleFonts.poppins(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: color,
+      ),
+    ),
+  );
 
   Widget _buildItemRow(Map<String, dynamic> item) {
     final double price = (item['price'] as num?)?.toDouble() ?? 0;
@@ -328,19 +399,26 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
         final base64Str = imageUrl.split(',')[1];
         itemImage = Image.memory(
           base64Decode(base64Str),
-          width: 50, height: 50, fit: BoxFit.cover,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
         );
       } catch (e) {
         itemImage = const Icon(Icons.broken_image, size: 40);
       }
     } else if (imageUrl.startsWith('http')) {
       itemImage = Image.network(
-        imageUrl, width: 50, height: 50, fit: BoxFit.cover,
+        imageUrl,
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
       );
     } else {
       itemImage = Container(
-        width: 50, height: 50, color: Colors.grey.shade200,
+        width: 50,
+        height: 50,
+        color: Colors.grey.shade200,
         child: const Icon(Icons.image),
       );
     }
@@ -352,7 +430,9 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
         children: [
           // ✅ Sharp Square preview to maintain design consistency
           Container(
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300)),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+            ),
             child: itemImage,
           ),
           const SizedBox(width: 12),
@@ -360,38 +440,52 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item['name'] ?? "Item",
-                    style: const TextStyle(fontWeight: FontWeight.w500)),
-                Text("Quantity: $quantity",
-                    style: TextStyle(
-                        color: Colors.grey.shade600, fontSize: 13)),
+                Text(
+                  item['name'] ?? "Item",
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  "Quantity: $quantity",
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
               ],
             ),
           ),
-          Text("₹${(price * quantity).toStringAsFixed(2)}",
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            "₹${(price * quantity).toStringAsFixed(2)}",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(String label, double value,
-      {bool isBold = false, double fontSize = 16, Color? color}) {
+  Widget _buildSummaryRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    double fontSize = 16,
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
           Text(
             (value < 0 ? "-" : "") + "₹${value.abs().toStringAsFixed(2)}",
             style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                color: color),
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: color,
+            ),
           ),
         ],
       ),

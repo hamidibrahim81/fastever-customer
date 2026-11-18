@@ -24,7 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _phoneController.text = FirebaseAuth.instance.currentUser?.phoneNumber ?? "";
+    _phoneController.text =
+        FirebaseAuth.instance.currentUser?.phoneNumber ?? "";
   }
 
   @override
@@ -62,7 +63,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      _showSnackBar("Location permissions are permanently denied.", isError: true);
+      _showSnackBar(
+        "Location permissions are permanently denied.",
+        isError: true,
+      );
       setState(() => _gettingLocation = false);
       return;
     }
@@ -72,13 +76,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      
+
       setState(() {
         // ✅ FIX: Correct Google Maps Universal Link format
-        _locationController.text = 
+        _locationController.text =
             "https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}";
       });
-      
+
       _showSnackBar("Location fetched!", isError: false);
     } catch (e) {
       _showSnackBar("Failed to get location.");
@@ -92,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // -------------------------
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     // Validation: Ensure location is fetched
     if (_locationController.text.isEmpty) {
       _showSnackBar("Please tap the GPS icon to get your location.");
@@ -102,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _saving = true);
 
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    
+
     try {
       // ✅ FIX: Use SetOptions(merge: true) to prevent wiping other data
       await FirebaseFirestore.instance.collection("users").doc(uid).set({
@@ -112,8 +116,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         "location": _locationController.text.trim(),
         "updatedAt": FieldValue.serverTimestamp(),
         // Only set createdAt if it doesn't exist (handled by merge)
-      }, SetOptions(merge: true)); 
-      
+      }, SetOptions(merge: true));
+
       if (!mounted) return;
 
       // Success -> Go Home
@@ -145,7 +149,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Complete Profile", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Complete Profile",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -205,22 +212,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: InputDecoration(
                     labelText: "Delivery Location",
                     prefixIcon: const Icon(Icons.map_outlined),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     filled: true,
                     fillColor: Colors.grey[50],
                     suffixIcon: IconButton(
                       icon: _gettingLocation
                           ? const SizedBox(
-                              width: 20, 
-                              height: 20, 
-                              child: CircularProgressIndicator(strokeWidth: 2)
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.my_location, color: Colors.blueAccent),
+                          : const Icon(
+                              Icons.my_location,
+                              color: Colors.blueAccent,
+                            ),
                       onPressed: _gettingLocation ? null : _getLocation,
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
 
                 // Save Button
@@ -237,8 +249,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: _saving
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
-                            "Save & Continue", 
-                            style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)
+                            "Save & Continue",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   ),
                 ),

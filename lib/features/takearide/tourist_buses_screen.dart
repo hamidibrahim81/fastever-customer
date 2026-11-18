@@ -17,9 +17,7 @@ class TouristBusesScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TouristBusBookingFormScreen(
-          selectedBus: busData,
-        ),
+        builder: (_) => TouristBusBookingFormScreen(selectedBus: busData),
       ),
     );
   }
@@ -33,9 +31,7 @@ class TouristBusesScreen extends StatelessWidget {
         elevation: 6,
         shadowColor: Colors.black.withOpacity(0.3),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(24),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
@@ -50,15 +46,14 @@ class TouristBusesScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        actions: const [
-          NotificationBellIconButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [NotificationBellIconButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
           // Fetches live documents directly from the `tourist_bus` collection in Firestore
-          stream: FirebaseFirestore.instance.collection('tourist_bus').snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('tourist_bus')
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -166,7 +161,8 @@ class TouristBusesScreen extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           busName,
@@ -198,7 +194,7 @@ class TouristBusesScreen extends StatelessWidget {
                                       ],
                                     ),
                                   ),
-                                  
+
                                   // Book Bus Button
                                   ElevatedButton(
                                     style: ElevatedButton.styleFrom(
@@ -213,7 +209,10 @@ class TouristBusesScreen extends StatelessWidget {
                                         vertical: 12,
                                       ),
                                     ),
-                                    onPressed: () => _navigateToBooking(context, formattedBusData),
+                                    onPressed: () => _navigateToBooking(
+                                      context,
+                                      formattedBusData,
+                                    ),
                                     child: const Text(
                                       "Book Bus ➔",
                                       style: TextStyle(

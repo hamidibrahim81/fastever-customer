@@ -21,19 +21,19 @@ class DeliverySettings {
   final double platformFee;
 
   DeliverySettings.fromFirestore(Map<String, dynamic> data)
-      : baseFee = parseDouble(data['baseFee']),
-        baseKm = parseDouble(data['baseKm']),
-        maxDistanceKm = parseDouble(data['maxDistance']),
-        perKmFee = parseDouble(data['perKmFee']),
-        platformFee = parseDouble(data['platformFee']);
+    : baseFee = parseDouble(data['baseFee']),
+      baseKm = parseDouble(data['baseKm']),
+      maxDistanceKm = parseDouble(data['maxDistance']),
+      perKmFee = parseDouble(data['perKmFee']),
+      platformFee = parseDouble(data['platformFee']);
 
   static DeliverySettings get zero => DeliverySettings.fromFirestore({
-        'baseFee': 0.0,
-        'baseKm': 0.0,
-        'maxDistance': 0.0,
-        'perKmFee': 0.0,
-        'platformFee': 0.0,
-      });
+    'baseFee': 0.0,
+    'baseKm': 0.0,
+    'maxDistance': 0.0,
+    'perKmFee': 0.0,
+    'platformFee': 0.0,
+  });
 }
 
 // ===============================================
@@ -45,12 +45,15 @@ class InstahubStoreLocation {
   final double storeRadiusKm;
 
   InstahubStoreLocation.fromFirestore(Map<String, dynamic> data)
-      : latitude = parseDouble(data['latitude']),
-        longitude = parseDouble(data['longitude']),
-        storeRadiusKm = parseDouble(data['radiusKm']);
+    : latitude = parseDouble(data['latitude']),
+      longitude = parseDouble(data['longitude']),
+      storeRadiusKm = parseDouble(data['radiusKm']);
 
-  static InstahubStoreLocation get zero =>
-      InstahubStoreLocation.fromFirestore({'latitude': 0, 'longitude': 0, 'radiusKm': 0});
+  static InstahubStoreLocation get zero => InstahubStoreLocation.fromFirestore({
+    'latitude': 0,
+    'longitude': 0,
+    'radiusKm': 0,
+  });
 }
 
 class FeeBreakdown {
@@ -73,11 +76,17 @@ class FeeBreakdown {
   static FeeBreakdown get zero => FeeBreakdown();
 }
 
-double _calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+double _calculateDistanceKm(
+  double lat1,
+  double lon1,
+  double lat2,
+  double lon2,
+) {
   const r = 6371.0;
   final latDistance = (lat2 - lat1) * (math.pi / 180);
   final lonDistance = (lon2 - lon1) * (math.pi / 180);
-  final a = math.sin(latDistance / 2) * math.sin(latDistance / 2) +
+  final a =
+      math.sin(latDistance / 2) * math.sin(latDistance / 2) +
       math.cos(lat1 * (math.pi / 180)) *
           math.cos(lat2 * (math.pi / 180)) *
           math.sin(lonDistance / 2) *
@@ -149,10 +158,7 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
   }
 
   Future<FeeBreakdown> _initData() async {
-    await Future.wait([
-      _loadDeliverySettings(),
-      _loadInstahubStoreLocation(),
-    ]);
+    await Future.wait([_loadDeliverySettings(), _loadInstahubStoreLocation()]);
     return _calculateTotalFees();
   }
 
@@ -181,8 +187,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
           .get();
 
       if (doc.exists && doc.data() != null && mounted) {
-        _instahubStoreLocation =
-            InstahubStoreLocation.fromFirestore(doc.data()!);
+        _instahubStoreLocation = InstahubStoreLocation.fromFirestore(
+          doc.data()!,
+        );
       }
     } catch (e) {
       debugPrint("Error loading InstahubStoreLocation: $e");
@@ -209,7 +216,8 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) return;
+          permission == LocationPermission.deniedForever)
+        return;
 
       Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -239,8 +247,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
 
       if (mounted) {
         setState(() {
-          selectedAddress =
-              fullAddress.trim().isEmpty ? "No address saved yet" : fullAddress;
+          selectedAddress = fullAddress.trim().isEmpty
+              ? "No address saved yet"
+              : fullAddress;
 
           if (savedLat != 0.0 && savedLon != 0.0) {
             currentDeliveryPosition = Position(
@@ -311,8 +320,10 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
       deliveryPosition.longitude,
     );
 
-    final double effectiveMaxDistanceKm =
-        math.min(deliverySettings.maxDistanceKm, storeLocation.storeRadiusKm);
+    final double effectiveMaxDistanceKm = math.min(
+      deliverySettings.maxDistanceKm,
+      storeLocation.storeRadiusKm,
+    );
 
     bool isAvailable = distanceKm <= effectiveMaxDistanceKm;
     double deliveryCharge = 0.0;
@@ -335,9 +346,16 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
     );
   }
 
-  Future<void> _placeOrderAndSave(double subtotal, double discount, FeeBreakdown fees) async {
+  Future<void> _placeOrderAndSave(
+    double subtotal,
+    double discount,
+    FeeBreakdown fees,
+  ) async {
     if (currentDeliveryPosition == null) {
-      _showSnackBar("Please select a precise delivery address before checkout.", color: Colors.red);
+      _showSnackBar(
+        "Please select a precise delivery address before checkout.",
+        color: Colors.red,
+      );
       return;
     }
 
@@ -345,17 +363,27 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
     final double deliveryLon = currentDeliveryPosition!.longitude;
 
     if (deliveryLat == 0.0 && deliveryLon == 0.0) {
-      _showSnackBar("Missing or invalid location coordinates for delivery address. Please re-select on map.", color: Colors.red);
+      _showSnackBar(
+        "Missing or invalid location coordinates for delivery address. Please re-select on map.",
+        color: Colors.red,
+      );
       return;
     }
 
     if (!fees.isDeliveryAvailable) {
-      _showSnackBar("Your location is outside the delivery range of this store.", color: Colors.red);
+      _showSnackBar(
+        "Your location is outside the delivery range of this store.",
+        color: Colors.red,
+      );
       return;
     }
 
-    if (_deliveryType == 'Scheduled' && (_selectedScheduledDate == null || _selectedScheduledTime == null)) {
-      _showSnackBar("Please select delivery date and time for scheduled delivery.", color: Colors.red);
+    if (_deliveryType == 'Scheduled' &&
+        (_selectedScheduledDate == null || _selectedScheduledTime == null)) {
+      _showSnackBar(
+        "Please select delivery date and time for scheduled delivery.",
+        color: Colors.red,
+      );
       return;
     }
 
@@ -391,16 +419,19 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
         deliveryTimingDescription = "Quick Delivery (Within 30 minutes)";
       } else {
         scheduledDateStr = _selectedScheduledDate?.toIso8601String();
-        scheduledTimeStr = _selectedScheduledTime != null 
-            ? "${_selectedScheduledTime!.hour.toString().padLeft(2, '0')}:${_selectedScheduledTime!.minute.toString().padLeft(2, '0')}" 
+        scheduledTimeStr = _selectedScheduledTime != null
+            ? "${_selectedScheduledTime!.hour.toString().padLeft(2, '0')}:${_selectedScheduledTime!.minute.toString().padLeft(2, '0')}"
             : null;
-        deliveryTimingDescription = "Scheduled for: ${_selectedScheduledDate?.toLocal().toString().split(' ')[0]} at ${_selectedScheduledTime?.format(context)}";
+        deliveryTimingDescription =
+            "Scheduled for: ${_selectedScheduledDate?.toLocal().toString().split(' ')[0]} at ${_selectedScheduledTime?.format(context)}";
       }
 
       final orderData = {
         "userId": user.uid,
         "centreId": centreId,
-        "customerName": _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : "Customer",
+        "customerName": _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : "Customer",
         "phone": _phoneController.text.trim(),
         "address": selectedAddress,
         "latitude": deliveryLat,
@@ -471,9 +502,7 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
   void _showAddressSelectionScreen() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const ManageAddressScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const ManageAddressScreen()),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -503,8 +532,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
 
       if (mounted) {
         setState(() {
-          selectedAddress =
-              fullAddress.trim().isEmpty ? "No address saved yet" : fullAddress;
+          selectedAddress = fullAddress.trim().isEmpty
+              ? "No address saved yet"
+              : fullAddress;
           _nameController.text = result['recipient_name'] ?? '';
           _phoneController.text = result['phone'] ?? '';
           _addressController.text =
@@ -517,8 +547,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
 
         if (newDeliveryPosition == null) {
           _showSnackBar(
-              "Warning: Missing or invalid location data. Please ensure a precise location is picked on the map.",
-              color: Colors.orange);
+            "Warning: Missing or invalid location data. Please ensure a precise location is picked on the map.",
+            color: Colors.orange,
+          );
         }
       }
     }
@@ -526,12 +557,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
 
   void _showSnackBar(String message, {Color color = Colors.red}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   Future<void> _applyCoupon(double subtotal) async {
@@ -553,8 +581,10 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
           .get();
 
       if (usageCheck.docs.isNotEmpty) {
-        _showSnackBar("This coupon has already been used by you.",
-            color: Colors.orange);
+        _showSnackBar(
+          "This coupon has already been used by you.",
+          color: Colors.orange,
+        );
         _couponController.clear();
         setState(() {
           appliedCoupon = null;
@@ -612,8 +642,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
       }
 
       _showSnackBar(
-          'Coupon applied successfully! You saved ₹${discount.toStringAsFixed(2)}',
-          color: Colors.green);
+        'Coupon applied successfully! You saved ₹${discount.toStringAsFixed(2)}',
+        color: Colors.green,
+      );
     } catch (e) {
       _showSnackBar('Failed to apply coupon: $e');
     }
@@ -686,7 +717,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
             decoration: InputDecoration(
               labelText: "Writing on Cake (Optional)",
               hintText: "e.g., Happy Birthday John!",
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               filled: true,
               fillColor: Colors.white,
             ),
@@ -748,12 +781,18 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
               ),
             ],
           ),
-          if (_deliveryType == 'Scheduled' && _selectedScheduledDate != null && _selectedScheduledTime != null)
+          if (_deliveryType == 'Scheduled' &&
+              _selectedScheduledDate != null &&
+              _selectedScheduledTime != null)
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
                 "Scheduled for: ${_selectedScheduledDate!.toLocal().toString().split(' ')[0]} at ${_selectedScheduledTime!.format(context)}",
-                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
         ],
@@ -772,14 +811,19 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
         final matchingDocs = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>? ?? {};
           final rawTags = data['tags'];
-          
+
           List<String> tagsList = [];
           if (rawTags is List) {
-            tagsList = rawTags.map((e) => e.toString().trim().toLowerCase()).toList();
+            tagsList = rawTags
+                .map((e) => e.toString().trim().toLowerCase())
+                .toList();
           } else if (rawTags is String) {
-            tagsList = rawTags.split(',').map((e) => e.trim().toLowerCase()).toList();
+            tagsList = rawTags
+                .split(',')
+                .map((e) => e.trim().toLowerCase())
+                .toList();
           }
-          
+
           return tagsList.contains('cart_screen');
         }).toList();
 
@@ -787,7 +831,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
           return const SizedBox.shrink();
         }
 
-        int limitCount = _showAllSuggestedItems ? matchingDocs.length : math.min(3, matchingDocs.length);
+        int limitCount = _showAllSuggestedItems
+            ? matchingDocs.length
+            : math.min(3, matchingDocs.length);
         final displayedDocs = matchingDocs.take(limitCount).toList();
 
         return Column(
@@ -805,8 +851,13 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                       });
                     },
                     child: Text(
-                      _showAllSuggestedItems ? "Show Less" : "More (${matchingDocs.length - 3} more)",
-                      style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                      _showAllSuggestedItems
+                          ? "Show Less"
+                          : "More (${matchingDocs.length - 3} more)",
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -843,16 +894,26 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
                           child: imageUrl.isNotEmpty
                               ? CachedNetworkImage(
                                   imageUrl: imageUrl,
                                   height: 60,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => Container(height: 60, color: Colors.grey.shade200, child: const Icon(Icons.cake)),
+                                  errorWidget: (_, __, ___) => Container(
+                                    height: 60,
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(Icons.cake),
+                                  ),
                                 )
-                              : Container(height: 60, color: Colors.grey.shade200, child: const Icon(Icons.cake)),
+                              : Container(
+                                  height: 60,
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(Icons.cake),
+                                ),
                         ),
                         Expanded(
                           child: Padding(
@@ -868,27 +929,42 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                                       name,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                     const SizedBox(height: 1),
                                     Text(
                                       shopName,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 9, color: Colors.grey),
+                                      style: const TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text("₹${price.toInt()}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      "₹${price.toInt()}",
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     SizedBox(
                                       height: 24,
                                       child: ElevatedButton(
                                         onPressed: () {
                                           widget.onUpdateQuantity(itemId, 1);
-                                          if (!widget.cartItems.containsKey(itemId)) {
+                                          if (!widget.cartItems.containsKey(
+                                            itemId,
+                                          )) {
                                             widget.cartItems[itemId] = CartItem(
                                               id: itemId,
                                               name: name,
@@ -903,18 +979,32 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                                               quantity: 1,
                                             );
                                           } else {
-                                            widget.cartItems[itemId]!.quantity++;
+                                            widget
+                                                .cartItems[itemId]!
+                                                .quantity++;
                                           }
                                           setState(() {});
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.orange,
                                           foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
                                           elevation: 0,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
                                         ),
-                                        child: const Text("ADD", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                        child: const Text(
+                                          "ADD",
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -974,8 +1064,10 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                           height: 70,
                           width: 70,
                           color: AppColors.primary.withOpacity(0.05),
-                          child: const Icon(Icons.cake,
-                              color: AppColors.accent),
+                          child: const Icon(
+                            Icons.cake,
+                            color: AppColors.accent,
+                          ),
                         ),
                 ),
                 const SizedBox(width: 12),
@@ -1014,9 +1106,14 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                            minWidth: 32, minHeight: 34),
-                        icon: const Icon(Icons.remove,
-                            size: 14, color: Colors.white),
+                          minWidth: 32,
+                          minHeight: 34,
+                        ),
+                        icon: const Icon(
+                          Icons.remove,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                         onPressed: () {
                           widget.onUpdateQuantity(item.id, -1);
                           setState(() {});
@@ -1033,9 +1130,14 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                            minWidth: 32, minHeight: 34),
-                        icon: const Icon(Icons.add,
-                            size: 14, color: Colors.white),
+                          minWidth: 32,
+                          minHeight: 34,
+                        ),
+                        icon: const Icon(
+                          Icons.add,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                         onPressed: () {
                           widget.onUpdateQuantity(item.id, 1);
                           setState(() {});
@@ -1052,8 +1154,14 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
     );
   }
 
-  Widget _buildTotals(double subtotal, double deliveryCharge,
-      double platformFee, double discount, double total, bool isAvailable) {
+  Widget _buildTotals(
+    double subtotal,
+    double deliveryCharge,
+    double platformFee,
+    double discount,
+    double total,
+    bool isAvailable,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -1067,8 +1175,12 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
             _buildTotalRow("Delivery Charge", deliveryCharge),
             _buildTotalRow("Platform Fee", platformFee),
           ] else
-            _buildTotalRow("Delivery Charge & Fees", 0.0,
-                isUnavailable: true, color: Colors.red),
+            _buildTotalRow(
+              "Delivery Charge & Fees",
+              0.0,
+              isUnavailable: true,
+              color: Colors.red,
+            ),
           _buildTotalRow("Discount", -discount, color: Colors.green),
           const SizedBox(height: 8),
           const Divider(height: 1),
@@ -1079,26 +1191,33 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
     );
   }
 
-  Widget _buildTotalRow(String label, double value,
-      {bool isBold = false,
-      double fontSize = 16.0,
-      Color? color,
-      bool isUnavailable = false}) {
+  Widget _buildTotalRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    double fontSize = 16.0,
+    Color? color,
+    bool isUnavailable = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                  fontSize: fontSize)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: fontSize,
+            ),
+          ),
           Text(
             isUnavailable ? "N/A" : "₹${value.abs().toStringAsFixed(2)}",
             style: TextStyle(
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                fontSize: fontSize,
-                color: isUnavailable ? Colors.red : color),
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: fontSize,
+              color: isUnavailable ? Colors.red : color,
+            ),
           ),
         ],
       ),
@@ -1106,7 +1225,8 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
   }
 
   Widget _buildAddress() {
-    final bool hasValidCoords = currentDeliveryPosition != null &&
+    final bool hasValidCoords =
+        currentDeliveryPosition != null &&
         (currentDeliveryPosition!.latitude != 0.0 ||
             currentDeliveryPosition!.longitude != 0.0);
 
@@ -1160,9 +1280,10 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
               child: Text(
                 "Warning: Location coordinates are missing or zero. Tap 'Change' to set a precise location on the map.",
                 style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red.shade700,
-                    fontWeight: FontWeight.w500),
+                  fontSize: 12,
+                  color: Colors.red.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
         ],
@@ -1209,11 +1330,15 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                     fillColor: Colors.white,
                     filled: true,
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     suffixIcon: appliedCoupon != null
                         ? IconButton(
-                            icon: const Icon(Icons.check_circle,
-                                color: Colors.green),
+                            icon: const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            ),
                             onPressed: () {
                               _couponController.clear();
                               setState(() {
@@ -1229,22 +1354,30 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
               ),
               const SizedBox(width: 8),
               ElevatedButton(
-                onPressed:
-                    appliedCoupon != null ? null : () => _applyCoupon(subtotal),
+                onPressed: appliedCoupon != null
+                    ? null
+                    : () => _applyCoupon(subtotal),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      appliedCoupon != null ? Colors.green : Colors.orange,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  backgroundColor: appliedCoupon != null
+                      ? Colors.green
+                      : Colors.orange,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: appliedCoupon != null
-                    ? const Text("Applied",
-                        style: TextStyle(color: Colors.white))
-                    : const Text("Apply",
-                        style: TextStyle(color: Colors.white)),
+                    ? const Text(
+                        "Applied",
+                        style: TextStyle(color: Colors.white),
+                      )
+                    : const Text(
+                        "Apply",
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ],
           ),
@@ -1291,10 +1424,7 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                 SizedBox(height: 2),
                 Text(
                   "Pay in cash upon delivery",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -1361,32 +1491,44 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.shopping_cart_outlined,
-                      size: 64, color: AppColors.textLight),
+                  const Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 64,
+                    color: AppColors.textLight,
+                  ),
                   const SizedBox(height: 16),
-                  const Text("Your cart is empty",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary)),
+                  const Text(
+                    "Your cart is empty",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  const Text("Add some delicious treats to get started!",
-                      style: TextStyle(
-                          color: AppColors.textLight, fontSize: 13)),
+                  const Text(
+                    "Add some delicious treats to get started!",
+                    style: TextStyle(color: AppColors.textLight, fontSize: 13),
+                  ),
                   const SizedBox(height: 24),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text("Browse Cakes",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Browse Cakes",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -1397,8 +1539,10 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildOutOfRangeWarning(feeBreakdown.currentDistanceKm,
-                        feeBreakdown.maxDistanceKm),
+                    _buildOutOfRangeWarning(
+                      feeBreakdown.currentDistanceKm,
+                      feeBreakdown.maxDistanceKm,
+                    ),
                     _buildSectionTitle("Cart Items"),
                     _buildCartItems(items),
                     const SizedBox(height: 16),
@@ -1408,8 +1552,10 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                     const SizedBox(height: 24),
                     _buildSectionTitle("Order Summary"),
                     _buildTotals(
-                      items.fold(0.0,
-                          (sum, item) => sum + (item.price * item.quantity)),
+                      items.fold(
+                        0.0,
+                        (sum, item) => sum + (item.price * item.quantity),
+                      ),
                       feeBreakdown.deliveryCharge,
                       feeBreakdown.platformFee,
                       discountAmount,
@@ -1417,12 +1563,14 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                               ? items.fold(
                                       0.0,
                                       (sum, item) =>
-                                          sum + (item.price * item.quantity)) +
-                                  feeBreakdown.totalFee
+                                          sum + (item.price * item.quantity),
+                                    ) +
+                                    feeBreakdown.totalFee
                               : items.fold(
                                   0.0,
                                   (sum, item) =>
-                                      sum + (item.price * item.quantity))) -
+                                      sum + (item.price * item.quantity),
+                                )) -
                           discountAmount,
                       feeBreakdown.isDeliveryAvailable,
                     ),
@@ -1431,8 +1579,12 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                     _buildAddress(),
                     const SizedBox(height: 24),
                     _buildSectionTitle("Apply Coupon"),
-                    _buildCoupon(items.fold(0.0,
-                        (sum, item) => sum + (item.price * item.quantity))),
+                    _buildCoupon(
+                      items.fold(
+                        0.0,
+                        (sum, item) => sum + (item.price * item.quantity),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     _buildSectionTitle("Payment Method"),
                     _buildPayment(),
@@ -1446,7 +1598,9 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
           : Builder(
               builder: (context) {
                 final subtotal = items.fold(
-                    0.0, (sum, item) => sum + (item.price * item.quantity));
+                  0.0,
+                  (sum, item) => sum + (item.price * item.quantity),
+                );
                 final discount = discountAmount;
                 final bool isAvailable = feeBreakdown.isDeliveryAvailable;
 
@@ -1474,11 +1628,16 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                       onPressed: !canPlaceOrder
                           ? null
                           : () {
-                              _placeOrderAndSave(subtotal, discount, feeBreakdown);
+                              _placeOrderAndSave(
+                                subtotal,
+                                discount,
+                                feeBreakdown,
+                              );
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            canPlaceOrder ? AppColors.accent : Colors.grey,
+                        backgroundColor: canPlaceOrder
+                            ? AppColors.accent
+                            : Colors.grey,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -1489,12 +1648,13 @@ class _CakeCartScreenState extends State<CakeCartScreen> {
                         !isAddressSet
                             ? "Select Delivery Address"
                             : !isAvailable
-                                ? "Out of Delivery Range"
-                                : "Proceed to Checkout ₹${total.toStringAsFixed(2)} →",
+                            ? "Out of Delivery Range"
+                            : "Proceed to Checkout ₹${total.toStringAsFixed(2)} →",
                         style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),

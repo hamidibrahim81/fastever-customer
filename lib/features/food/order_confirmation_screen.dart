@@ -22,6 +22,7 @@ class OrderConfirmDialog extends StatelessWidget {
   final double total;
   final double deliveryFee;
   final double platformFee;
+  final double tipAmount;
   final String address;
   final String payment;
   final bool isPlacingOrder;
@@ -35,6 +36,7 @@ class OrderConfirmDialog extends StatelessWidget {
     required this.total,
     required this.deliveryFee,
     required this.platformFee,
+    this.tipAmount = 0.0,
     required this.address,
     required this.payment,
     required this.isPlacingOrder,
@@ -42,8 +44,12 @@ class OrderConfirmDialog extends StatelessWidget {
     this.instructions,
   });
 
-  Widget _buildBillRow(String label, double value,
-      {bool isBold = false, Color? color}) {
+  Widget _buildBillRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -58,11 +64,13 @@ class OrderConfirmDialog extends StatelessWidget {
             ),
           ),
           Text(
-            "₹${value.abs().toStringAsFixed(2)}",
+            "\u20B9${value.abs().toStringAsFixed(2)}",
             style: TextStyle(
               fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
               fontSize: isBold ? 16 : 14,
-              color: color ?? (isBold ? _AppTheme.accentOrange : _AppTheme.primaryDark),
+              color:
+                  color ??
+                  (isBold ? _AppTheme.accentOrange : _AppTheme.primaryDark),
             ),
           ),
         ],
@@ -144,8 +152,14 @@ class OrderConfirmDialog extends StatelessWidget {
             _buildBillRow('Subtotal', subtotal),
             _buildBillRow('Delivery Fee', deliveryFee),
             _buildBillRow('Platform Fee', platformFee),
+            if (tipAmount > 0)
+              _buildBillRow('Delivery Partner Tip', tipAmount),
             if (discount > 0)
-              _buildBillRow('Discount', -discount, color: _AppTheme.successGreen),
+              _buildBillRow(
+                'Discount',
+                -discount,
+                color: _AppTheme.successGreen,
+              ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
               child: Divider(height: 1, color: Color(0xFFF1F5F9)),
@@ -154,13 +168,25 @@ class OrderConfirmDialog extends StatelessWidget {
             const SizedBox(height: 16),
             const Divider(height: 1, color: Color(0xFFE2E8F0)),
             const SizedBox(height: 16),
-            _buildInfoSection(Icons.location_on_rounded, "DELIVERY ADDRESS", address),
+            _buildInfoSection(
+              Icons.location_on_rounded,
+              "DELIVERY ADDRESS",
+              address,
+            ),
             if (instructions != null && instructions!.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _buildInfoSection(Icons.note_alt_rounded, "INSTRUCTIONS", instructions!),
+              _buildInfoSection(
+                Icons.note_alt_rounded,
+                "INSTRUCTIONS",
+                instructions!,
+              ),
             ],
             const SizedBox(height: 12),
-            _buildInfoSection(Icons.payments_rounded, "PAYMENT METHOD", payment),
+            _buildInfoSection(
+              Icons.payments_rounded,
+              "PAYMENT METHOD",
+              payment,
+            ),
             const SizedBox(height: 16),
           ],
         ),
@@ -171,7 +197,10 @@ class OrderConfirmDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text(
             'Cancel',
-            style: TextStyle(color: _AppTheme.textMuted, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: _AppTheme.textMuted,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         ElevatedButton(
@@ -222,6 +251,7 @@ class OrderConfirmationScreen extends StatefulWidget {
   final String payment;
   final double deliveryFee;
   final double platformFee;
+  final double tipAmount;
   final String? appliedCouponCode;
   final double deliveryLatitude;
   final double deliveryLongitude;
@@ -237,6 +267,7 @@ class OrderConfirmationScreen extends StatefulWidget {
     required this.payment,
     required this.deliveryFee,
     required this.platformFee,
+    this.tipAmount = 0.0,
     this.appliedCouponCode,
     required this.deliveryLatitude,
     required this.deliveryLongitude,
@@ -244,7 +275,8 @@ class OrderConfirmationScreen extends StatefulWidget {
   });
 
   @override
-  State<OrderConfirmationScreen> createState() => _OrderConfirmationScreenState();
+  State<OrderConfirmationScreen> createState() =>
+      _OrderConfirmationScreenState();
 }
 
 class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
@@ -262,6 +294,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
       "payment": widget.payment,
       "deliveryFee": widget.deliveryFee,
       "platformFee": widget.platformFee,
+      "tipAmount": widget.tipAmount,
       "appliedCouponCode": widget.appliedCouponCode,
       "deliveryInstructions": widget.deliveryInstructions ?? "",
       "deliveryLatitude": widget.deliveryLatitude,
@@ -290,6 +323,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
         total: widget.total,
         deliveryFee: widget.deliveryFee,
         platformFee: widget.platformFee,
+        tipAmount: widget.tipAmount,
         address: widget.address,
         payment: widget.payment,
         isPlacingOrder: _isPlacingOrder,
@@ -299,9 +333,13 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
     );
   }
 
-  Widget _buildBillRow(String label, double value,
-      {bool isBold = false, Color? color}) {
-    String valueText = '₹${value.abs().toStringAsFixed(2)}';
+  Widget _buildBillRow(
+    String label,
+    double value, {
+    bool isBold = false,
+    Color? color,
+  }) {
+    String valueText = '\u20B9${value.abs().toStringAsFixed(2)}';
     if (value < 0) {
       valueText = '- $valueText';
     }
@@ -324,7 +362,9 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
             style: TextStyle(
               fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
               fontSize: isBold ? 18 : 14,
-              color: color ?? (isBold ? _AppTheme.accentOrange : _AppTheme.primaryDark),
+              color:
+                  color ??
+                  (isBold ? _AppTheme.accentOrange : _AppTheme.primaryDark),
             ),
           ),
         ],
@@ -403,13 +443,21 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
       appBar: AppBar(
         title: const Text(
           "Confirm Order",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: _AppTheme.primaryDark),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: _AppTheme.primaryDark,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _AppTheme.primaryDark, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: _AppTheme.primaryDark,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -426,11 +474,19 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.restaurant_menu_rounded, color: _AppTheme.accentOrange, size: 20),
+                      Icon(
+                        Icons.restaurant_menu_rounded,
+                        color: _AppTheme.accentOrange,
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         "Order Items",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _AppTheme.primaryDark),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: _AppTheme.primaryDark,
+                        ),
                       ),
                     ],
                   ),
@@ -446,33 +502,50 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                     itemBuilder: (context, index) {
                       final item = widget.items[index];
                       final name = item["name"] as String? ?? 'Unnamed';
-                      final price = double.tryParse(item["price"].toString()) ?? 0.0;
-                      final quantity = int.tryParse(item["quantity"].toString()) ?? 0;
+                      final price =
+                          double.tryParse(item["price"].toString()) ?? 0.0;
+                      final quantity =
+                          int.tryParse(item["quantity"].toString()) ?? 0;
 
                       return Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: _AppTheme.primaryDark.withOpacity(0.06),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               "${quantity}x",
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: _AppTheme.primaryDark),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: _AppTheme.primaryDark,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               name,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _AppTheme.primaryDark),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _AppTheme.primaryDark,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Text(
-                            "₹${(price * quantity).toStringAsFixed(2)}",
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _AppTheme.primaryDark),
+                            "\u20B9${(price * quantity).toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: _AppTheme.primaryDark,
+                            ),
                           ),
                         ],
                       );
@@ -489,11 +562,19 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.receipt_long_rounded, color: _AppTheme.accentOrange, size: 20),
+                      Icon(
+                        Icons.receipt_long_rounded,
+                        color: _AppTheme.accentOrange,
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         "Bill Details",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _AppTheme.primaryDark),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: _AppTheme.primaryDark,
+                        ),
                       ),
                     ],
                   ),
@@ -501,11 +582,21 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                   _buildBillRow("Subtotal", widget.subtotal),
                   _buildBillRow("Delivery Fee", widget.deliveryFee),
                   _buildBillRow("Platform Fee", widget.platformFee),
+                  if (widget.tipAmount > 0)
+                    _buildBillRow("Delivery Partner Tip", widget.tipAmount),
                   if (widget.discount > 0)
-                    _buildBillRow("Discount", -widget.discount, color: _AppTheme.successGreen),
+                    _buildBillRow(
+                      "Discount",
+                      -widget.discount,
+                      color: _AppTheme.successGreen,
+                    ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0),
-                    child: Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFE2E8F0),
+                    ),
                   ),
                   _buildBillRow("To Pay", widget.total, isBold: true),
                 ],
@@ -516,25 +607,42 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
             _buildCardContainer(
               child: Column(
                 children: [
-                  _buildInfoSection(Icons.location_on_rounded, "DELIVERY ADDRESS", widget.address),
-                  if (widget.deliveryInstructions != null && widget.deliveryInstructions!.isNotEmpty) ...[
+                  _buildInfoSection(
+                    Icons.location_on_rounded,
+                    "DELIVERY ADDRESS",
+                    widget.address,
+                  ),
+                  if (widget.deliveryInstructions != null &&
+                      widget.deliveryInstructions!.isNotEmpty) ...[
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14.0),
                       child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                     ),
-                    _buildInfoSection(Icons.note_alt_rounded, "DELIVERY INSTRUCTIONS", widget.deliveryInstructions!),
+                    _buildInfoSection(
+                      Icons.note_alt_rounded,
+                      "DELIVERY INSTRUCTIONS",
+                      widget.deliveryInstructions!,
+                    ),
                   ],
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14.0),
                     child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                   ),
-                  _buildInfoSection(Icons.payments_rounded, "PAYMENT METHOD", widget.payment),
+                  _buildInfoSection(
+                    Icons.payments_rounded,
+                    "PAYMENT METHOD",
+                    widget.payment,
+                  ),
                   if (widget.appliedCouponCode != null) ...[
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14.0),
                       child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                     ),
-                    _buildInfoSection(Icons.local_offer_rounded, "APPLIED COUPON", widget.appliedCouponCode!),
+                    _buildInfoSection(
+                      Icons.local_offer_rounded,
+                      "APPLIED COUPON",
+                      widget.appliedCouponCode!,
+                    ),
                   ],
                 ],
               ),
@@ -556,7 +664,9 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                 ),
                 elevation: 0,
               ),
-              onPressed: _isPlacingOrder ? null : () => _showOrderConfirmationDialog(context),
+              onPressed: _isPlacingOrder
+                  ? null
+                  : () => _showOrderConfirmationDialog(context),
               child: _isPlacingOrder
                   ? const SizedBox(
                       height: 20,
@@ -568,7 +678,11 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                     )
                   : const Text(
                       "Place Order",
-                      style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
           ),

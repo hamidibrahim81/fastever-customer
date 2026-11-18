@@ -13,15 +13,43 @@ class OtherServicesScreen extends StatelessWidget {
   static const Color textLight = Color(0xFF6B7280);
 
   List<Map<String, dynamic>> get allServices => [
-        // Updated the image path to homee.png below
-        {'title': 'Home Service', 'image': 'assets/instahub/homee.jpeg', 'screen': const HomeServicesScreen()},
-        {'title': 'Laundry', 'image': 'assets/instahub/laundryy.jpeg', 'screen': null},
-        {'title': 'Car Wash', 'image': 'assets/instahub/carwashh.jpeg', 'screen': null}, 
-        {'title': 'Book Your Time', 'image': 'assets/instahub/bookyy.jpeg', 'screen': null}, // Replace with destination when ready
-        {'title': 'Events', 'image': 'assets/instahub/eventyy.jpeg', 'screen': null},
-        {'title': 'Take Ride', 'image': 'assets/instahub/ridey.jpeg', 'screen': null},
-        {'title': 'Pharmacy', 'image': 'assets/instahub/pharmacyy.jpeg', 'screen': null},
-      ];
+    // Updated the image path to homee.png below
+    {
+      'title': 'Home Service',
+      'image': 'assets/instahub/homee.jpeg',
+      'screen': const HomeServicesScreen(),
+    },
+    {
+      'title': 'Laundry',
+      'image': 'assets/instahub/laundryy.jpeg',
+      'screen': null,
+    },
+    {
+      'title': 'Car Wash',
+      'image': 'assets/instahub/carwashh.jpeg',
+      'screen': null,
+    },
+    {
+      'title': 'Book Your Time',
+      'image': 'assets/instahub/bookyy.jpeg',
+      'screen': null,
+    }, // Replace with destination when ready
+    {
+      'title': 'Events',
+      'image': 'assets/instahub/eventyy.jpeg',
+      'screen': null,
+    },
+    {
+      'title': 'Take Ride',
+      'image': 'assets/instahub/ridey.jpeg',
+      'screen': null,
+    },
+    {
+      'title': 'Pharmacy',
+      'image': 'assets/instahub/pharmacyy.jpeg',
+      'screen': null,
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +64,11 @@ class OtherServicesScreen extends StatelessWidget {
         ),
         title: const Text(
           "All Services 🌟",
-          style: TextStyle(color: primary, fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+            color: primary,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
         centerTitle: true,
       ),
@@ -50,17 +82,25 @@ class OtherServicesScreen extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: 0.88, // Matches your Quick Services grid design language
+              childAspectRatio:
+                  0.88, // Matches your Quick Services grid design language
             ),
             itemBuilder: (context, index) {
               final item = allServices[index];
               return GestureDetector(
                 onTap: () {
                   if (item['screen'] != null) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => item['screen']));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => item['screen']),
+                    );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("${item['title']} system module coming online soon!")),
+                      SnackBar(
+                        content: Text(
+                          "${item['title']} system module coming online soon!",
+                        ),
+                      ),
                     );
                   }
                 },
@@ -69,7 +109,11 @@ class OtherServicesScreen extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 12, offset: const Offset(0, 4))
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                     border: Border.all(color: Colors.black.withOpacity(0.03)),
                   ),
@@ -92,26 +136,37 @@ class OtherServicesScreen extends StatelessWidget {
                         Expanded(
                           flex: 3,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   item['title'],
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primary),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: primary,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 2),
                                 const Text(
                                   "Tap to book",
-                                  style: TextStyle(fontSize: 10, color: textLight, fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: textLight,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),

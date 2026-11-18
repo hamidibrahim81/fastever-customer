@@ -109,13 +109,13 @@ class _LabsListScreenState extends State<LabsListScreen> {
         title: const Text(
           "Nearby Diagnostic Labs 🔬",
           style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
-        actions: const [
-          NotificationBellIconButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [NotificationBellIconButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: _isLoadingPosition
@@ -128,19 +128,23 @@ class _LabsListScreenState extends State<LabsListScreen> {
                     Text(
                       "Locating nearby labs...",
                       style: TextStyle(
-                          color: textLight,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600),
+                        color: textLight,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
               )
             : StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('labs').snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('labs')
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                        child: CircularProgressIndicator(color: themePurple));
+                      child: CircularProgressIndicator(color: themePurple),
+                    );
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -148,9 +152,10 @@ class _LabsListScreenState extends State<LabsListScreen> {
                       child: Text(
                         "No diagnostic labs available right now.",
                         style: TextStyle(
-                            fontSize: 14,
-                            color: textLight,
-                            fontWeight: FontWeight.bold),
+                          fontSize: 14,
+                          color: textLight,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     );
                   }
@@ -160,7 +165,9 @@ class _LabsListScreenState extends State<LabsListScreen> {
                   List<Map<String, dynamic>> labsList = docs.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     double distance = _calculateDistance(
-                        data['latitude'], data['longitude']);
+                      data['latitude'],
+                      data['longitude'],
+                    );
 
                     return {
                       'centre_id': data['centre_id'] ?? doc.id,
@@ -175,8 +182,11 @@ class _LabsListScreenState extends State<LabsListScreen> {
                   }).toList();
 
                   if (_currentPosition != null) {
-                    labsList.sort((a, b) => (a['distance_km'] as double)
-                        .compareTo(b['distance_km'] as double));
+                    labsList.sort(
+                      (a, b) => (a['distance_km'] as double).compareTo(
+                        b['distance_km'] as double,
+                      ),
+                    );
                   }
 
                   return ListView.separated(
@@ -203,7 +213,9 @@ class _LabsListScreenState extends State<LabsListScreen> {
                               offset: const Offset(0, 4),
                             ),
                           ],
-                          border: Border.all(color: Colors.black.withOpacity(0.05)),
+                          border: Border.all(
+                            color: Colors.black.withOpacity(0.05),
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(24),
@@ -225,39 +237,53 @@ class _LabsListScreenState extends State<LabsListScreen> {
                                                 fit: BoxFit.cover,
                                                 errorBuilder: (_, __, ___) =>
                                                     Container(
-                                                  color: themePurple.withOpacity(0.1),
-                                                  child: const Icon(
-                                                      Icons.science_rounded,
-                                                      size: 50,
-                                                      color: themePurple),
-                                                ),
+                                                      color: themePurple
+                                                          .withOpacity(0.1),
+                                                      child: const Icon(
+                                                        Icons.science_rounded,
+                                                        size: 50,
+                                                        color: themePurple,
+                                                      ),
+                                                    ),
                                               )
                                             : Container(
-                                                color: themePurple.withOpacity(0.1),
+                                                color: themePurple.withOpacity(
+                                                  0.1,
+                                                ),
                                                 child: const Icon(
-                                                    Icons.science_rounded,
-                                                    size: 50,
-                                                    color: themePurple),
+                                                  Icons.science_rounded,
+                                                  size: 50,
+                                                  color: themePurple,
+                                                ),
                                               ),
                                       ),
 
                                       // Distance Badge Overlay
-                                      if (_currentPosition != null && distanceKm > 0)
+                                      if (_currentPosition != null &&
+                                          distanceKm > 0)
                                         Positioned(
                                           top: 12,
                                           right: 12,
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 6),
+                                              horizontal: 10,
+                                              vertical: 6,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: primaryColor.withOpacity(0.9),
-                                              borderRadius: BorderRadius.circular(20),
+                                              color: primaryColor.withOpacity(
+                                                0.9,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                const Icon(Icons.near_me_rounded,
-                                                    color: accentColor, size: 14),
+                                                const Icon(
+                                                  Icons.near_me_rounded,
+                                                  color: accentColor,
+                                                  size: 14,
+                                                ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   "${distanceKm.toStringAsFixed(1)} km away",
@@ -279,12 +305,14 @@ class _LabsListScreenState extends State<LabsListScreen> {
                                 Padding(
                                   padding: const EdgeInsets.all(16.0),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Expanded(
                                             child: Column(
@@ -303,9 +331,10 @@ class _LabsListScreenState extends State<LabsListScreen> {
                                                 Row(
                                                   children: [
                                                     const Icon(
-                                                        Icons.location_on_rounded,
-                                                        size: 15,
-                                                        color: accentColor),
+                                                      Icons.location_on_rounded,
+                                                      size: 15,
+                                                      color: accentColor,
+                                                    ),
                                                     const SizedBox(width: 4),
                                                     Text(
                                                       location.toUpperCase(),
@@ -324,9 +353,11 @@ class _LabsListScreenState extends State<LabsListScreen> {
                                                 Row(
                                                   children: [
                                                     const Icon(
-                                                        Icons.medical_services_outlined,
-                                                        size: 14,
-                                                        color: themePurple),
+                                                      Icons
+                                                          .medical_services_outlined,
+                                                      size: 14,
+                                                      color: themePurple,
+                                                    ),
                                                     const SizedBox(width: 4),
                                                     Text(
                                                       services.isNotEmpty
@@ -353,16 +384,22 @@ class _LabsListScreenState extends State<LabsListScreen> {
                                                 borderRadius:
                                                     BorderRadius.circular(12),
                                               ),
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 16, vertical: 10),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 10,
+                                                  ),
                                             ),
-                                            onPressed: () =>
-                                                _navigateToBooking(context, lab),
+                                            onPressed: () => _navigateToBooking(
+                                              context,
+                                              lab,
+                                            ),
                                             child: const Text(
                                               "Book Test ➔",
                                               style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ],

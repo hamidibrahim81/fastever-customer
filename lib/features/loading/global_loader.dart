@@ -13,10 +13,7 @@ class GlobalLoader {
     _isLoading.value = true;
     try {
       if (task != null) {
-        final results = await Future.wait([
-          Future.delayed(duration),
-          task(),
-        ]);
+        final results = await Future.wait([Future.delayed(duration), task()]);
         return results[1] as T?;
       } else {
         await Future.delayed(duration);

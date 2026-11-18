@@ -40,10 +40,7 @@ class MorningCartProvider extends ChangeNotifier {
 
     if (_items.containsKey(id)) {
       _items.update(id, (existing) {
-        return {
-          ...existing,
-          'quantity': (existing['quantity'] as int) + 1,
-        };
+        return {...existing, 'quantity': (existing['quantity'] as int) + 1};
       });
     } else {
       _items[id] = {
@@ -65,10 +62,7 @@ class MorningCartProvider extends ChangeNotifier {
 
     if (currentQuantity > 1) {
       _items.update(id, (existing) {
-        return {
-          ...existing,
-          'quantity': currentQuantity - 1,
-        };
+        return {...existing, 'quantity': currentQuantity - 1};
       });
     } else {
       _items.remove(id);

@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -22,89 +23,170 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   Timer? _navigationTimer;
+
   bool _navigated = false;
+
+  static const String _configCacheKey =
+      'fastever_force_update_config';
+
+  static const Duration _splashDuration =
+      Duration(seconds: 4);
+
+  static const Duration _firestoreTimeout =
+      Duration(seconds: 10);
 
   @override
   void initState() {
     super.initState();
-    _startNavigationTimer(const Duration(seconds: 4));
+
+    _startNavigationTimer();
   }
 
-  void _startNavigationTimer(Duration duration) {
+  void _startNavigationTimer() {
     _navigationTimer?.cancel();
-    _navigationTimer = Timer(duration, () => _navigateNext());
+
+    _navigationTimer = Timer(
+      _splashDuration,
+      _navigateNext,
+    );
   }
 
-  // MANDATORY FORCE UPDATE CHECK
-  Future<Widget?> _checkForceUpdate() async {
-    final info = await PackageInfo.fromPlatform();
-    final int currentBuild =
-        int.tryParse(info.buildNumber) ?? 0;
+  // --------------------------------------------------
+  // FORCE UPDATE CONFIGURATION
+  // --------------------------------------------------
 
-    debugPrint('FASTever installed build: $currentBuild');
+  Future<Map<String, dynamic>?> _getUpdateConfiguration() async {
+    final prefs = await SharedPreferences.getInstance();
 
-    debugPrint(
-      'FASTever Firebase project: '
-      '${FirebaseFirestore.instance.app.options.projectId}',
-    );
+    // First try to get the latest configuration from Firebase.
+    try {
+      final firestore = FirebaseFirestore.instance;
 
-    debugPrint(
-      'FASTever Firestore database: '
-      '${FirebaseFirestore.instance.databaseId}',
-    );
+      debugPrint(
+        'FASTever Firebase project: '
+        '${firestore.app.options.projectId}',
+      );
 
-    // FIRESTORE DOCUMENT DIAGNOSTIC CHECK
-    final firestore = FirebaseFirestore.instance;
+      debugPrint(
+        'FASTever Firestore database: '
+        '${firestore.databaseId}',
+      );
 
-    // IMPORTANT:
-    // The Firestore document ID has one leading space.
-    // Actual document ID: " customer_app"
-    final doc = await firestore
-        .collection('app_config')
-        .doc(' customer_app')
-        .get(const GetOptions(source: Source.server))
-        .timeout(const Duration(seconds: 12));
+      // IMPORTANT:
+      // Preserve the existing document ID.
+      // It contains one leading space.
+      final doc = await firestore
+          .collection('app_config')
+          .doc(' customer_app')
+          .get(
+            const GetOptions(source: Source.server),
+          )
+          .timeout(_firestoreTimeout);
 
-    debugPrint('FASTever document exists: ${doc.exists}');
-    debugPrint(
-      'FASTever document path: ${doc.reference.path}',
-    );
-    debugPrint('FASTever document data: ${doc.data()}');
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
 
-    // Inspect collection only if direct document is missing.
-    if (!doc.exists) {
-      try {
-        final query = await firestore
-            .collection('app_config')
-            .limit(10)
-            .get(const GetOptions(source: Source.server))
-            .timeout(const Duration(seconds: 12));
+        // Cache the last successful server configuration.
+        try {
+          await prefs.setString(
+            _configCacheKey,
+            jsonEncode(data),
+          );
 
-        debugPrint(
-          'FASTever app_config document count: '
-          '${query.docs.length}',
-        );
-
-        for (final item in query.docs) {
           debugPrint(
-            'FASTever document ID: ${item.id}',
+            'FASTever: Update configuration cached.',
+          );
+        } catch (e) {
+          debugPrint(
+            'FASTever cache save error: $e',
           );
         }
-      } catch (e) {
-        debugPrint(
-          'FASTever collection diagnostic error: $e',
-        );
-      }
-    }
 
-    if (!doc.exists || doc.data() == null) {
-      throw Exception(
-        'Force update configuration not found: '
-        'app_config/ customer_app',
+        debugPrint(
+          'FASTever: Latest server configuration loaded.',
+        );
+
+        return data;
+      }
+
+      debugPrint(
+        'FASTever: Update configuration document not found.',
+      );
+    } catch (e) {
+      debugPrint(
+        'FASTever: Server update check failed: $e',
       );
     }
 
-    final data = doc.data()!;
+    // ------------------------------------------------
+    // FALLBACK TO LAST SUCCESSFUL CONFIGURATION
+    // ------------------------------------------------
+
+    try {
+      final cachedData = prefs.getString(
+        _configCacheKey,
+      );
+
+      if (cachedData != null && cachedData.isNotEmpty) {
+        final decoded = jsonDecode(cachedData);
+
+        if (decoded is Map) {
+          debugPrint(
+            'FASTever: Using cached update configuration.',
+          );
+
+          return Map<String, dynamic>.from(decoded);
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        'FASTever: Cached configuration error: $e',
+      );
+    }
+
+    // No cached configuration means we cannot confirm
+    // that an update is mandatory.
+    // Allow the customer to continue into the application.
+
+    debugPrint(
+      'FASTever: No update configuration available. '
+      'Allowing application startup.',
+    );
+
+    return null;
+  }
+
+  // --------------------------------------------------
+  // FORCE UPDATE CHECK
+  // --------------------------------------------------
+
+  Future<Widget?> _checkForceUpdate() async {
+    int currentBuild = 0;
+
+    try {
+      final info = await PackageInfo.fromPlatform()
+          .timeout(const Duration(seconds: 8));
+
+      currentBuild = int.tryParse(info.buildNumber) ?? 0;
+
+      debugPrint(
+        'FASTever installed build: $currentBuild',
+      );
+    } catch (e) {
+      debugPrint(
+        'FASTever package information error: $e',
+      );
+
+      // Do not incorrectly block customers when
+      // package information cannot be retrieved.
+      return null;
+    }
+
+    final data = await _getUpdateConfiguration();
+
+    if (data == null) {
+      return null;
+    }
 
     final bool forceUpdate =
         data['forceUpdate'] == true;
@@ -121,16 +203,20 @@ class _SplashScreenState extends State<SplashScreen> {
                 ) ??
                 0;
 
-    debugPrint('FASTever forceUpdate: $forceUpdate');
+    debugPrint(
+      'FASTever forceUpdate: $forceUpdate',
+    );
+
     debugPrint(
       'FASTever minimum required build: '
       '$minimumBuildNumber',
     );
 
     if (forceUpdate &&
+        minimumBuildNumber > 0 &&
         currentBuild < minimumBuildNumber) {
       debugPrint(
-        'FASTever: MANDATORY UPDATE REQUIRED',
+        'FASTever: MANDATORY UPDATE REQUIRED.',
       );
 
       return ForceUpdateScreen(
@@ -152,95 +238,155 @@ class _SplashScreenState extends State<SplashScreen> {
     return null;
   }
 
-  void _navigateNext() async {
-    if (_navigated) return;
+  // --------------------------------------------------
+  // NAVIGATION
+  // --------------------------------------------------
+
+  Future<void> _navigateNext() async {
+    if (_navigated || !mounted) return;
+
     _navigated = true;
 
-    // Check mandatory update before home/profile navigation.
+    _navigationTimer?.cancel();
+
     Widget? updateScreen;
 
     try {
       updateScreen = await _checkForceUpdate();
     } catch (e, stackTrace) {
-      debugPrint("========== FASTEVER UPDATE ERROR ==========");
-      debugPrint("Error: $e");
-      debugPrint("Stack trace: $stackTrace");
-      debugPrint("===========================================");
-
-      if (!mounted) return;
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) =>
-              const ForceUpdateCheckErrorScreen(),
-        ),
+      debugPrint(
+        'FASTever update check unexpected error: $e',
       );
-      return;
-    }
 
-    if (updateScreen != null) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => updateScreen!),
-      );
-      return;
-    }
+      debugPrint('$stackTrace');
 
-    final user = FirebaseAuth.instance.currentUser;
-    final prefs = await SharedPreferences.getInstance();
-    Widget nextScreen;
-
-    if (user == null) {
-      nextScreen = const HomeScreen();
-    } else {
-      bool isProfileComplete = prefs.getBool('profile_${user.uid}') ?? false;
-
-      if (isProfileComplete) {
-        nextScreen = const HomeScreen();
-      } else {
-        try {
-          final doc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get()
-              .timeout(const Duration(seconds: 5));
-
-          if (doc.exists) {
-            final data = doc.data();
-            final String? name = data?['name']?.toString().trim();
-
-            if (name != null && name.isNotEmpty) {
-              await prefs.setBool('profile_${user.uid}', true);
-              nextScreen = const HomeScreen();
-            } else {
-              nextScreen = const ProfileScreen();
-            }
-          } else {
-            nextScreen = const ProfileScreen();
-          }
-        } catch (e) {
-          debugPrint('Splash Timeout/Error: $e');
-          nextScreen = const HomeScreen();
-        }
-      }
+      // Do not permanently block app startup
+      // because of a temporary update-check error.
+      updateScreen = null;
     }
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(PageRouteBuilder(
-      pageBuilder: (_, __, ___) => nextScreen,
-      transitionsBuilder: (_, animation, __, child) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-      transitionDuration: const Duration(milliseconds: 800),
-    ));
+    // Mandatory update screen.
+    if (updateScreen != null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => updateScreen!,
+        ),
+      );
+
+      return;
+    }
+
+    Widget nextScreen;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      final prefs = await SharedPreferences.getInstance();
+
+      if (!mounted) return;
+
+      // Customer is not logged in.
+      if (user == null) {
+        nextScreen = const HomeScreen();
+      } else {
+        final bool isProfileComplete =
+            prefs.getBool('profile_${user.uid}') ?? false;
+
+        if (isProfileComplete) {
+          nextScreen = const HomeScreen();
+        } else {
+          try {
+            final doc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get()
+                .timeout(
+                  const Duration(seconds: 7),
+                );
+
+            if (!mounted) return;
+
+            if (doc.exists) {
+              final data = doc.data();
+
+              final String? name =
+                  data?['name']?.toString().trim();
+
+              if (name != null && name.isNotEmpty) {
+                try {
+                  await prefs.setBool(
+                    'profile_${user.uid}',
+                    true,
+                  );
+                } catch (e) {
+                  debugPrint(
+                    'FASTever profile cache error: $e',
+                  );
+                }
+
+                nextScreen = const HomeScreen();
+              } else {
+                nextScreen = const ProfileScreen();
+              }
+            } else {
+              nextScreen = const ProfileScreen();
+            }
+          } catch (e) {
+            debugPrint(
+              'FASTever profile check error: $e',
+            );
+
+            // Preserve the previous fallback behavior.
+            nextScreen = const HomeScreen();
+          }
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint(
+        'FASTever navigation error: $e',
+      );
+
+      debugPrint('$stackTrace');
+
+      if (!mounted) return;
+
+      // Final fallback to avoid leaving customers
+      // stuck on the splash screen.
+      nextScreen = const HomeScreen();
+    }
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        transitionDuration:
+            const Duration(milliseconds: 800),
+      ),
+    );
   }
+
+  // --------------------------------------------------
+  // DISPOSE
+  // --------------------------------------------------
 
   @override
   void dispose() {
     _navigationTimer?.cancel();
     super.dispose();
   }
+
+  // --------------------------------------------------
+  // SPLASH UI
+  // --------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -251,10 +397,11 @@ class _SplashScreenState extends State<SplashScreen> {
           'assets/logo.json',
           width: 400,
           repeat: false,
-          onLoaded: (composition) {
-            _startNavigationTimer(composition.duration);
-          },
           errorBuilder: (context, error, stackTrace) {
+            debugPrint(
+              'FASTever splash animation error: $error',
+            );
+
             return const SizedBox.shrink();
           },
         ),
@@ -262,6 +409,10 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
+
+// ======================================================
+// FORCE UPDATE SCREEN
+// ======================================================
 
 class ForceUpdateScreen extends StatelessWidget {
   final String title;
@@ -278,10 +429,15 @@ class ForceUpdateScreen extends StatelessWidget {
   });
 
   Future<void> _openStore() async {
-    final url = Platform.isIOS ? appStoreUrl : playStoreUrl;
+    final url = Platform.isIOS
+        ? appStoreUrl
+        : playStoreUrl;
 
     if (url.isEmpty) {
-      debugPrint('Force update: Store URL is empty.');
+      debugPrint(
+        'FASTever force update: Store URL is empty.',
+      );
+
       return;
     }
 
@@ -290,7 +446,10 @@ class ForceUpdateScreen extends StatelessWidget {
     if (uri == null ||
         (uri.scheme != 'https' &&
             uri.scheme != 'market')) {
-      debugPrint('Force update: Invalid store URL.');
+      debugPrint(
+        'FASTever force update: Invalid store URL.',
+      );
+
       return;
     }
 
@@ -301,17 +460,21 @@ class ForceUpdateScreen extends StatelessWidget {
       );
 
       if (!opened) {
-        debugPrint('Force update: Could not open store.');
+        debugPrint(
+          'FASTever: Could not open application store.',
+        );
       }
     } catch (e) {
-      debugPrint('Force update store error: $e');
+      debugPrint(
+        'FASTever store opening error: $e',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: const Color(0xFFFFC400),
         body: SafeArea(
@@ -327,33 +490,56 @@ class ForceUpdateScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.system_update_alt, size: 70, color: Colors.black),
+                    const Icon(
+                      Icons.system_update_alt,
+                      size: 70,
+                      color: Colors.black,
+                    ),
+
                     const SizedBox(height: 20),
+
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+
                     const SizedBox(height: 12),
+
                     Text(
                       message,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 15, color: Colors.black54),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black54,
+                      ),
                     ),
+
                     const SizedBox(height: 24),
+
                     ElevatedButton(
                       onPressed: _openStore,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
-                        foregroundColor: const Color(0xFFFFC400),
-                        minimumSize: const Size(double.infinity, 52),
+                        foregroundColor:
+                            const Color(0xFFFFC400),
+                        minimumSize: const Size(
+                          double.infinity,
+                          52,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius:
+                              BorderRadius.circular(14),
                         ),
                       ),
                       child: const Text(
-                        "Update Now",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        'Update Now',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -367,14 +553,17 @@ class ForceUpdateScreen extends StatelessWidget {
   }
 }
 
-// Only shown when Firebase cannot verify the app version.
+// ======================================================
+// FORCE UPDATE CHECK FALLBACK SCREEN
+// ======================================================
+
 class ForceUpdateCheckErrorScreen extends StatelessWidget {
   const ForceUpdateCheckErrorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         backgroundColor: const Color(0xFFFFC400),
         body: Center(
@@ -388,7 +577,9 @@ class ForceUpdateCheckErrorScreen extends StatelessWidget {
                   size: 70,
                   color: Colors.black,
                 ),
+
                 const SizedBox(height: 20),
+
                 const Text(
                   'Unable to Check App Version',
                   textAlign: TextAlign.center,
@@ -397,14 +588,18 @@ class ForceUpdateCheckErrorScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 12),
+
                 const Text(
                   'Please check your internet connection '
                   'and try again.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 15),
                 ),
+
                 const SizedBox(height: 24),
+
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pushReplacement(

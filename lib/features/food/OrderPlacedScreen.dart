@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'cart/cart_provider.dart';
-import 'food_home_screen.dart'; 
+import '../home/home_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 class OrderPlacedScreen extends StatefulWidget {
@@ -19,7 +19,8 @@ class OrderPlacedScreen extends StatefulWidget {
 class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
   String? orderId;
   bool isLoading = true;
-  bool hasOrderRun = false; 
+  bool hasOrderRun = false;
+  bool _orderFailed = false;
 
   static const Color _primaryDark = Color(0xFF111827);
   static const Color _accentOrange = Color(0xFFFF6B00);
@@ -34,275 +35,401 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
     }
   }
 
+  double _asDouble(dynamic value) =>
+      value is num ? value.toDouble() : double.tryParse('$value') ?? 0.0;
+
+  int _asInt(dynamic value) =>
+      value is num ? value.toInt() : int.tryParse('$value') ?? 0;
+
   Future<void> _placeOrder() async {
-    if (hasOrderRun) return; 
-    setState(() => hasOrderRun = true);
+    if (hasOrderRun) return;
+    setState(() {
+      hasOrderRun = true;
+      _orderFailed = false;
+      isLoading = true;
+    });
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("User not signed in");
+      if (user == null) throw Exception('Please sign in again.');
 
-      // --- 1. DATA PREPARATION ---
-      final List allItems = (widget.orderData['items'] is List)
-          ? List.from(widget.orderData['items'])
-          : [];
-      
-      final double deliveryFee = double.tryParse(widget.orderData['deliveryFee'].toString()) ?? 0.0;
-      final double platformFee = double.tryParse(widget.orderData['platformFee'].toString()) ?? 0.0;
-      final double totalAmount = double.tryParse(widget.orderData['total'].toString()) ?? 0.0;
-      final double subtotal = double.tryParse(widget.orderData['subtotal'].toString()) ?? 0.0;
-      final double discount = double.tryParse(widget.orderData['discount'].toString()) ?? 0.0;
-      final String deliveryInstructions = widget.orderData['deliveryInstructions'] ?? "";
-
-      String primaryRestaurantId = widget.orderData['restaurantId']?.toString() ?? "UNKNOWN";
-      
-      if ((primaryRestaurantId == "UNKNOWN" || primaryRestaurantId.isEmpty) && allItems.isNotEmpty) {
-        final firstItem = Map<String, dynamic>.from(allItems.first as Map);
-        primaryRestaurantId = firstItem['restaurantId']?.toString() ?? "UNKNOWN";
+      final db = FirebaseFirestore.instance;
+      final rawItems = widget.orderData['items'];
+      if (rawItems is! List || rawItems.isEmpty) {
+        throw Exception('Your order contains no items.');
       }
 
-      if (primaryRestaurantId == "UNKNOWN") {
-        throw Exception("Critical Error: No Restaurant ID found in order data.");
-      }
-
-      final Map<String, List<Map<String, dynamic>>> itemsByRestaurant = {};
-      for (var item in allItems) {
-        final itemMap = Map<String, dynamic>.from(item as Map);
-        final String rId = itemMap['restaurantId']?.toString() ?? "UNKNOWN";
-        if (!itemsByRestaurant.containsKey(rId)) {
-          itemsByRestaurant[rId] = [];
+      final items = rawItems
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      final grouped = <String, List<Map<String, dynamic>>>{};
+      final quantities = <String, int>{};
+      final menuRefs = <String, DocumentReference<Map<String, dynamic>>>{};
+      for (final item in items) {
+        final restaurantId = (item['restaurantId'] ?? '').toString().trim();
+        final itemId = (item['id'] ?? '').toString().trim();
+        final quantity = _asInt(item['quantity']);
+        if (restaurantId.isEmpty || itemId.isEmpty || quantity <= 0) {
+          throw Exception('An item has invalid restaurant, ID, or quantity.');
         }
-        itemsByRestaurant[rId]!.add(itemMap);
+        grouped.putIfAbsent(restaurantId, () => []).add(item);
+        // Existing InstaHub products may not be stored in restaurants/menu.
+        if (restaurantId != 'instahub') {
+          final key = '$restaurantId/$itemId';
+          quantities[key] = (quantities[key] ?? 0) + quantity;
+          menuRefs[key] = db.collection('restaurants').doc(restaurantId)
+              .collection('menu').doc(itemId);
+        }
       }
 
-      final timestamp = FieldValue.serverTimestamp();
-      final createdDate = DateTime.now().toIso8601String();
-      final address = widget.orderData['address'] ?? "N/A";
-      final payment = widget.orderData['payment'] ?? "N/A";
-
-      Map<String, dynamic> location = {};
-      
-      final lat = widget.orderData['deliveryLatitude'];
-      final lng = widget.orderData['deliveryLongitude'];
-
-      if (lat != null && lng != null) {
-        location = {
-          "geoPoint": GeoPoint(lat, lng),
-          "latitude": lat,
-          "longitude": lng,
-        };
+      final subtotal = _asDouble(widget.orderData['subtotal']);
+      final discount = _asDouble(widget.orderData['discount']);
+      final deliveryFee = _asDouble(widget.orderData['deliveryFee']);
+      final platformFee = _asDouble(widget.orderData['platformFee']);
+      final tipAmount = _asDouble(widget.orderData['tipAmount']);
+      final total = _asDouble(widget.orderData['total']);
+      final expected = subtotal + deliveryFee + platformFee + tipAmount - discount;
+      if ([subtotal, discount, deliveryFee, platformFee, tipAmount, total]
+              .any((v) => !v.isFinite || v < 0) ||
+          (total - expected).abs() > 0.02) {
+        throw Exception('Order amount mismatch. Please return to cart.');
       }
 
-      final String userName = widget.orderData['name'] ?? user.displayName ?? "Valued Customer";
-      final String userPhone = widget.orderData['phone'] ?? user.phoneNumber ?? "N/A";
-
-      // STEP 2: MASTER ORDER
-      final masterOrderData = {
-        "userId": user.uid,
-        "userName": userName,
-        "userPhone": userPhone,
-        "items": allItems, 
-        "subtotal": subtotal,
-        "discount": discount,
-        "deliveryFee": deliveryFee, 
-        "platformFee": platformFee,
-        "total": totalAmount,
-        "timestamp": timestamp,
-        "createdAt": createdDate,
-        "status": "pending",
-        "restaurantId": primaryRestaurantId, 
-        "address": address,
-        "deliveryInstructions": deliveryInstructions, 
-        "payment": payment,
-        "location": location,
-        "destinationLocation": location["geoPoint"],
-        "appliedCouponCode": widget.orderData['appliedCouponCode'],
-        "platform": "flutter_customer_app",
+      final lat = _asDouble(widget.orderData['deliveryLatitude']);
+      final lng = _asDouble(widget.orderData['deliveryLongitude']);
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180 ||
+          (lat == 0 && lng == 0)) {
+        throw Exception('Please choose a valid delivery location.');
+      }
+      final geoPoint = GeoPoint(lat, lng);
+      final location = <String, dynamic>{
+        'geoPoint': geoPoint,
+        'latitude': lat,
+        'longitude': lng,
       };
+      final address = (widget.orderData['address'] ?? '').toString();
+      final payment = (widget.orderData['payment'] ?? 'COD').toString();
+      final instructions =
+          (widget.orderData['deliveryInstructions'] ?? '').toString();
+      final coupon = widget.orderData['appliedCouponCode']?.toString().trim();
+      final createdAt = DateTime.now().toIso8601String();
+      final timestamp = FieldValue.serverTimestamp();
+      final primaryRestaurantId = grouped.keys.first;
+      final restaurantIds = grouped.keys.toList();
 
-      final DocumentReference masterRef = await FirebaseFirestore.instance
-          .collection("orders")
-          .add(masterOrderData);
+      String fcmToken = '';
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+      } catch (e) {
+        debugPrint('FCM token unavailable: $e');
+      }
 
-      await masterRef.update({"orderId": masterRef.id});
+      // All order records use the order_status master ID. A transaction avoids
+      // partially-created orders and prevents stock from becoming negative.
+      final statusRef = db.collection('order_status').doc();
+      final masterRef = db.collection('orders').doc(statusRef.id);
+      final deliveryRef =
+          db.collection('delivery_partner_orders').doc(masterRef.id);
+      final historyRef = db.collection('users').doc(user.uid)
+          .collection('order_history').doc(masterRef.id);
+      final userRef = db.collection('users').doc(user.uid);
+      final restaurantRefs = <String, DocumentReference<Map<String, dynamic>>>{
+        for (final id in restaurantIds.where((id) => id != 'instahub'))
+          id: db.collection('restaurants').doc(id),
+      };
+      final splitRefs = <String, DocumentReference<Map<String, dynamic>>>{
+        for (final id in restaurantIds)
+          id: db.collection('restaurant_orders').doc(),
+      };
+      final usedCouponRef = coupon != null && coupon.isNotEmpty
+          ? userRef.collection('usedCoupons').doc(coupon.toUpperCase())
+          : null;
 
-      final batch = FirebaseFirestore.instance.batch();
-
-      // STEP 3: SPLIT ORDERS
-      itemsByRestaurant.forEach((rId, rItems) {
-        double rTotal = 0;
-        for (var item in rItems) {
-            double price = double.tryParse(item['price'].toString()) ?? 0;
-            int qty = int.tryParse(item['quantity'].toString()) ?? 1;
-            rTotal += (price * qty);
+      await db.runTransaction((transaction) async {
+        // Firestore requires transaction reads to precede all writes.
+        final existing = await transaction.get(statusRef);
+        if (existing.exists) throw Exception('Master order already exists.');
+        final userDoc = await transaction.get(userRef);
+        final restaurantDocs = <String, Map<String, dynamic>>{};
+        for (final entry in restaurantRefs.entries) {
+          final doc = await transaction.get(entry.value);
+          if (!doc.exists) throw Exception('Restaurant is unavailable.');
+          restaurantDocs[entry.key] = doc.data() ?? {};
+        }
+        final menuDocs = <String, Map<String, dynamic>>{};
+        for (final entry in menuRefs.entries) {
+          final doc = await transaction.get(entry.value);
+          if (!doc.exists) throw Exception('A menu item is unavailable.');
+          menuDocs[entry.key] = doc.data() ?? {};
+        }
+        if (usedCouponRef != null) {
+          final used = await transaction.get(usedCouponRef);
+          if (used.exists) throw Exception('This coupon has already been used.');
         }
 
-        final DocumentReference splitRef = FirebaseFirestore.instance.collection("restaurant_orders").doc();
-        
-        final splitOrderData = {
-          "orderId": splitRef.id,
-          "masterOrderId": masterRef.id,
-          "userId": user.uid,
-          "restaurantId": rId, 
-          "items": rItems,    
-          "total": rTotal,    
-          "subtotal": rTotal,
-          "deliveryFee": 0, 
-          "discount": 0,      
-          "status": "pending",
-          "timestamp": timestamp,
-          "createdAt": createdDate,
-          "address": address,
-          "deliveryInstructions": deliveryInstructions, 
-          "payment": payment,
-          "location": location,
-          "destinationLocation": location["geoPoint"],
-          "platform": "flutter_customer_app",
+        for (final entry in quantities.entries) {
+          final available = _asInt(menuDocs[entry.key]?['stock']);
+          if (available < entry.value) {
+            throw Exception('Insufficient stock for an item in your cart.');
+          }
+        }
+        // Check prices again in the same transaction as stock reservation.
+        for (final item in items) {
+          final rid = item['restaurantId'].toString();
+          if (rid == 'instahub') continue;
+          final key = '$rid/${item['id']}';
+          final currentPrice = _asDouble(menuDocs[key]?['price']);
+          if ((currentPrice - _asDouble(item['price'])).abs() > 0.01) {
+            throw Exception('Menu prices changed. Please review your cart.');
+          }
+        }
+
+        final userSnapshot = Map<String, dynamic>.from(userDoc.data() ?? {});
+        final userName = (widget.orderData['name'] ??
+                user.displayName ?? userSnapshot['name'] ?? 'Customer')
+            .toString();
+        final userPhone = (widget.orderData['phone'] ??
+                user.phoneNumber ?? userSnapshot['phone'] ?? '')
+            .toString();
+
+        final restaurantSnapshots = <String, dynamic>{};
+        for (final id in restaurantIds) {
+          final data = restaurantDocs[id] ?? <String, dynamic>{};
+          restaurantSnapshots[id] = {
+            'restaurantId': id,
+            'name': data['name'] ?? (id == 'instahub' ? 'InstaHub' : ''),
+            'phone': data['phone'] ?? data['phonenumber'] ?? '',
+            'address': data['address'] ?? '',
+            'latitude': data['latitude'],
+            'longitude': data['longitude'],
+            'statusAtOrder': data['status'],
+            'prepTime': data['prepTime'],
+          };
+        }
+        final enrichedItems = <Map<String, dynamic>>[];
+        for (final item in items) {
+          final rid = item['restaurantId'].toString();
+          final key = '$rid/${item['id']}';
+          final menu = menuDocs[key] ?? <String, dynamic>{};
+          enrichedItems.add({
+            ...item,
+            'restaurantName': restaurantSnapshots[rid]?['name'] ?? '',
+            'menuSnapshot': {
+              'name': menu['name'] ?? item['name'],
+              'price': menu['price'] ?? item['price'],
+              'image': menu['image'] ?? menu['imageUrl'] ?? item['image'],
+              'tags': menu['tags'] ?? [],
+            },
+          });
+        }
+
+        final common = <String, dynamic>{
+          'orderId': statusRef.id,
+          'masterOrderId': statusRef.id,
+          'userId': user.uid,
+          'userName': userName,
+          'userPhone': userPhone,
+          'items': enrichedItems,
+          'restaurantId': primaryRestaurantId,
+          'restaurantIds': restaurantIds,
+          'restaurantDetails': restaurantSnapshots,
+          'subtotal': subtotal,
+          'discount': discount,
+          'deliveryFee': deliveryFee,
+          'platformFee': platformFee,
+          'tipAmount': tipAmount,
+          'total': total,
+          'timestamp': timestamp,
+          'createdAt': createdAt,
+          'status': 'pending',
+          'address': address,
+          'deliveryInstructions': instructions,
+          'payment': payment,
+          'paymentStatus': 'pending',
+          'location': location,
+          'destinationLocation': geoPoint,
+          'deliveryLatitude': lat,
+          'deliveryLongitude': lng,
+          'appliedCouponCode': coupon,
+          'platform': 'flutter_customer_app',
+        };
+        final partnerSnapshot = <String, dynamic>{
+          'partnerId': null,
+          'partnerName': null,
+          'partnerPhone': null,
+          'assignedAt': null,
+          'status': 'unassigned',
+        };
+        final splitIds = <String, String>{
+          for (final entry in splitRefs.entries) entry.key: entry.value.id,
+        };
+        // order_status is the authoritative master document. Every other
+        // collection is a projection of this order, linked by the same ID.
+        final restaurantOrdersSnapshot = <String, dynamic>{};
+        for (final entry in grouped.entries) {
+          final rid = entry.key;
+          final rItems = enrichedItems
+              .where((item) => item['restaurantId'] == rid).toList();
+          final rSubtotal = rItems.fold<double>(0, (sum, item) =>
+              sum + _asDouble(item['price']) * _asInt(item['quantity']));
+          restaurantOrdersSnapshot[rid] = {
+            'orderId': splitIds[rid],
+            'masterOrderId': statusRef.id,
+            'restaurantId': rid,
+            'restaurantDetails': restaurantSnapshots[rid],
+            'items': rItems,
+            'subtotal': rSubtotal,
+            'status': 'pending',
+          };
+        }
+        final deliveryOrderSnapshot = <String, dynamic>{
+          'orderId': statusRef.id,
+          'userId': user.uid,
+          'restaurantIds': restaurantIds,
+          'pickupRestaurants': restaurantSnapshots,
+          'items': enrichedItems,
+          'address': address,
+          'location': location,
+          'destinationLocation': geoPoint,
+          'deliveryInstructions': instructions,
+          'deliveryFee': deliveryFee,
+          'tipAmount': tipAmount,
+          'total': total,
+          'payment': payment,
+          'status': 'searching_for_partner',
+          'deliveryPartner': partnerSnapshot,
+        };
+        final statusData = <String, dynamic>{
+          ...common,
+          'masterCollection': 'order_status',
+          'fcmToken': fcmToken.isEmpty ? 'no_token' : fcmToken,
+          'customerDetails': {
+            'userId': user.uid,
+            'name': userName,
+            'phone': userPhone,
+            'email': user.email,
+            'address': address,
+            'deliveryLatitude': lat,
+            'deliveryLongitude': lng,
+          },
+          'orderDetails': {
+            'items': enrichedItems,
+            'subtotal': subtotal,
+            'discount': discount,
+            'deliveryFee': deliveryFee,
+            'platformFee': platformFee,
+            'tipAmount': tipAmount,
+            'total': total,
+            'payment': payment,
+            'paymentStatus': 'pending',
+            'appliedCouponCode': coupon,
+          },
+          'restaurantOrders': restaurantOrdersSnapshot,
+          'deliveryOrder': deliveryOrderSnapshot,
+          'deliveryPartner': partnerSnapshot,
+          'deliveryPartnerId': null,
+          'deliveryPartnerStatus': 'searching_for_partner',
+          'restaurantOrderIds': splitIds,
+          'orderStatusHistory': [
+            {'status': 'pending', 'at': createdAt},
+          ],
+          'sourceCollections': {
+            'orders': masterRef.path,
+            'restaurant_orders': {
+              for (final entry in splitRefs.entries)
+                entry.key: entry.value.path,
+            },
+            'delivery_partner_orders': deliveryRef.path,
+            'order_status': statusRef.path,
+            'order_history': historyRef.path,
+          },
         };
 
-        batch.set(splitRef, splitOrderData);
+        // Commit the master and its projections atomically.
+        transaction.set(statusRef, statusData);
+        transaction.set(masterRef, {
+          ...common,
+          'restaurantOrderIds': splitIds,
+          'deliveryPartner': partnerSnapshot,
+        });
+        for (final entry in grouped.entries) {
+          final id = entry.key;
+          final splitItems = enrichedItems
+              .where((item) => item['restaurantId'] == id).toList();
+          final splitSubtotal = splitItems.fold<double>(0, (sum, item) =>
+              sum + _asDouble(item['price']) * _asInt(item['quantity']));
+          transaction.set(splitRefs[id]!, {
+            ...common,
+            'orderId': splitRefs[id]!.id,
+            'masterOrderId': statusRef.id,
+            'restaurantId': id,
+            'restaurantDetails': restaurantSnapshots[id],
+            'items': splitItems,
+            'subtotal': splitSubtotal,
+            // Master order owns delivery fees, discount, tip and grand total.
+            // Keep full billing details here for reconciliation; do not
+            // represent the restaurant's subtotal as the grand total.
+            'restaurantSubtotal': splitSubtotal,
+            'masterTotal': total,
+            'total': splitSubtotal,
+          });
+        }
+        transaction.set(deliveryRef, {
+          ...common,
+          'status': 'searching_for_partner',
+          'deliveryPartner': partnerSnapshot,
+          'deliveryPartnerId': null,
+          'restaurantOrderIds': splitIds,
+        });
+        transaction.set(historyRef, {
+          ...common,
+          'restaurantOrderIds': splitIds,
+        });
+        for (final entry in quantities.entries) {
+          transaction.update(menuRefs[entry.key]!, {
+            'stock': FieldValue.increment(-entry.value),
+          });
+        }
+        if (usedCouponRef != null) {
+          transaction.set(usedCouponRef, {
+            'couponCode': coupon!.toUpperCase(),
+            'orderId': statusRef.id,
+            'usedAt': timestamp,
+          });
+        }
       });
 
-      // STEP 4: DELIVERY PARTNER ORDER
-      List<String> restaurantIds = itemsByRestaurant.keys.toList();
-
-      List<Map<String, dynamic>> deliveryItems = allItems.map((item) {
-        final Map<String, dynamic> itemMap = Map<String, dynamic>.from(item as Map);
-        return {
-          ...itemMap,
-          "restaurantName": itemMap['restaurantName'] ?? "Unknown Restaurant", 
-          "restaurantId": itemMap['restaurantId'],
-        };
-      }).toList();
-
-      final DocumentReference deliveryRef = FirebaseFirestore.instance
-          .collection("delivery_partner_orders")
-          .doc(masterRef.id);
-
-      final deliveryData = {
-        "orderId": masterRef.id,
-        "userId": user.uid,
-        "userName": userName,        
-        "userPhone": userPhone,      
-        "address": address,          
-        "deliveryInstructions": deliveryInstructions, 
-        "location": location,
-        "destinationLocation": location["geoPoint"],        
-        "restaurantIds": restaurantIds, 
-        "deliveryFee": deliveryFee,
-        "items": deliveryItems,  
-        "total": totalAmount,
-        "payment": payment,
-        "status": "searching_for_partner", 
-        "timestamp": timestamp,
-        "createdAt": createdDate,
-      };
-
-      batch.set(deliveryRef, deliveryData);
-
-      // STEP 5: ORDER STATUS
-      String? fcmToken;
+      if (!mounted) return;
       try {
-        fcmToken = await FirebaseMessaging.instance.getToken();
-      } catch (e) {
-        fcmToken = "";
-      }
-
-      final DocumentReference statusRef = FirebaseFirestore.instance
-          .collection("order_status")
-          .doc(masterRef.id);
-
-      final statusData = {
-        ...masterOrderData,
-        "orderId": masterRef.id,
-        "status": "pending",
-        "timestamp": timestamp,
-        "userId": user.uid,
-        "fcmToken": fcmToken ?? "no_token",
-        "restaurantId": primaryRestaurantId,
-        "userName": userName,
-        "userPhone": userPhone,
-        "address": address,
-        "deliveryInstructions": deliveryInstructions,
-        "location": location,
-        "destinationLocation": location["geoPoint"],
-        "deliveryFee": deliveryFee,
-        "items": deliveryItems, 
-        "total": totalAmount,
-        "payment": payment,
-        "createdAt": createdDate,
-        "subtotal": subtotal,
-      };
-
-      batch.set(statusRef, statusData);
-
-      // STEP 5.5: USER HISTORY
-      final DocumentReference userHistoryRef = FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("order_history")
-          .doc(masterRef.id);
-
-      final historyData = Map<String, dynamic>.from(masterOrderData);
-      historyData["orderId"] = masterRef.id;
-      batch.set(userHistoryRef, historyData);
-
-      // STEP 5.7: STOCK UPDATE
-      for (var item in allItems) {
-        final Map<String, dynamic> itemMap = Map<String, dynamic>.from(item as Map);
-        final String rId = itemMap['restaurantId']?.toString() ?? "";
-        final String itemId = itemMap['id']?.toString() ?? ""; 
-        final int qty = int.tryParse(itemMap['quantity'].toString()) ?? 0;
-
-        if (rId.isNotEmpty && itemId.isNotEmpty && rId != 'instahub') {
-          final DocumentReference stockRef = FirebaseFirestore.instance
-              .collection('restaurants')
-              .doc(rId)
-              .collection('menu')
-              .doc(itemId);
-
-          batch.set(stockRef, {'stock': FieldValue.increment(-qty)}, SetOptions(merge: true));
-        }
-      }
-
-      // STEP 6: COMMIT
-      await batch.commit(); 
-
-      final String? usedCoupon = widget.orderData['appliedCouponCode']?.toString().trim();
-      if (usedCoupon != null && usedCoupon.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('usedCoupons')
-            .doc(usedCoupon.toUpperCase())
-            .set({
-          'couponCode': usedCoupon.toUpperCase(),
-          'orderId': masterRef.id,
-          'usedAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      if (mounted) {
         Provider.of<CartProvider>(context, listen: false).clearCart();
-        setState(() {
-          orderId = masterRef.id;
-          isLoading = false;
-        });
+      } catch (e) {
+        debugPrint('Order saved but cart clear failed: $e');
       }
-      
-    } catch (e) {
-      if (mounted) {
-        setState(() { isLoading = false; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to place order: $e"), backgroundColor: Colors.redAccent),
-        );
-      }
+      if (!mounted) return;
+      setState(() {
+        orderId = statusRef.id;
+        isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('Order placement failed: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      setState(() {
+        isLoading = false;
+        hasOrderRun = false;
+        _orderFailed = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to place order: $e'),
+        backgroundColor: Colors.redAccent,
+      ));
     }
   }
 
   void _navigateToHome() {
+    if (isLoading) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const FoodHomeScreen()), 
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
       (route) => false,
     );
   }
@@ -312,7 +439,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
     Color valueColor = isTotal ? _primaryDark : const Color(0xFF1E293B);
 
     if (value is num) {
-      valueText = '₹${value.abs().toStringAsFixed(2)}';
+      valueText = '\u20B9${value.abs().toStringAsFixed(2)}';
       if (value < 0) {
         valueColor = _successGreen;
         valueText = '- $valueText';
@@ -327,18 +454,18 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            label, 
+            label,
             style: TextStyle(
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500, 
-              fontSize: isTotal ? 16 : 14, 
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+              fontSize: isTotal ? 16 : 14,
               color: isTotal ? _primaryDark : const Color(0xFF64748B),
             ),
           ),
           Text(
-            valueText, 
+            valueText,
             style: TextStyle(
-              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w600, 
-              fontSize: isTotal ? 18 : 14, 
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w600,
+              fontSize: isTotal ? 18 : 14,
               color: isTotal ? _accentOrange : valueColor,
             ),
           ),
@@ -386,20 +513,20 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title, 
+                title,
                 style: const TextStyle(
-                  fontSize: 13, 
-                  fontWeight: FontWeight.bold, 
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
                   color: Color(0xFF94A3B8),
                   letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                content.isNotEmpty ? content : 'N/A', 
+                content.isNotEmpty ? content : 'N/A',
                 style: const TextStyle(
-                  fontSize: 14, 
-                  fontWeight: FontWeight.w600, 
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                   color: _primaryDark,
                   height: 1.3,
                 ),
@@ -415,11 +542,16 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
   Widget build(BuildContext context) {
     final instructions = widget.orderData['deliveryInstructions'] ?? "";
     final items = (widget.orderData['items'] as List?) ?? [];
-    final subtotal = double.tryParse(widget.orderData['subtotal'].toString()) ?? 0.0;
-    final deliveryFee = double.tryParse(widget.orderData['deliveryFee'].toString()) ?? 0.0;
-    final platformFee = double.tryParse(widget.orderData['platformFee'].toString()) ?? 0.0;
-    final discount = double.tryParse(widget.orderData['discount'].toString()) ?? 0.0;
+    final subtotal =
+        double.tryParse(widget.orderData['subtotal'].toString()) ?? 0.0;
+    final deliveryFee =
+        double.tryParse(widget.orderData['deliveryFee'].toString()) ?? 0.0;
+    final platformFee =
+        double.tryParse(widget.orderData['platformFee'].toString()) ?? 0.0;
+    final discount =
+        double.tryParse(widget.orderData['discount'].toString()) ?? 0.0;
     final total = double.tryParse(widget.orderData['total'].toString()) ?? 0.0;
+    final tipAmount = _asDouble(widget.orderData['tipAmount']);
 
     final latitude = widget.orderData['deliveryLatitude'];
     final longitude = widget.orderData['deliveryLongitude'];
@@ -432,24 +564,40 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _navigateToHome();
+        if (!didPop && !isLoading) _navigateToHome();
       },
       child: Scaffold(
         backgroundColor: _bgColor,
         appBar: AppBar(
           title: const Text(
-            "Order Status", 
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: _primaryDark),
+            "Order Status",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: _primaryDark,
+            ),
           ),
           centerTitle: true,
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _primaryDark, size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: _primaryDark,
+              size: 20,
+            ),
             onPressed: _navigateToHome,
           ),
         ),
-        body: isLoading
+        body: _orderFailed
+            ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
+                const SizedBox(height: 12),
+                const Text('Order could not be placed'),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: _placeOrder, child: const Text('Try Again')),
+              ]))
+            : isLoading
             ? const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -458,14 +606,21 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
                     SizedBox(height: 16),
                     Text(
                       "Securing your order...",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: _primaryDark, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _primaryDark,
+                        fontSize: 15,
+                      ),
                     ),
                   ],
                 ),
               )
             : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 child: Column(
                   children: [
                     // SUCCESS HERO HEADER
@@ -474,12 +629,17 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [_successGreen.withOpacity(0.08), Colors.white],
+                          colors: [
+                            _successGreen.withOpacity(0.08),
+                            Colors.white,
+                          ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
                         borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: _successGreen.withOpacity(0.2)),
+                        border: Border.all(
+                          color: _successGreen.withOpacity(0.2),
+                        ),
                       ),
                       child: Column(
                         children: [
@@ -487,49 +647,56 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
                             width: 140,
                             height: 140,
                             child: Lottie.asset(
-                              'assets/animations/order_success.json', 
-                              repeat: false, 
+                              'assets/animations/order_success.json',
+                              repeat: false,
                               errorBuilder: (_, __, ___) => const Icon(
-                                Icons.check_circle_rounded, 
-                                color: _successGreen, 
+                                Icons.check_circle_rounded,
+                                color: _successGreen,
                                 size: 100,
                               ),
                             ),
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            "Order Placed!", 
+                            "Order Placed!",
                             style: TextStyle(
-                              fontSize: 24, 
-                              fontWeight: FontWeight.w900, 
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
                               color: _primaryDark,
                               letterSpacing: -0.5,
                             ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            "Your meal is being prepared with care", 
-                            style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                            "Your meal is being prepared with care",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           if (orderId != null) ...[
                             const SizedBox(height: 14),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: _primaryDark,
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               child: Text(
-                                "ID: $orderId", 
+                                "ID: $orderId",
                                 style: const TextStyle(
-                                  fontSize: 12, 
-                                  color: Colors.white, 
+                                  fontSize: 12,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontFamily: 'monospace',
                                 ),
                               ),
                             ),
-                          ]
+                          ],
                         ],
                       ),
                     ),
@@ -543,49 +710,81 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
                         children: [
                           Row(
                             children: const [
-                              Icon(Icons.restaurant_menu_rounded, color: _accentOrange, size: 20),
+                              Icon(
+                                Icons.restaurant_menu_rounded,
+                                color: _accentOrange,
+                                size: 20,
+                              ),
                               SizedBox(width: 8),
-                              Text("Order Items", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryDark)),
+                              Text(
+                                "Order Items",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: _primaryDark,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
                           ListView.separated(
                             shrinkWrap: true,
-                            physics: const ScrollPhysics(), // 👈 FIX: Uses valid ScrollPhysics()
+                            physics:
+                                const ScrollPhysics(), // Ã°Å¸â€˜Ë† FIX: Uses valid ScrollPhysics()
                             itemCount: items.length,
                             separatorBuilder: (_, __) => const Padding(
                               padding: EdgeInsets.symmetric(vertical: 8.0),
-                              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                              child: Divider(
+                                height: 1,
+                                color: Color(0xFFF1F5F9),
+                              ),
                             ),
                             itemBuilder: (context, index) {
                               final item = items[index] as Map<String, dynamic>;
                               final name = item['name'] ?? 'Item';
                               final qty = item['quantity'] ?? 1;
-                              final price = double.tryParse(item['price'].toString()) ?? 0.0;
+                              final price =
+                                  double.tryParse(item['price'].toString()) ??
+                                  0.0;
                               return Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: _primaryDark.withOpacity(0.06),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      "${qty}x", 
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: _primaryDark),
+                                      "${qty}x",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: _primaryDark,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      name, 
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _primaryDark), 
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: _primaryDark,
+                                      ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   Text(
-                                    "₹${(price * qty).toStringAsFixed(2)}", 
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryDark),
+                                    "\u20B9${(price * qty).toStringAsFixed(2)}",
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: _primaryDark,
+                                    ),
                                   ),
                                 ],
                               );
@@ -593,12 +792,17 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 16.0),
-                            child: Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                            child: Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: Color(0xFFE2E8F0),
+                            ),
                           ),
                           _buildBillRow("Subtotal", subtotal),
                           _buildBillRow("Delivery Fee", deliveryFee),
                           _buildBillRow("Platform Fee", platformFee),
-                          if (discount > 0) _buildBillRow("Discount", -discount),
+                          if (discount > 0)
+                            _buildBillRow("Discount", -discount),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 8.0),
                             child: Divider(height: 1, color: Color(0xFFF1F5F9)),
@@ -612,19 +816,34 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
                     _buildCardContainer(
                       child: Column(
                         children: [
-                          _buildInfoSection(Icons.location_on_rounded, "DELIVERY LOCATION", addressDisplay),
+                          _buildInfoSection(
+                            Icons.location_on_rounded,
+                            "DELIVERY LOCATION",
+                            addressDisplay,
+                          ),
                           if (instructions.isNotEmpty) ...[
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 14.0),
-                              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+                              child: Divider(
+                                height: 1,
+                                color: Color(0xFFF1F5F9),
+                              ),
                             ),
-                            _buildInfoSection(Icons.note_alt_rounded, "DELIVERY INSTRUCTIONS", instructions),
+                            _buildInfoSection(
+                              Icons.note_alt_rounded,
+                              "DELIVERY INSTRUCTIONS",
+                              instructions,
+                            ),
                           ],
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 14.0),
                             child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                           ),
-                          _buildInfoSection(Icons.payments_rounded, "PAYMENT METHOD", widget.orderData['payment'] ?? 'N/A'),
+                          _buildInfoSection(
+                            Icons.payments_rounded,
+                            "PAYMENT METHOD",
+                            widget.orderData['payment'] ?? 'N/A',
+                          ),
                         ],
                       ),
                     ),
@@ -639,14 +858,19 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen> {
                         onPressed: _navigateToHome,
                         icon: const Icon(Icons.home_rounded, size: 20),
                         label: const Text(
-                          "Back to Home", 
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          "Back to Home",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primaryDark,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'CarWashBookingForm.dart'; 
+import 'CarWashBookingForm.dart';
 
 class CarWashingCentresScreen extends StatelessWidget {
   const CarWashingCentresScreen({super.key});
@@ -19,17 +19,25 @@ class CarWashingCentresScreen extends StatelessWidget {
         ),
         title: const Text(
           "Washing Centres 🚗",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('washing_centre').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('washing_centre')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFFFF4D6D)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFFF4D6D)),
+            );
           }
-          
+
           if (snapshot.hasError) {
             return Center(
               child: Padding(
@@ -45,7 +53,10 @@ class CarWashingCentresScreen extends StatelessWidget {
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
-              child: Text("No washing centres available right now.", style: TextStyle(color: Colors.grey)),
+              child: Text(
+                "No washing centres available right now.",
+                style: TextStyle(color: Colors.grey),
+              ),
             );
           }
 
@@ -56,21 +67,29 @@ class CarWashingCentresScreen extends StatelessWidget {
             itemCount: centres.length,
             itemBuilder: (context, index) {
               final centreData = centres[index].data() as Map<String, dynamic>;
-              final String docId = centres[index].id; 
+              final String docId = centres[index].id;
 
               // Safe list extraction to prevent runtime dynamic crash patterns
-              final List<dynamic> rawServices = centreData['services'] is List ? centreData['services'] as List : [];
-              final List<String> verifiedServices = rawServices.map((e) => e.toString()).toList();
+              final List<dynamic> rawServices = centreData['services'] is List
+                  ? centreData['services'] as List
+                  : [];
+              final List<String> verifiedServices = rawServices
+                  .map((e) => e.toString())
+                  .toList();
 
               return Container(
-                margin: const EdgeInsets.only(bottom: 16), 
+                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
-                  border: Border.all(color: Colors.black.withOpacity(0.02))
+                  border: Border.all(color: Colors.black.withOpacity(0.02)),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
@@ -82,10 +101,15 @@ class CarWashingCentresScreen extends StatelessWidget {
                         height: 160,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(color: Colors.grey.shade100),
+                        placeholder: (context, url) =>
+                            Container(color: Colors.grey.shade100),
                         errorWidget: (context, url, error) => Container(
                           color: Colors.grey.shade200,
-                          child: const Icon(Icons.local_car_wash_rounded, size: 40, color: Colors.grey),
+                          child: const Icon(
+                            Icons.local_car_wash_rounded,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                       Padding(
@@ -99,17 +123,33 @@ class CarWashingCentresScreen extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     centreData['name'] ?? 'Washing Centre',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF111827)),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Color(0xFF111827),
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: const Color(0xFF16A34A).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF16A34A,
+                                    ).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                   child: Text(
                                     "From ₹${centreData['minimum_amount'] ?? '0'}",
-                                    style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 13),
+                                    style: const TextStyle(
+                                      color: Color(0xFF16A34A),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -117,12 +157,20 @@ class CarWashingCentresScreen extends StatelessWidget {
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                const Icon(Icons.location_on_rounded, size: 14, color: Colors.grey),
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  size: 14,
+                                  color: Colors.grey,
+                                ),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
-                                    centreData['location'] ?? 'Location not set', 
-                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                    centreData['location'] ??
+                                        'Location not set',
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -135,26 +183,36 @@ class CarWashingCentresScreen extends StatelessWidget {
                               child: FilledButton(
                                 style: FilledButton.styleFrom(
                                   backgroundColor: const Color(0xFF111827),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                                 onPressed: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => CarWashBookingForm(
-                                        centreId: docId, 
-                                        centreName: centreData['name'] ?? 'Washing Centre', 
+                                        centreId: docId,
+                                        centreName:
+                                            centreData['name'] ??
+                                            'Washing Centre',
                                         availableServices: verifiedServices,
                                       ),
                                     ),
                                   );
                                 },
-                                child: const Text("BOOK WASH NOW", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                child: const Text(
+                                  "BOOK WASH NOW",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
-                            )
+                            ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),

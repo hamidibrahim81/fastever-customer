@@ -11,7 +11,9 @@ class ActiveOrderBottomBar extends StatelessWidget {
     final String status = (data['status'] ?? 'pending').toLowerCase().trim();
     if (status == 'delivered') return "Delivered";
 
-    if (status == 'out_for_delivery' || status == 'on_the_way' || status == 'picked') {
+    if (status == 'out_for_delivery' ||
+        status == 'on_the_way' ||
+        status == 'picked') {
       if (data['deliveryPartnerETA'] != null) {
         int transit = int.tryParse(data['deliveryPartnerETA'].toString()) ?? 12;
         return transit <= 1 ? "1 min" : "$transit mins";
@@ -19,7 +21,8 @@ class ActiveOrderBottomBar extends StatelessWidget {
       return "12 mins";
     }
 
-    final created = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final created =
+        (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
     final elapsedMins = DateTime.now().difference(created).inMinutes;
 
     int baseRemainingMins = 40;
@@ -49,7 +52,8 @@ class ActiveOrderBottomBar extends StatelessWidget {
     if (s.contains('preparing')) return 0.50;
     if (s == 'ready') return 0.65;
     if (s == 'partner_accepted' || s == 'arrived_at_pickup') return 0.80;
-    if (s == 'out_for_delivery' || s == 'on_the_way' || s == 'picked') return 0.92;
+    if (s == 'out_for_delivery' || s == 'on_the_way' || s == 'picked')
+      return 0.92;
     if (s == 'delivered') return 1.0;
     return 0.2;
   }
@@ -88,7 +92,9 @@ class ActiveOrderBottomBar extends StatelessWidget {
 
   Future<void> _sendEmail(String email, String orderId) async {
     if (email.trim().isEmpty) return;
-    final Uri url = Uri.parse('mailto:$email?subject=Delayed Order Support: $orderId');
+    final Uri url = Uri.parse(
+      'mailto:$email?subject=Delayed Order Support: $orderId',
+    );
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     }
@@ -115,7 +121,8 @@ class ActiveOrderBottomBar extends StatelessWidget {
         final data = doc.data() as Map<String, dynamic>;
         final String status = data['status'] ?? 'pending';
 
-        final created = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+        final created =
+            (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
         final elapsedMins = DateTime.now().difference(created).inMinutes;
 
         // Vanish completely after 80 minutes (60 min normal/support start + 20 min active support window)
@@ -164,9 +171,11 @@ class ActiveOrderBottomBar extends StatelessWidget {
         builder: (context, snap) {
           final live = (snap.data?.data() as Map<String, dynamic>?) ?? {};
           final String partnerName =
-              (live['deliveryPartnerName'] ?? live['driverName'] ?? "").toString();
+              (live['deliveryPartnerName'] ?? live['driverName'] ?? "")
+                  .toString();
           final String partnerPhone =
-              (live['deliveryPartnerPhone'] ?? live['driverPhone'] ?? "").toString();
+              (live['deliveryPartnerPhone'] ?? live['driverPhone'] ?? "")
+                  .toString();
 
           double progressWidth = _getProgress(status);
 
@@ -191,13 +200,16 @@ class ActiveOrderBottomBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: (isDelayed ? Colors.redAccent : Colors.orange).withOpacity(0.18),
+                    color: (isDelayed ? Colors.redAccent : Colors.orange)
+                        .withOpacity(0.18),
                     blurRadius: 25,
                     offset: const Offset(0, 8),
                   ),
                 ],
                 border: Border.all(
-                  color: isDelayed ? Colors.redAccent.withOpacity(0.3) : Colors.white.withOpacity(0.06),
+                  color: isDelayed
+                      ? Colors.redAccent.withOpacity(0.3)
+                      : Colors.white.withOpacity(0.06),
                 ),
               ),
               child: Column(
@@ -213,9 +225,13 @@ class ActiveOrderBottomBar extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isDelayed ? "ORDER DELAYED" : _prettyStatus(status).toUpperCase(),
+                              isDelayed
+                                  ? "ORDER DELAYED"
+                                  : _prettyStatus(status).toUpperCase(),
                               style: TextStyle(
-                                color: isDelayed ? Colors.redAccent : Colors.orange,
+                                color: isDelayed
+                                    ? Colors.redAccent
+                                    : Colors.orange,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 13,
                                 letterSpacing: 0.8,
@@ -223,7 +239,9 @@ class ActiveOrderBottomBar extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              isDelayed ? "Contact our support team" : "Estimated Delivery: $time",
+                              isDelayed
+                                  ? "Contact our support team"
+                                  : "Estimated Delivery: $time",
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -234,7 +252,11 @@ class ActiveOrderBottomBar extends StatelessWidget {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.directions_bike, size: 12, color: Colors.white.withOpacity(0.5)),
+                                  Icon(
+                                    Icons.directions_bike,
+                                    size: 12,
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     partnerName,
@@ -294,10 +316,10 @@ class ActiveOrderBottomBar extends StatelessWidget {
                         Expanded(
                           flex: ((1.0 - progressWidth) * 100).round(),
                           child: const SizedBox.shrink(),
-                        )
+                        ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -309,13 +331,17 @@ class ActiveOrderBottomBar extends StatelessWidget {
 
   Widget _buildSupportActions(String orderId) {
     return FutureBuilder<QuerySnapshot>(
-      future: FirebaseFirestore.instance.collection('customer_supprt').limit(1).get(),
+      future: FirebaseFirestore.instance
+          .collection('customer_supprt')
+          .limit(1)
+          .get(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox.shrink();
         }
 
-        final supportData = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+        final supportData =
+            snapshot.data!.docs.first.data() as Map<String, dynamic>;
         final callNumber = supportData['support_call']?.toString() ?? '';
         final mailAddress = supportData['support_mail']?.toString() ?? '';
 
@@ -340,7 +366,11 @@ class ActiveOrderBottomBar extends StatelessWidget {
                   backgroundColor: Colors.blueGrey.shade800,
                   padding: const EdgeInsets.all(8),
                 ),
-                icon: const Icon(Icons.email_rounded, color: Colors.white, size: 16),
+                icon: const Icon(
+                  Icons.email_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
                 onPressed: () => _sendEmail(mailAddress, orderId),
               ),
             ],
@@ -391,7 +421,9 @@ class ActiveOrderBottomBar extends StatelessWidget {
         color: (isDelayed ? Colors.redAccent : Colors.orange).withOpacity(0.12),
         shape: BoxShape.circle,
         border: Border.all(
-          color: (isDelayed ? Colors.redAccent : Colors.orange).withOpacity(0.2),
+          color: (isDelayed ? Colors.redAccent : Colors.orange).withOpacity(
+            0.2,
+          ),
           width: 1,
         ),
       ),

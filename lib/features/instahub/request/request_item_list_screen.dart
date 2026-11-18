@@ -7,8 +7,7 @@ class RequestItemListScreen extends StatefulWidget {
   const RequestItemListScreen({super.key});
 
   @override
-  State<RequestItemListScreen> createState() =>
-      _RequestItemListScreenState();
+  State<RequestItemListScreen> createState() => _RequestItemListScreenState();
 }
 
 class _RequestItemListScreenState extends State<RequestItemListScreen> {
@@ -31,18 +30,14 @@ class _RequestItemListScreenState extends State<RequestItemListScreen> {
   void _goToCart() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => RequestCartScreen(items: items),
-      ),
+      MaterialPageRoute(builder: (_) => RequestCartScreen(items: items)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Request Items"),
-      ),
+      appBar: AppBar(title: const Text("Request Items")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -57,8 +52,7 @@ class _RequestItemListScreenState extends State<RequestItemListScreen> {
                         return Card(
                           child: ListTile(
                             title: Text(item['name']),
-                            subtitle: Text(
-                                "${item['qty']} | ${item['phone']}"),
+                            subtitle: Text("${item['qty']} | ${item['phone']}"),
                           ),
                         );
                       },

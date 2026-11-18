@@ -9,10 +9,7 @@ import '../food/cart/ManageAddressScreen.dart';
 class LabTestBookingScreen extends StatefulWidget {
   final Map<String, dynamic> selectedLab;
 
-  const LabTestBookingScreen({
-    super.key,
-    required this.selectedLab,
-  });
+  const LabTestBookingScreen({super.key, required this.selectedLab});
 
   @override
   State<LabTestBookingScreen> createState() => _LabTestBookingScreenState();
@@ -54,8 +51,9 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
   void initState() {
     super.initState();
     // Populate services checkboxes from selected lab's `services` array
-    final List<String> labServices =
-        List<String>.from(widget.selectedLab['services'] ?? []);
+    final List<String> labServices = List<String>.from(
+      widget.selectedLab['services'] ?? [],
+    );
     for (var service in labServices) {
       _testsSelectionMap[service] = false;
     }
@@ -189,7 +187,8 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
     if (chosenTests.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("Please select at least one required test option.")),
+          content: Text("Please select at least one required test option."),
+        ),
       );
       return;
     }
@@ -200,7 +199,8 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
       setState(() => _addressTouchedAndEmpty = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("Please select your sample collection address.")),
+          content: Text("Please select your sample collection address."),
+        ),
       );
       return;
     }
@@ -214,13 +214,13 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
       final uid = user?.uid ?? 'guest';
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-      final DocumentReference globalRef =
-          firestore.collection('booking_lab_service').doc();
+      final DocumentReference globalRef = firestore
+          .collection('booking_lab_service')
+          .doc();
       final String orderId = globalRef.id;
 
       final String centreId = widget.selectedLab['centre_id'] ?? '';
-      final String centreName =
-          widget.selectedLab['name'] ?? 'Diagnostic Lab';
+      final String centreName = widget.selectedLab['name'] ?? 'Diagnostic Lab';
 
       final Map<String, dynamic> bookingPayload = {
         'order_id': orderId,
@@ -273,8 +273,9 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Column(
@@ -286,24 +287,31 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                     color: Color(0xFFF3E8FF),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_rounded,
-                      color: themePurple, size: 55),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: themePurple,
+                    size: 55,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   "Lab Booking Confirmed!",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: primaryColor),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: primaryColor,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   "A certified sample collection partner from $centreName will reach your address at the selected date and time.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: Colors.grey.shade800, fontSize: 13, height: 1.4),
+                    color: Colors.grey.shade800,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -313,15 +321,20 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor: primaryColor,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () {
                       Navigator.pop(context);
                       Navigator.pop(context);
                     },
-                    child: const Text("OK",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15)),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -330,9 +343,9 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Booking failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Booking failed: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -340,8 +353,9 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> labServices =
-        List<String>.from(widget.selectedLab['services'] ?? []);
+    final List<String> labServices = List<String>.from(
+      widget.selectedLab['services'] ?? [],
+    );
 
     // Slice to 5 items if not expanded
     final List<String> displayedServices = _showAllTests
@@ -364,7 +378,10 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
         title: Text(
           widget.selectedLab['name'] ?? "Book Lab Test",
           style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
@@ -417,8 +434,9 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                           contentPadding: EdgeInsets.zero,
                           controlAffinity: ListTileControlAffinity.leading,
                           onChanged: (bool? val) {
-                            setState(() =>
-                                _testsSelectionMap[service] = val ?? false);
+                            setState(
+                              () => _testsSelectionMap[service] = val ?? false,
+                            );
                           },
                         );
                       }),
@@ -472,14 +490,18 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
               _buildSectionContainer(
                 child: Column(
                   children: [
-                    _buildField(_nameController, "Patient Full Name *",
-                        Icons.person_outline_rounded),
+                    _buildField(
+                      _nameController,
+                      "Patient Full Name *",
+                      Icons.person_outline_rounded,
+                    ),
                     const SizedBox(height: 6),
                     _buildField(
-                        _contactController,
-                        "Contact Number *",
-                        Icons.phone_android_rounded,
-                        keyboardType: TextInputType.phone),
+                      _contactController,
+                      "Contact Number *",
+                      Icons.phone_android_rounded,
+                      keyboardType: TextInputType.phone,
+                    ),
                   ],
                 ),
               ),
@@ -495,8 +517,11 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                       child: InkWell(
                         onTap: _selectDate,
                         child: IgnorePointer(
-                          child: _buildField(_dateController, "Date *",
-                              Icons.calendar_month_rounded),
+                          child: _buildField(
+                            _dateController,
+                            "Date *",
+                            Icons.calendar_month_rounded,
+                          ),
                         ),
                       ),
                     ),
@@ -505,8 +530,11 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                       child: InkWell(
                         onTap: _selectTime,
                         child: IgnorePointer(
-                          child: _buildField(_timeController, "Time *",
-                              Icons.access_time_rounded),
+                          child: _buildField(
+                            _timeController,
+                            "Time *",
+                            Icons.access_time_rounded,
+                          ),
                         ),
                       ),
                     ),
@@ -561,8 +589,8 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                                       color: _addressTouchedAndEmpty
                                           ? Colors.red.shade700
                                           : (_selectedAddress != null
-                                              ? themePurple
-                                              : Colors.grey.shade800),
+                                                ? themePurple
+                                                : Colors.grey.shade800),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -582,8 +610,11 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios_rounded,
-                                size: 14, color: Colors.grey),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
                           ],
                         ),
                       ),
@@ -594,9 +625,10 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                         child: Text(
                           "Collection address is mandatory *",
                           style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -608,9 +640,10 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
 
               _buildSectionContainer(
                 child: _buildField(
-                    _landmarkController,
-                    "Landmark / Flat / House No (Optional)",
-                    Icons.domain_rounded),
+                  _landmarkController,
+                  "Landmark / Flat / House No (Optional)",
+                  Icons.domain_rounded,
+                ),
               ),
 
               const SizedBox(height: 22),
@@ -619,10 +652,11 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
               _buildSectionHeader("Additional Instructions"),
               _buildSectionContainer(
                 child: _buildField(
-                    _commentsController,
-                    "Add comments or special test requests (Optional)",
-                    Icons.chat_bubble_outline_rounded,
-                    maxLines: 3),
+                  _commentsController,
+                  "Add comments or special test requests (Optional)",
+                  Icons.chat_bubble_outline_rounded,
+                  maxLines: 3,
+                ),
               ),
 
               const SizedBox(height: 35),
@@ -637,7 +671,8 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                     foregroundColor: Colors.white,
                     elevation: 4,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   onPressed: _isSubmitting ? null : _submitLabTestBooking,
                   child: _isSubmitting
@@ -645,9 +680,10 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
                       : const Text(
                           "CONFIRM LAB BOOKING ➔",
                           style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 14,
-                              letterSpacing: 0.5),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                 ),
               ),
@@ -665,16 +701,19 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
       child: Text(
         title,
         style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 15,
-            color: primaryColor,
-            letterSpacing: 0.3),
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: primaryColor,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
 
-  Widget _buildSectionContainer(
-      {required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _buildSectionContainer({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+  }) {
     return Container(
       width: double.infinity,
       padding: padding ?? const EdgeInsets.all(16),
@@ -683,9 +722,10 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: child,
@@ -693,9 +733,12 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
   }
 
   Widget _buildField(
-      TextEditingController controller, String label, IconData icon,
-      {int maxLines = 1,
-      TextInputType keyboardType = TextInputType.text}) {
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -706,24 +749,33 @@ class _LabTestBookingScreenState extends State<LabTestBookingScreen> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(
-              color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
+            color: Colors.grey,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
           prefixIcon: Icon(icon, size: 22, color: Colors.grey.shade500),
           filled: true,
           fillColor: const Color(0xFFFAFAFC),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: themePurple, width: 1.8)),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: themePurple, width: 1.8),
+          ),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade200, width: 1)),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
           errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.red.shade400, width: 1)),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 1),
+          ),
           focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 1.8)),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 1.8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
         validator: (val) {
           if (label.contains("Optional")) return null;

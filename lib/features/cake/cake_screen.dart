@@ -18,7 +18,9 @@ class AppColors {
   static const Color textLight = Color(0xFF6B7280);
   static const Color green = Color(0xFF16A34A);
   static const Color orange = Color(0xFFF59E0B);
-  static const Color descRed = Color(0xFFDC2626); // Clean red for item descriptions
+  static const Color descRed = Color(
+    0xFFDC2626,
+  ); // Clean red for item descriptions
 }
 
 double parseDouble(dynamic value, {double defaultValue = 0}) {
@@ -43,9 +45,11 @@ String capitalize(String text) {
   if (text.isEmpty) return text;
   return text
       .split(' ')
-      .map((word) => word.isNotEmpty
-          ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
-          : '')
+      .map(
+        (word) => word.isNotEmpty
+            ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+            : '',
+      )
       .join(' ');
 }
 
@@ -59,7 +63,8 @@ class ExpandableDescriptionText extends StatefulWidget {
   const ExpandableDescriptionText({super.key, required this.text});
 
   @override
-  State<ExpandableDescriptionText> createState() => _ExpandableDescriptionTextState();
+  State<ExpandableDescriptionText> createState() =>
+      _ExpandableDescriptionTextState();
 }
 
 class _ExpandableDescriptionTextState extends State<ExpandableDescriptionText> {
@@ -94,7 +99,9 @@ class _ExpandableDescriptionTextState extends State<ExpandableDescriptionText> {
             Text(
               widget.text,
               maxLines: _isExpanded ? null : 2,
-              overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              overflow: _isExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
               style: const TextStyle(
                 color: AppColors.descRed,
                 fontSize: 11,
@@ -365,7 +372,8 @@ class _CakeScreenState extends State<CakeScreen> {
             backgroundColor: AppColors.primary,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 3),
           ),
@@ -467,8 +475,7 @@ class _CakeScreenState extends State<CakeScreen> {
       body: _selectedShopId == null
           ? _buildMainCakePage()
           : _buildShopDetailPage(_selectedShopId!, _selectedShopName!),
-      bottomNavigationBar:
-          _totalCartItems > 0 ? _buildViewCartBar() : null,
+      bottomNavigationBar: _totalCartItems > 0 ? _buildViewCartBar() : null,
     );
   }
 
@@ -514,8 +521,10 @@ class _CakeScreenState extends State<CakeScreen> {
               color: AppColors.textLight,
               fontSize: 13,
             ),
-            prefixIcon:
-                const Icon(Icons.search_rounded, color: AppColors.primary),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: AppColors.primary,
+            ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.close_rounded, size: 18),
@@ -526,8 +535,10 @@ class _CakeScreenState extends State<CakeScreen> {
                   )
                 : null,
             border: InputBorder.none,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ),
@@ -625,8 +636,11 @@ class _CakeScreenState extends State<CakeScreen> {
                               width: 40,
                               height: 40,
                               color: AppColors.background,
-                              child: const Icon(Icons.cake_rounded,
-                                  size: 20, color: AppColors.accent),
+                              child: const Icon(
+                                Icons.cake_rounded,
+                                size: 20,
+                                color: AppColors.accent,
+                              ),
                             ),
                     ),
                     title: Text(
@@ -722,8 +736,11 @@ class _CakeScreenState extends State<CakeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
                 child: Row(
                   children: const [
-                    Icon(Icons.storefront_rounded,
-                        color: AppColors.primary, size: 20),
+                    Icon(
+                      Icons.storefront_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'Nearby Cake Shops',
@@ -745,8 +762,11 @@ class _CakeScreenState extends State<CakeScreen> {
                           ),
                         ),
                         SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_rounded,
-                            size: 12, color: AppColors.textLight),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 12,
+                          color: AppColors.textLight,
+                        ),
                       ],
                     ),
                   ],
@@ -838,14 +858,15 @@ class _CakeScreenState extends State<CakeScreen> {
                                               fit: BoxFit.contain,
                                               errorWidget: (_, __, ___) =>
                                                   Container(
-                                                width: double.infinity,
-                                                height: 140,
-                                                color: AppColors.background,
-                                                child: const Icon(
-                                                    Icons.storefront,
-                                                    size: 40,
-                                                    color: AppColors.accent),
-                                              ),
+                                                    width: double.infinity,
+                                                    height: 140,
+                                                    color: AppColors.background,
+                                                    child: const Icon(
+                                                      Icons.storefront,
+                                                      size: 40,
+                                                      color: AppColors.accent,
+                                                    ),
+                                                  ),
                                             )
                                           : const Center(
                                               child: Icon(
@@ -861,20 +882,25 @@ class _CakeScreenState extends State<CakeScreen> {
                                         top: 8,
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color:
-                                                Colors.black.withOpacity(0.7),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            color: Colors.black.withOpacity(
+                                              0.7,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               const Icon(
-                                                  Icons.navigation_rounded,
-                                                  size: 10,
-                                                  color: Colors.white),
+                                                Icons.navigation_rounded,
+                                                size: 10,
+                                                color: Colors.white,
+                                              ),
                                               const SizedBox(width: 3),
                                               Text(
                                                 distanceStr,
@@ -892,7 +918,9 @@ class _CakeScreenState extends State<CakeScreen> {
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -913,16 +941,16 @@ class _CakeScreenState extends State<CakeScreen> {
                                         Row(
                                           children: [
                                             const Icon(
-                                                Icons.location_on_outlined,
-                                                size: 11,
-                                                color: AppColors.textLight),
+                                              Icons.location_on_outlined,
+                                              size: 11,
+                                              color: AppColors.textLight,
+                                            ),
                                             const SizedBox(width: 2),
                                             Expanded(
                                               child: Text(
                                                 location,
                                                 maxLines: 1,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   fontSize: 10,
                                                   color: AppColors.textLight,
@@ -943,7 +971,8 @@ class _CakeScreenState extends State<CakeScreen> {
                                   color: Colors.black.withOpacity(0.6),
                                   alignment: Alignment.center,
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12),
+                                    horizontal: 12,
+                                  ),
                                   child: const Text(
                                     "Currently we are not delivering",
                                     textAlign: TextAlign.center,
@@ -981,7 +1010,8 @@ class _CakeScreenState extends State<CakeScreen> {
           return const Padding(
             padding: EdgeInsets.all(40),
             child: Center(
-                child: CircularProgressIndicator(color: AppColors.accent)),
+              child: CircularProgressIndicator(color: AppColors.accent),
+            ),
           );
         }
 
@@ -989,8 +1019,11 @@ class _CakeScreenState extends State<CakeScreen> {
           return const Padding(
             padding: EdgeInsets.all(30),
             child: Center(
-                child: Text('No cakes available right now.',
-                    style: TextStyle(color: AppColors.textLight))),
+              child: Text(
+                'No cakes available right now.',
+                style: TextStyle(color: AppColors.textLight),
+              ),
+            ),
           );
         }
 
@@ -1019,8 +1052,9 @@ class _CakeScreenState extends State<CakeScreen> {
           }
         }
 
-        final filteredItems =
-            allItems.where((item) => _passesFilters(item)).toList();
+        final filteredItems = allItems
+            .where((item) => _passesFilters(item))
+            .toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1028,11 +1062,18 @@ class _CakeScreenState extends State<CakeScreen> {
             _buildFilterHeader(filteredItems.length, categories.toList()),
             if (filteredItems.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 40,
+                  horizontal: 20,
+                ),
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(Icons.cake_outlined, size: 48, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.cake_outlined,
+                        size: 48,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 12),
                       const Text(
                         'No cakes match your filters.',
@@ -1045,9 +1086,13 @@ class _CakeScreenState extends State<CakeScreen> {
                       const SizedBox(height: 6),
                       TextButton(
                         onPressed: _resetFilters,
-                        child: const Text('Reset all filters',
-                            style: TextStyle(
-                                color: AppColors.accent, fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'Reset all filters',
+                          style: TextStyle(
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1105,16 +1150,16 @@ class _CakeScreenState extends State<CakeScreen> {
                 TextButton(
                   onPressed: _resetFilters,
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     visualDensity: VisualDensity.compact,
                     foregroundColor: AppColors.accent,
                   ),
                   child: const Text(
                     'Reset',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                   ),
                 ),
             ],
@@ -1193,7 +1238,9 @@ class _CakeScreenState extends State<CakeScreen> {
           color: isSelected ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.black.withOpacity(0.08),
+            color: isSelected
+                ? AppColors.primary
+                : Colors.black.withOpacity(0.08),
           ),
         ),
         child: Row(
@@ -1248,10 +1295,14 @@ class _CakeScreenState extends State<CakeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: isFiltered ? AppColors.accent.withOpacity(0.08) : AppColors.surface,
+          color: isFiltered
+              ? AppColors.accent.withOpacity(0.08)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isFiltered ? AppColors.accent : Colors.black.withOpacity(0.08),
+            color: isFiltered
+                ? AppColors.accent
+                : Colors.black.withOpacity(0.08),
           ),
         ),
         child: Row(
@@ -1294,7 +1345,9 @@ class _CakeScreenState extends State<CakeScreen> {
             color: isSelected ? AppColors.primary : AppColors.surface,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.black.withOpacity(0.06),
+              color: isSelected
+                  ? AppColors.primary
+                  : Colors.black.withOpacity(0.06),
             ),
           ),
           child: Text(
@@ -1356,7 +1409,8 @@ class _CakeScreenState extends State<CakeScreen> {
                         ),
                         if (tempSelected != 'All')
                           GestureDetector(
-                            onTap: () => setModalState(() => tempSelected = 'All'),
+                            onTap: () =>
+                                setModalState(() => tempSelected = 'All'),
                             child: const Text(
                               'Clear',
                               style: TextStyle(
@@ -1377,8 +1431,11 @@ class _CakeScreenState extends State<CakeScreen> {
                       itemCount: categories.length,
                       itemBuilder: (context, index) {
                         final cat = categories[index];
-                        final isChosen = tempSelected.toLowerCase() == cat.toLowerCase();
-                        final displayName = cat == 'All' ? 'All Cakes' : capitalize(cat);
+                        final isChosen =
+                            tempSelected.toLowerCase() == cat.toLowerCase();
+                        final displayName = cat == 'All'
+                            ? 'All Cakes'
+                            : capitalize(cat);
 
                         return ListTile(
                           dense: true,
@@ -1390,14 +1447,20 @@ class _CakeScreenState extends State<CakeScreen> {
                                 ? Icons.check_circle_rounded
                                 : Icons.radio_button_unchecked_rounded,
                             size: 20,
-                            color: isChosen ? AppColors.accent : Colors.grey.shade400,
+                            color: isChosen
+                                ? AppColors.accent
+                                : Colors.grey.shade400,
                           ),
                           title: Text(
                             displayName,
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: isChosen ? FontWeight.w800 : FontWeight.w600,
-                              color: isChosen ? AppColors.primary : AppColors.textDark,
+                              fontWeight: isChosen
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: isChosen
+                                  ? AppColors.primary
+                                  : AppColors.textDark,
                             ),
                           ),
                           onTap: () => setModalState(() => tempSelected = cat),
@@ -1464,7 +1527,8 @@ class _CakeScreenState extends State<CakeScreen> {
     }
 
     if (_selectedCategory != 'All') {
-      if (item.category.trim().toLowerCase() != _selectedCategory.trim().toLowerCase()) {
+      if (item.category.trim().toLowerCase() !=
+          _selectedCategory.trim().toLowerCase()) {
         return false;
       }
     }
@@ -1483,7 +1547,8 @@ class _CakeScreenState extends State<CakeScreen> {
   Widget _buildCakeItemCard(CakeMenuItem item) {
     final quantity = _quantityFor(item.id);
     final hasDiscount = item.mrp > item.price && item.mrp > 0;
-    final hasDescription = item.description != null && item.description!.isNotEmpty;
+    final hasDescription =
+        item.description != null && item.description!.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1538,8 +1603,11 @@ class _CakeScreenState extends State<CakeScreen> {
                       if (item.preparationTime.isNotEmpty)
                         Row(
                           children: [
-                            const Icon(Icons.access_time_rounded,
-                                size: 10, color: AppColors.textLight),
+                            const Icon(
+                              Icons.access_time_rounded,
+                              size: 10,
+                              color: AppColors.textLight,
+                            ),
                             const SizedBox(width: 3),
                             Text(
                               item.preparationTime,
@@ -1575,8 +1643,11 @@ class _CakeScreenState extends State<CakeScreen> {
                   if (item.shopName.isNotEmpty)
                     Row(
                       children: [
-                        const Icon(Icons.storefront_outlined,
-                            size: 12, color: AppColors.textLight),
+                        const Icon(
+                          Icons.storefront_outlined,
+                          size: 12,
+                          color: AppColors.textLight,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -1620,14 +1691,17 @@ class _CakeScreenState extends State<CakeScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: item.stock <= 0 || !item.available
-                        ? const Text('Out of Stock',
+                        ? const Text(
+                            'Out of Stock',
                             style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800))
+                              color: Colors.red,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          )
                         : quantity == 0
-                            ? _addButton(item)
-                            : _quantitySelector(item),
+                        ? _addButton(item)
+                        : _quantitySelector(item),
                   ),
                 ],
               ),
@@ -1657,11 +1731,14 @@ class _CakeScreenState extends State<CakeScreen> {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
-        child: const Text('ADD',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+        child: const Text(
+          'ADD',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+        ),
       ),
     );
   }
@@ -1683,20 +1760,25 @@ class _CakeScreenState extends State<CakeScreen> {
             onPressed: () => _changeQuantity(item, -1),
             icon: const Icon(Icons.remove, color: Colors.white, size: 14),
           ),
-          Text('$quantity',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12)),
+          Text(
+            '$quantity',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+            ),
+          ),
           IconButton(
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 34),
             onPressed: quantity < item.stock
                 ? () => _changeQuantity(item, 1)
                 : null,
-            icon: Icon(Icons.add,
-                color: quantity < item.stock ? Colors.white : Colors.white38,
-                size: 14),
+            icon: Icon(
+              Icons.add,
+              color: quantity < item.stock ? Colors.white : Colors.white38,
+              size: 14,
+            ),
           ),
         ],
       ),
@@ -1750,8 +1832,10 @@ class _CakeScreenState extends State<CakeScreen> {
               Container(
                 width: double.infinity,
                 color: Colors.red.shade700,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
                 child: const Text(
                   "Shop not available right now\nThis shop is currently not accepting orders.",
                   textAlign: TextAlign.center,
@@ -1772,14 +1856,17 @@ class _CakeScreenState extends State<CakeScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                        child:
-                            CircularProgressIndicator(color: AppColors.accent));
+                      child: CircularProgressIndicator(color: AppColors.accent),
+                    );
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Center(
-                        child: Text('No cakes available in this shop.',
-                            style: TextStyle(color: AppColors.textLight)));
+                      child: Text(
+                        'No cakes available in this shop.',
+                        style: TextStyle(color: AppColors.textLight),
+                      ),
+                    );
                   }
 
                   final items = snapshot.data!.docs.map((doc) {
@@ -1868,13 +1955,18 @@ class _CakeScreenState extends State<CakeScreen> {
                 backgroundColor: AppColors.accent,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('View Cart & Continue →',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+              child: const Text(
+                'View Cart & Continue →',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+              ),
             ),
           ],
         ),

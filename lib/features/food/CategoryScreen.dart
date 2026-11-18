@@ -6,7 +6,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
-// ✅ IMPORT AUTH GUARD
+//  IMPORT AUTH GUARD
 import 'package:fastevergo_v1/utils/auth_guards.dart';
 
 // Local imports
@@ -64,14 +64,18 @@ class FoodItemModel {
 
   factory FoodItemModel.fromMap(Map<String, dynamic> data) {
     final rawMrp = data['mrp'] ?? data['originalPrice'] ?? data['price'] ?? 0;
-    final rawPrice = data['offerPrice'] ?? data['offerSalePrice'] ?? data['price'] ?? 0;
+    final rawPrice =
+        data['offerPrice'] ?? data['offerSalePrice'] ?? data['price'] ?? 0;
 
     return FoodItemModel(
       id: data['id'] ?? '',
       name: data['name'] ?? data['productName'] ?? 'Unnamed Dish',
       price: parseDouble(rawPrice),
       mrp: parseDouble(rawMrp),
-      imageUrl: data['imageUrl'] ?? data['image'] ?? 'https://via.placeholder.com/200',
+      imageUrl:
+          data['imageUrl'] ??
+          data['image'] ??
+          'https://via.placeholder.com/200',
       restaurantId: data['restaurantId'] ?? '',
       restaurantName: data['restaurantName'],
       restaurantRating: parseDouble(data['restaurantRating']),
@@ -108,10 +112,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
   late String _selectedFilterTag;
 
   final List<Map<String, String>> _filterOptions = const [
-    {"label": "🍽️ All", "tag": "all"},
-    {"label": "⚡ Top Selling", "tag": "top_sell"},
-    {"label": "💸 Best Offers", "tag": "best_offer"},
-    {"label": "🌱 Pure Veg", "tag": "veg"},
+    {"label": "All", "tag": "all"},
+    {"label": "Top Selling", "tag": "top_sell"},
+    {"label": "Best Offers", "tag": "best_offer"},
+    {"label": "Pure Veg", "tag": "veg"},
   ];
 
   // ============================================================
@@ -121,35 +125,79 @@ class _CategoryScreenState extends State<CategoryScreen> {
   static const Map<String, List<List<String>>> _foodKeywords = {
     'arabian': [
       [
-        'shawarma', 'shavarma', 'shawerma', 'shwarma',
-        'alfaham', 'alfahm', 'alfam', 'al faham',
-        'al fahm', 'al-faham', 'kanthari alfaham',
+        'shawarma',
+        'shavarma',
+        'shawerma',
+        'shwarma',
+        'alfaham',
+        'alfahm',
+        'alfam',
+        'al faham',
+        'al fahm',
+        'al-faham',
+        'kanthari alfaham',
       ],
       [
-        'mandi', 'mandhi', 'manthi', 'kuzhimandi',
-        'kuzhi mandi', 'kabsa', 'majboos', 'machboos',
-        'shawai', 'shaway', 'shawayi', 'shwai',
+        'mandi',
+        'mandhi',
+        'manthi',
+        'kuzhimandi',
+        'kuzhi mandi',
+        'kabsa',
+        'majboos',
+        'machboos',
+        'shawai',
+        'shaway',
+        'shawayi',
+        'shwai',
       ],
       [
-        'arabian', 'arabic', 'lebanese', 'turkish',
-        'kebab', 'kabab', 'kebap', 'hummus',
-        'falafel', 'pita', 'grilled chicken',
-        'bbq chicken', 'barbecue chicken',
+        'arabian',
+        'arabic',
+        'lebanese',
+        'turkish',
+        'kebab',
+        'kabab',
+        'kebap',
+        'hummus',
+        'falafel',
+        'pita',
+        'grilled chicken',
+        'bbq chicken',
+        'barbecue chicken',
       ],
     ],
     'biriyani': [
       [
-        'biriyani', 'biryani', 'biriyany', 'briyani', 'biryany',
-        'biriani', 'briyany', 'biriyani rice', 'dum biriyani',
-        'dum biryani', 'pothi biriyani', 'pothi biryani',
-        'thalassery biriyani', 'hyderabadi biryani',
+        'biriyani',
+        'biryani',
+        'biriyany',
+        'briyani',
+        'biryany',
+        'biriani',
+        'briyany',
+        'biriyani rice',
+        'dum biriyani',
+        'dum biryani',
+        'pothi biriyani',
+        'pothi biryani',
+        'thalassery biriyani',
+        'hyderabadi biryani',
       ],
     ],
     'shawarma': [
       ['shawarma', 'shwarma', 'shavarma', 'shawerma', 'shawarma plate'],
     ],
     'alfaham': [
-      ['alfaham', 'alfahm', 'al faham', 'al fahm', 'alfam', 'al-faham', 'kanthari alfaham'],
+      [
+        'alfaham',
+        'alfahm',
+        'al faham',
+        'al fahm',
+        'alfam',
+        'al-faham',
+        'kanthari alfaham',
+      ],
     ],
     'mandi': [
       ['mandi', 'mandhi', 'manthi', 'kuzhimandi', 'kuzhi mandi'],
@@ -161,43 +209,152 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ['burger', 'burgers', 'zinger burger', 'cheese burger', 'cheeseburger'],
     ],
     'chinese': [
-      ['fried rice', 'friedrice', 'noodles', 'noodle', 'schezwan', 'szechuan', 'chowmein', 'chow mein'],
-      ['manchurian', 'chilli chicken', 'chilli beef', 'dragon chicken', 'hakka', 'chopsuey', 'spring roll', 'gobi manchurian'],
+      [
+        'fried rice',
+        'friedrice',
+        'noodles',
+        'noodle',
+        'schezwan',
+        'szechuan',
+        'chowmein',
+        'chow mein',
+      ],
+      [
+        'manchurian',
+        'chilli chicken',
+        'chilli beef',
+        'dragon chicken',
+        'hakka',
+        'chopsuey',
+        'spring roll',
+        'gobi manchurian',
+      ],
     ],
     'south indian': [
-      ['dosa', 'dosha', 'idli', 'idly', 'puttu', 'appam', 'appa', 'idiyappam', 'porotta', 'parotta', 'paratha', 'pathiri'],
-      ['upma', 'uttapam', 'uthappam', 'sambar', 'vada', 'puri', 'poori', 'kadala curry'],
+      [
+        'dosa',
+        'dosha',
+        'idli',
+        'idly',
+        'puttu',
+        'appam',
+        'appa',
+        'idiyappam',
+        'porotta',
+        'parotta',
+        'paratha',
+        'pathiri',
+      ],
+      [
+        'upma',
+        'uttapam',
+        'uthappam',
+        'sambar',
+        'vada',
+        'puri',
+        'poori',
+        'kadala curry',
+      ],
     ],
     'north indian': [
-      ['naan', 'roti', 'chapati', 'chapathi', 'kulcha', 'paneer', 'butter chicken', 'tandoori', 'dal makhani'],
+      [
+        'naan',
+        'roti',
+        'chapati',
+        'chapathi',
+        'kulcha',
+        'paneer',
+        'butter chicken',
+        'tandoori',
+        'dal makhani',
+      ],
       ['chole', 'rajma', 'palak', 'malai kofta', 'kadai'],
     ],
     'fried chicken': [
-      ['fried chicken', 'broasted', 'broast', 'crispy chicken', 'chicken strips', 'chicken popcorn', 'chicken wings', 'hot wings'],
+      [
+        'fried chicken',
+        'broasted',
+        'broast',
+        'crispy chicken',
+        'chicken strips',
+        'chicken popcorn',
+        'chicken wings',
+        'hot wings',
+      ],
     ],
     'sandwich': [
-      ['sandwich', 'sandwitch', 'club sandwich', 'grilled sandwich', 'toast sandwich'],
+      [
+        'sandwich',
+        'sandwitch',
+        'club sandwich',
+        'grilled sandwich',
+        'toast sandwich',
+      ],
     ],
     'rolls': [
       ['roll', 'wrap', 'kathi roll', 'frankie', 'chicken wrap'],
     ],
     'juice': [
-      ['juice', 'fresh juice', 'lime', 'lemonade', 'naranga', 'orange juice', 'watermelon juice'],
+      [
+        'juice',
+        'fresh juice',
+        'lime',
+        'lemonade',
+        'naranga',
+        'orange juice',
+        'watermelon juice',
+      ],
     ],
     'shakes': [
-      ['milkshake', 'milk shake', 'shake', 'thick shake', 'thickshake', 'smoothie'],
+      [
+        'milkshake',
+        'milk shake',
+        'shake',
+        'thick shake',
+        'thickshake',
+        'smoothie',
+      ],
     ],
     'desserts': [
-      ['ice cream', 'icecream', 'sundae', 'brownie', 'cake', 'pastry', 'pudding', 'falooda', 'kunafa', 'gulab jamun'],
+      [
+        'ice cream',
+        'icecream',
+        'sundae',
+        'brownie',
+        'cake',
+        'pastry',
+        'pudding',
+        'falooda',
+        'kunafa',
+        'gulab jamun',
+      ],
     ],
     'tea': [
-      ['tea', 'chai', 'chaya', 'chaaya', 'sulaimani', 'black tea', 'masala tea'],
+      [
+        'tea',
+        'chai',
+        'chaya',
+        'chaaya',
+        'sulaimani',
+        'black tea',
+        'masala tea',
+      ],
     ],
     'coffee': [
       ['coffee', 'cappuccino', 'latte', 'espresso', 'mocha', 'cold coffee'],
     ],
     'breakfast': [
-      ['puttu', 'appam', 'idli', 'dosa', 'idiyappam', 'poori', 'upma', 'bread omelette', 'omelette'],
+      [
+        'puttu',
+        'appam',
+        'idli',
+        'dosa',
+        'idiyappam',
+        'poori',
+        'upma',
+        'bread omelette',
+        'omelette',
+      ],
     ],
   };
 
@@ -301,7 +458,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final keywordGroups = _foodKeywords[category];
 
     if (keywordGroups != null) {
-      for (var groupIndex = 0; groupIndex < keywordGroups.length; groupIndex++) {
+      for (
+        var groupIndex = 0;
+        groupIndex < keywordGroups.length;
+        groupIndex++
+      ) {
         for (final keyword in keywordGroups[groupIndex]) {
           if (_matchesFoodKeyword(name, keyword)) {
             return groupIndex;
@@ -318,37 +479,52 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   int _availableStock(Map<String, dynamic> food) {
-    return parseInt(
-      food['stock'] ?? food['stockLevels'],
-      defaultValue: 0,
-    );
+    return parseInt(food['stock'] ?? food['stockLevels'], defaultValue: 0);
   }
 
-  List<Map<String, dynamic>> _interleaveByRestaurant(List<Map<String, dynamic>> items) {
+  List<Map<String, dynamic>> _interleaveByRestaurant(
+    List<Map<String, dynamic>> items,
+  ) {
     if (items.isEmpty) return [];
 
-    final Map<int, List<Map<String, dynamic>>> relevanceGroups = {};
+    // Global stock priority: ALL available foods before ANY sold-out food.
+    final inStock = <Map<String, dynamic>>[];
+    final soldOut = <Map<String, dynamic>>[];
+
     for (final food in items) {
-      final score = _foodRelevanceScore(food);
-      relevanceGroups.putIfAbsent(score, () => []).add(food);
+      if (_availableStock(food) > 0) {
+        inStock.add(food);
+      } else {
+        soldOut.add(food);
+      }
     }
 
-    final scores = relevanceGroups.keys.toList()..sort();
-    final result = <Map<String, dynamic>>[];
+    List<Map<String, dynamic>> rankByRelevance(
+      List<Map<String, dynamic>> foods,
+    ) {
+      final groups = <int, List<Map<String, dynamic>>>{};
+      for (final food in foods) {
+        final score = _foodRelevanceScore(food);
+        groups.putIfAbsent(score, () => []).add(food);
+      }
 
-    for (final score in scores) {
-      final groupItems = relevanceGroups[score]!;
-      final available = groupItems.where((food) => _availableStock(food) > 0).toList();
-      final soldOut = groupItems.where((food) => _availableStock(food) <= 0).toList();
-
-      result.addAll(_roundRobinRestaurants(available));
-      result.addAll(_roundRobinRestaurants(soldOut));
+      final scores = groups.keys.toList()..sort();
+      final ranked = <Map<String, dynamic>>[];
+      for (final score in scores) {
+        ranked.addAll(_roundRobinRestaurants(groups[score]!));
+      }
+      return ranked;
     }
 
-    return result;
+    return [
+      ...rankByRelevance(inStock),
+      ...rankByRelevance(soldOut),
+    ];
   }
 
-  List<Map<String, dynamic>> _roundRobinRestaurants(List<Map<String, dynamic>> items) {
+  List<Map<String, dynamic>> _roundRobinRestaurants(
+    List<Map<String, dynamic>> items,
+  ) {
     if (items.isEmpty) return [];
 
     final Map<String, List<Map<String, dynamic>>> groups = {};
@@ -396,7 +572,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _initData() async {
-    // 🚀 Start loading menu data immediately without waiting for GPS
+    //  Start loading menu data immediately without waiting for GPS
     _loadData();
 
     // Fetch position in background with timeout
@@ -414,7 +590,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
           final restLat = parseDouble(doc['restLat']);
           final restLng = parseDouble(doc['restLng']);
           if (restLat != 0.0 && restLng != 0.0) {
-            doc['distance'] = Geolocator.distanceBetween(
+            doc['distance'] =
+                Geolocator.distanceBetween(
                   _userPosition!.latitude,
                   _userPosition!.longitude,
                   restLat,
@@ -534,7 +711,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
         data['restaurantId'] = restaurantId;
 
         double dist = 0.0;
-        if (restaurantId.isNotEmpty && restaurantMap.containsKey(restaurantId)) {
+        if (restaurantId.isNotEmpty &&
+            restaurantMap.containsKey(restaurantId)) {
           final restData = restaurantMap[restaurantId]!;
           final String status = restData['status'] ?? 'open';
           if (status != 'open') continue;
@@ -545,7 +723,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
           data['restLng'] = restData['longitude'];
 
           if (_userPosition != null) {
-            dist = Geolocator.distanceBetween(
+            dist =
+                Geolocator.distanceBetween(
                   _userPosition!.latitude,
                   _userPosition!.longitude,
                   parseDouble(restData['latitude']),
@@ -561,11 +740,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
         rawBatch.add(data);
       }
 
-      // 🔄 Merge and re-rank all loaded documents so late-arriving matches rise to the top
-      final allItems = <Map<String, dynamic>>[
-        ..._documents,
-        ...rawBatch,
-      ];
+      //  Merge and re-rank all loaded documents so late-arriving matches rise to the top
+      final allItems = <Map<String, dynamic>>[..._documents, ...rawBatch];
       final rankedItems = _interleaveByRestaurant(allItems);
 
       if (mounted) {
@@ -597,7 +773,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(
-          widget.category.isEmpty ? "EXPLORE DISHES" : widget.category.toUpperCase(),
+          widget.category.isEmpty
+              ? "EXPLORE DISHES"
+              : widget.category.toUpperCase(),
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 18,
@@ -628,48 +806,43 @@ class _CategoryScreenState extends State<CategoryScreen> {
             child: _isLoading
                 ? _buildShimmerLoading()
                 : _fetchError
-                    ? _buildErrorWidget(const Color(0xFF1A1E43))
-                    : _documents.isEmpty
-                        ? _buildNoItemsFound()
-                        : ListView.builder(
-                            controller: _scrollController,
-                            physics: const BouncingScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 110, top: 8),
-                            itemCount: _documents.length + (_hasMore ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == _documents.length) {
-                                return _buildBottomLoader(const Color(0xFF1A1E43));
-                              }
+                ? _buildErrorWidget(const Color(0xFF1A1E43))
+                : _documents.isEmpty
+                ? _buildNoItemsFound()
+                : ListView.builder(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 110, top: 8),
+                    itemCount: _documents.length + (_hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _documents.length) {
+                        return _buildBottomLoader(const Color(0xFF1A1E43));
+                      }
 
-                              final foodData = _documents[index];
-                              final foodItem = FoodItemModel.fromMap(foodData);
+                      final foodData = _documents[index];
+                      final foodItem = FoodItemModel.fromMap(foodData);
 
-                              return Selector<CartProvider, int>(
-                                selector: (_, cart) => cart.getQuantity(foodItem.id),
-                                builder: (context, quantityInCart, child) {
-                                  return _buildFoodItemCard(
-                                    context,
-                                    foodData,
-                                    foodItem.restaurantId,
-                                    foodItem.id,
-                                    quantityInCart,
-                                    foodItem.restaurantName,
-                                    foodItem.restaurantRating,
-                                    foodItem.distance,
-                                    foodItem.price,
-                                    foodItem.mrp,
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                      return Selector<CartProvider, int>(
+                        selector: (_, cart) => cart.getQuantity(foodItem.id),
+                        builder: (context, quantityInCart, child) {
+                          return _buildFoodItemCard(
+                            context,
+                            foodData,
+                            foodItem.restaurantId,
+                            foodItem.id,
+                            quantityInCart,
+                            foodItem.restaurantName,
+                            foodItem.restaurantRating,
+                            foodItem.distance,
+                            foodItem.price,
+                            foodItem.mrp,
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: CartBar(),
-          ),
+          const Positioned(left: 0, right: 0, bottom: 0, child: CartBar()),
         ],
       ),
     );
@@ -716,125 +889,125 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Widget _buildBottomLoader(Color color) => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2, color: color),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.all(16.0),
+    child: Center(
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2, color: color),
+      ),
+    ),
+  );
 
   Widget _buildNoItemsFound() => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off_rounded, size: 60, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            const Text(
-              "No dishes found from open restaurants.",
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _buildErrorWidget(Color primaryColor) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded, size: 60, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text(
-              "Failed to load items. Check your connection.",
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadData,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                "Retry",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _buildShimmerLoading() => ListView.builder(
-        itemCount: 5,
-        padding: const EdgeInsets.only(bottom: 80, top: 8),
-        itemBuilder: (context, index) => _buildShimmerItemCard(),
-      );
-
-  Widget _buildShimmerItemCard() => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-          border: Border.all(color: const Color(0xFFF0F0F0)),
-        ),
-        child: Shimmer.fromColors(
-          baseColor: Colors.grey.shade200,
-          highlightColor: Colors.grey.shade50,
-          child: Row(
-            children: [
-              const SizedBox(
-                width: 90,
-                height: 90,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      height: 16,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 8),
-                    Container(width: 100, height: 14, color: Colors.white),
-                    const SizedBox(height: 8),
-                    Container(width: 80, height: 14, color: Colors.white),
-                  ],
-                ),
-              ),
-            ],
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.search_off_rounded, size: 60, color: Colors.grey.shade400),
+        const SizedBox(height: 16),
+        const Text(
+          "No dishes found from open restaurants.",
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
           ),
         ),
-      );
+      ],
+    ),
+  );
+
+  Widget _buildErrorWidget(Color primaryColor) => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.error_outline_rounded, size: 60, color: Colors.red),
+        const SizedBox(height: 16),
+        const Text(
+          "Failed to load items. Check your connection.",
+          style: TextStyle(
+            color: Colors.red,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: _loadData,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          child: const Text(
+            "Retry",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildShimmerLoading() => ListView.builder(
+    itemCount: 5,
+    padding: const EdgeInsets.only(bottom: 80, top: 8),
+    itemBuilder: (context, index) => _buildShimmerItemCard(),
+  );
+
+  Widget _buildShimmerItemCard() => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
+      border: Border.all(color: const Color(0xFFF0F0F0)),
+    ),
+    child: Shimmer.fromColors(
+      baseColor: Colors.grey.shade200,
+      highlightColor: Colors.grey.shade50,
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 90,
+            height: 90,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 16,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 8),
+                Container(width: 100, height: 14, color: Colors.white),
+                const SizedBox(height: 8),
+                Container(width: 80, height: 14, color: Colors.white),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _buildFoodItemCard(
     BuildContext context,
@@ -850,14 +1023,20 @@ class _CategoryScreenState extends State<CategoryScreen> {
   ) {
     final cart = Provider.of<CartProvider>(context, listen: false);
 
-    final imageUrl = food['imageUrl'] ?? food['image'] ?? "https://via.placeholder.com/200";
+    final imageUrl =
+        food['imageUrl'] ?? food['image'] ?? "https://via.placeholder.com/200";
     final foodName = food['name'] ?? food['productName'] ?? "Unnamed Dish";
-    final int stockAvailable = parseInt(food['stock'] ?? food['stockLevels'], defaultValue: 0);
+    final int stockAvailable = parseInt(
+      food['stock'] ?? food['stockLevels'],
+      defaultValue: 0,
+    );
     final isOutOfStock = stockAvailable <= 0;
     final String? description = food['description']?.toString();
 
     final bool hasDiscount = mrp > foodPrice && foodPrice > 0;
-    final int discountPercent = hasDiscount ? (((mrp - foodPrice) / mrp) * 100).round() : 0;
+    final int discountPercent = hasDiscount
+        ? (((mrp - foodPrice) / mrp) * 100).round()
+        : 0;
 
     void updateCart(int newQuantity) {
       if (!requireLoginGlobal("Please login to add items to cart")) return;
@@ -997,7 +1176,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: isOutOfStock ? Colors.grey : const Color(0xFF1A1E43),
+                      color: isOutOfStock
+                          ? Colors.grey
+                          : const Color(0xFF1A1E43),
                       letterSpacing: -0.2,
                     ),
                     maxLines: 1,
@@ -1064,7 +1245,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   Row(
                     children: [
                       Text(
-                        "₹${foodPrice.toStringAsFixed(0)}",
+                        "\u20B9${foodPrice.toStringAsFixed(0)}",
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -1074,7 +1255,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       if (hasDiscount) ...[
                         const SizedBox(width: 8),
                         Text(
-                          "₹${mrp.toStringAsFixed(0)}",
+                          "\u20B9${mrp.toStringAsFixed(0)}",
                           style: TextStyle(
                             decoration: TextDecoration.lineThrough,
                             fontSize: 12,
@@ -1084,7 +1265,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(4),
@@ -1141,7 +1325,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             width: 90,
                             height: 90,
                             color: Colors.grey.shade200,
-                            child: const Icon(Icons.fastfood, color: Colors.grey),
+                            child: const Icon(
+                              Icons.fastfood,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
                       ),
@@ -1179,7 +1366,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 }
 
 // ==========================================
-// 🍕 EXPANDABLE RED DESCRIPTION COMPONENT
+//  EXPANDABLE RED DESCRIPTION COMPONENT
 // ==========================================
 class _ExpandableItemDescription extends StatefulWidget {
   final String text;
@@ -1200,7 +1387,8 @@ class _ExpandableItemDescription extends StatefulWidget {
       _ExpandableItemDescriptionState();
 }
 
-class _ExpandableItemDescriptionState extends State<_ExpandableItemDescription> {
+class _ExpandableItemDescriptionState
+    extends State<_ExpandableItemDescription> {
   bool _isExpanded = false;
 
   void _showFullDescriptionModal(BuildContext context) {
@@ -1235,11 +1423,7 @@ class _ExpandableItemDescriptionState extends State<_ExpandableItemDescription> 
                   IconButton(
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    icon: const Icon(
-                      Icons.close,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
+                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
@@ -1299,7 +1483,9 @@ class _ExpandableItemDescriptionState extends State<_ExpandableItemDescription> 
                 fontWeight: FontWeight.w500,
               ),
               maxLines: _isExpanded ? null : widget.maxLines,
-              overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              overflow: _isExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
             ),
             if (isOverflowing) ...[
               const SizedBox(height: 2),

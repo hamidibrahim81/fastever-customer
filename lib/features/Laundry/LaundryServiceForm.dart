@@ -2,10 +2,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
 // Ensure this path matches your project structure
-import '../food/cart/ManageAddressScreen.dart'; 
+import '../food/cart/ManageAddressScreen.dart';
 
 // ✅ IMPORT NOTIFICATION SCREEN FOR NAVIGATION
 import 'package:fastevergo_v1/features/notification/NotificationScreen.dart';
@@ -19,7 +19,7 @@ class LaundryServiceForm extends StatefulWidget {
 
 class _LaundryServiceFormState extends State<LaundryServiceForm> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
@@ -32,7 +32,7 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
   final List<int> _garmentQuantities = [];
 
   // Location & Meta data states
-  String? _selectedAddress; 
+  String? _selectedAddress;
   double? _latitude;
   double? _longitude;
   bool _isSubmitting = false;
@@ -44,7 +44,7 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
   double _platformFee = 0.0;
 
   // Remote Config variables (Loaded dynamically from Firestore with absolute fallbacks)
-  double _officeLat = 9.226888; 
+  double _officeLat = 9.226888;
   double _officeLng = 76.849616;
   double _baseDeliveryFee = 20.0;
   double _perKmCharge = 10.0;
@@ -80,10 +80,15 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
       if (snapshot.exists && snapshot.data() != null) {
         final data = snapshot.data() as Map<String, dynamic>;
         setState(() {
-          _officeLat = double.tryParse(data['office_latitude']?.toString() ?? '') ?? 9.226888;
-          _officeLng = double.tryParse(data['office_longitude']?.toString() ?? '') ?? 76.849616;
-          
-          _baseDeliveryFee = (data['base_delivery_fee'] as num?)?.toDouble() ?? 20.0;
+          _officeLat =
+              double.tryParse(data['office_latitude']?.toString() ?? '') ??
+              9.226888;
+          _officeLng =
+              double.tryParse(data['office_longitude']?.toString() ?? '') ??
+              76.849616;
+
+          _baseDeliveryFee =
+              (data['base_delivery_fee'] as num?)?.toDouble() ?? 20.0;
           _perKmCharge = (data['per_km_charge'] as num?)?.toDouble() ?? 10.0;
           _platformFee = (data['platform_fee'] as num?)?.toDouble() ?? 5.0;
         });
@@ -94,16 +99,24 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
   }
 
   // Haversine Formula: Calculates absolute distance in Kilometers
-  double _calculateDistanceInKm(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistanceInKm(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const double earthRadiusKm = 6371.0;
-    
+
     double dLat = _degreesToRadians(lat2 - lat1);
     double dLon = _degreesToRadians(lon2 - lon1);
-    
-    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-               math.cos(_degreesToRadians(lat1)) * math.cos(_degreesToRadians(lat2)) * 
-               math.sin(dLon / 2) * math.sin(dLon / 2);
-               
+
+    double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degreesToRadians(lat1)) *
+            math.cos(_degreesToRadians(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+
     double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadiusKm * c;
   }
@@ -122,7 +135,12 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
       return;
     }
 
-    double distance = _calculateDistanceInKm(_officeLat, _officeLng, targetLat, targetLng);
+    double distance = _calculateDistanceInKm(
+      _officeLat,
+      _officeLng,
+      targetLat,
+      targetLng,
+    );
     double calculatedFee = _baseDeliveryFee;
 
     if (distance > 2.0) {
@@ -165,15 +183,13 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
   }
 
   Color _getThemeColor() {
-    return const Color(0xFF0072FF); 
+    return const Color(0xFF0072FF);
   }
 
   Future<void> _pickAddress() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const ManageAddressScreen(), 
-      ),
+      MaterialPageRoute(builder: (context) => const ManageAddressScreen()),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -187,7 +203,7 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
     } else if (result != null && result is String) {
       setState(() {
         _selectedAddress = result;
-        _latitude = 0.0; 
+        _latitude = 0.0;
         _longitude = 0.0;
         _addressTouchedAndEmpty = false;
       });
@@ -199,8 +215,8 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(), 
-      lastDate: DateTime.now().add(const Duration(days: 14)), 
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 14)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -244,18 +260,20 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
     if (picked != null) {
       // 9:00 AM (540 mins) to 9:00 PM (1290 mins) range check
       final int pickedMinutes = picked.hour * 60 + picked.minute;
-      const int startMinutes = 9 * 60;  // 9:00 AM
-      const int endMinutes = 21 * 60;   // 9:00 PM
+      const int startMinutes = 9 * 60; // 9:00 AM
+      const int endMinutes = 21 * 60; // 9:00 PM
 
       if (pickedMinutes < startMinutes || pickedMinutes > endMinutes) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Please select a pickup time between 9:00 AM and 9:00 PM."),
+            content: Text(
+              "Please select a pickup time between 9:00 AM and 9:00 PM.",
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
-        return; 
+        return;
       }
 
       if (picked != _selectedTime) {
@@ -276,13 +294,15 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
 
     if (activeServiceSelections.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select at least one laundry service option.")),
+        const SnackBar(
+          content: Text("Please select at least one laundry service option."),
+        ),
       );
       return;
     }
 
     final bool isFormValid = _formKey.currentState!.validate();
-    
+
     if (_selectedAddress == null || _selectedAddress!.isEmpty) {
       setState(() {
         _addressTouchedAndEmpty = true;
@@ -306,7 +326,9 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
 
     if (structuredGarmentsList.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please add at least one garment name item.")),
+        const SnackBar(
+          content: Text("Please add at least one garment name item."),
+        ),
       );
       return;
     }
@@ -317,7 +339,7 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      
+
       String combinedDateTimeString = "";
       if (_selectedDate != null && _selectedTime != null) {
         final combinedDateTime = DateTime(
@@ -331,21 +353,21 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
       }
 
       await FirebaseFirestore.instance.collection('laundry').add({
-        'service_categories': activeServiceSelections, 
+        'service_categories': activeServiceSelections,
         'name': _nameController.text.trim(),
         'contact': _contactController.text.trim(),
         'address': _selectedAddress,
         'latitude': _latitude ?? 0.0,
         'longitude': _longitude ?? 0.0,
-        'garments_list': structuredGarmentsList, 
-        'landmark': _landmarkController.text.trim(), 
+        'garments_list': structuredGarmentsList,
+        'landmark': _landmarkController.text.trim(),
         'userId': user?.uid ?? 'anonymous',
         'status': 'Pending',
-        'pickup_date': _dateController.text, 
-        'pickup_time': _timeController.text, 
-        'scheduled_timestamp': combinedDateTimeString, 
-        'delivery_fee': _deliveryFee,        
-        'platform_fee': _platformFee,        
+        'pickup_date': _dateController.text,
+        'pickup_time': _timeController.text,
+        'scheduled_timestamp': combinedDateTimeString,
+        'delivery_fee': _deliveryFee,
+        'platform_fee': _platformFee,
         'distance_km': double.parse(_calculatedDistance.toStringAsFixed(2)),
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -357,7 +379,9 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Column(
@@ -369,18 +393,31 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                     color: Colors.blue.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.local_laundry_service_rounded, color: _getThemeColor(), size: 55),
+                  child: Icon(
+                    Icons.local_laundry_service_rounded,
+                    color: _getThemeColor(),
+                    size: 55,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "Booking Confirmed!", 
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF222222)),
+                  "Booking Confirmed!",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: Color(0xFF222222),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  "Our pickup partner will call you shortly and arrive at your preferred time for a smooth and hassle-free pickup.", 
-                  textAlign: TextAlign.center, 
-                  style: TextStyle(color: Colors.grey.shade800, fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.2),
+                  "Our pickup partner will call you shortly and arrive at your preferred time for a smooth and hassle-free pickup.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade800,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 SizedBox(
@@ -389,13 +426,21 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF222222),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () {
-                      Navigator.pop(context); 
-                      Navigator.pop(context); 
+                      Navigator.pop(context);
+                      Navigator.pop(context);
                     },
-                    child: const Text("OK", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -404,9 +449,9 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Booking failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Booking failed: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -424,12 +469,20 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          "Laundry", 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+          "Laundry",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_rounded, color: Colors.white, size: 24),
+            icon: const Icon(
+              Icons.notifications_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const NotificationScreen()),
@@ -449,22 +502,28 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               _buildSectionHeader("Select Services Needed"),
               _buildSectionContainer(
                 child: Column(
-                  children: _selectedServices.keys.map<Widget>((String serviceName) { 
+                  children: _selectedServices.keys.map<Widget>((
+                    String serviceName,
+                  ) {
                     bool isChecked = _selectedServices[serviceName]!;
                     return CheckboxListTile(
                       title: Text(
                         serviceName,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: isChecked ? FontWeight.bold : FontWeight.w500,
-                          color: isChecked ? themeColor : const Color(0xFF222222),
+                          fontWeight: isChecked
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: isChecked
+                              ? themeColor
+                              : const Color(0xFF222222),
                         ),
                       ),
                       value: isChecked,
                       activeColor: themeColor,
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading, 
+                      controlAffinity: ListTileControlAffinity.leading,
                       onChanged: (bool? value) {
                         setState(() {
                           _selectedServices[serviceName] = value ?? false;
@@ -480,9 +539,20 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               _buildSectionContainer(
                 child: Column(
                   children: [
-                    _buildField(_nameController, "Your Name *", Icons.person_outline_rounded, themeColor),
+                    _buildField(
+                      _nameController,
+                      "Your Name *",
+                      Icons.person_outline_rounded,
+                      themeColor,
+                    ),
                     const SizedBox(height: 4),
-                    _buildField(_contactController, "Contact Number *", Icons.phone_android_rounded, themeColor, keyboardType: TextInputType.phone),
+                    _buildField(
+                      _contactController,
+                      "Contact Number *",
+                      Icons.phone_android_rounded,
+                      themeColor,
+                      keyboardType: TextInputType.phone,
+                    ),
                   ],
                 ),
               ),
@@ -496,7 +566,12 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                       child: InkWell(
                         onTap: _selectDate,
                         child: IgnorePointer(
-                          child: _buildField(_dateController, "Pickup Date *", Icons.calendar_month_rounded, themeColor),
+                          child: _buildField(
+                            _dateController,
+                            "Pickup Date *",
+                            Icons.calendar_month_rounded,
+                            themeColor,
+                          ),
                         ),
                       ),
                     ),
@@ -505,7 +580,12 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                       child: InkWell(
                         onTap: _selectTime,
                         child: IgnorePointer(
-                          child: _buildField(_timeController, "Pickup Time *", Icons.access_time_rounded, themeColor),
+                          child: _buildField(
+                            _timeController,
+                            "Pickup Time *",
+                            Icons.access_time_rounded,
+                            themeColor,
+                          ),
                         ),
                       ),
                     ),
@@ -529,13 +609,17 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                color: _addressTouchedAndEmpty ? Colors.red.withOpacity(0.1) : themeColor.withOpacity(0.1),
+                                color: _addressTouchedAndEmpty
+                                    ? Colors.red.withOpacity(0.1)
+                                    : themeColor.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
-                              padding: const EdgeInsets.all(12), 
+                              padding: const EdgeInsets.all(12),
                               child: Icon(
-                                Icons.location_on_rounded, 
-                                color: _addressTouchedAndEmpty ? Colors.red.shade700 : themeColor, 
+                                Icons.location_on_rounded,
+                                color: _addressTouchedAndEmpty
+                                    ? Colors.red.shade700
+                                    : themeColor,
                                 size: 26,
                               ),
                             ),
@@ -545,24 +629,41 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _selectedAddress != null ? "Selected Pickup Address" : "Select saved address *",
+                                    _selectedAddress != null
+                                        ? "Selected Pickup Address"
+                                        : "Select saved address *",
                                     style: TextStyle(
-                                      fontSize: 14, 
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: _addressTouchedAndEmpty ? Colors.red.shade700 : (_selectedAddress != null ? themeColor : Colors.grey.shade800),
+                                      color: _addressTouchedAndEmpty
+                                          ? Colors.red.shade700
+                                          : (_selectedAddress != null
+                                                ? themeColor
+                                                : Colors.grey.shade800),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _selectedAddress ?? "Tap to import your address details",
-                                    style: TextStyle(fontSize: 13, color: _selectedAddress != null ? Colors.black87 : Colors.grey.shade500, height: 1.3),
+                                    _selectedAddress ??
+                                        "Tap to import your address details",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: _selectedAddress != null
+                                          ? Colors.black87
+                                          : Colors.grey.shade500,
+                                      height: 1.3,
+                                    ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
                           ],
                         ),
                       ),
@@ -570,7 +671,14 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                     if (_addressTouchedAndEmpty) ...[
                       const Padding(
                         padding: EdgeInsets.only(left: 16, bottom: 14),
-                        child: Text("Pickup address is mandatory *", style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600)),
+                        child: Text(
+                          "Pickup address is mandatory *",
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -578,7 +686,12 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
               ),
               const SizedBox(height: 16),
               _buildSectionContainer(
-                child: _buildField(_landmarkController, "Landmark / Flat / Building Floor (Optional)", Icons.domain_rounded, themeColor),
+                child: _buildField(
+                  _landmarkController,
+                  "Landmark / Flat / Building Floor (Optional)",
+                  Icons.domain_rounded,
+                  themeColor,
+                ),
               ),
               const SizedBox(height: 22),
 
@@ -591,22 +704,43 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _garmentNameControllers.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         return Row(
                           children: [
                             Expanded(
                               child: TextFormField(
                                 controller: _garmentNameControllers[index],
-                                style: const TextStyle(fontSize: 14, color: Color(0xFF222222)),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF222222),
+                                ),
                                 decoration: InputDecoration(
                                   labelText: "Item Name",
-                                  labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                                  labelStyle: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 13,
+                                  ),
                                   filled: true,
                                   fillColor: const Color(0xFFFAFAFC),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: themeColor, width: 1.5)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade200,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: themeColor,
+                                      width: 1.5,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -619,29 +753,54 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                               },
                               child: Container(
                                 padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
                                 child: const Icon(Icons.remove, size: 18),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text("${_garmentQuantities[index]}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Text(
+                                "${_garmentQuantities[index]}",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                             InkWell(
-                              onTap: () => setState(() => _garmentQuantities[index]++),
+                              onTap: () =>
+                                  setState(() => _garmentQuantities[index]++),
                               child: Container(
                                 padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
                                 child: const Icon(Icons.add, size: 18),
                               ),
                             ),
                             if (_garmentNameControllers.length > 3) ...[
                               const SizedBox(width: 4),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.redAccent,
+                                  size: 22,
+                                ),
                                 onPressed: () => _removeGarmentRow(index),
-                              )
-                            ]
+                              ),
+                            ],
                           ],
                         );
                       },
@@ -649,8 +808,18 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                     const SizedBox(height: 14),
                     TextButton.icon(
                       onPressed: _addGarmentRow,
-                      icon: Icon(Icons.add_circle_outline_rounded, size: 18, color: themeColor),
-                      label: Text("Add More Items", style: TextStyle(color: themeColor, fontWeight: FontWeight.bold)),
+                      icon: Icon(
+                        Icons.add_circle_outline_rounded,
+                        size: 18,
+                        color: themeColor,
+                      ),
+                      label: Text(
+                        "Add More Items",
+                        style: TextStyle(
+                          color: themeColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -662,14 +831,28 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                 _buildSectionContainer(
                   child: Column(
                     children: [
-                      _buildPriceRow("Distance", "${_calculatedDistance.toStringAsFixed(2)} km", isMuted: true),
-                      const Divider(height: 20, thickness: 0.5),
-                      _buildPriceRow("Delivery Fee", "₹${_deliveryFee.toStringAsFixed(2)}"),
-                      const SizedBox(height: 8),
-                      _buildPriceRow("Platform Fee", "₹${_platformFee.toStringAsFixed(2)}"),
-                      const Divider(height: 20, thickness: 1, color: Colors.black12),
                       _buildPriceRow(
-                        "Total Service Charge", 
+                        "Distance",
+                        "${_calculatedDistance.toStringAsFixed(2)} km",
+                        isMuted: true,
+                      ),
+                      const Divider(height: 20, thickness: 0.5),
+                      _buildPriceRow(
+                        "Delivery Fee",
+                        "₹${_deliveryFee.toStringAsFixed(2)}",
+                      ),
+                      const SizedBox(height: 8),
+                      _buildPriceRow(
+                        "Platform Fee",
+                        "₹${_platformFee.toStringAsFixed(2)}",
+                      ),
+                      const Divider(
+                        height: 20,
+                        thickness: 1,
+                        color: Colors.black12,
+                      ),
+                      _buildPriceRow(
+                        "Total Service Charge",
                         "₹${(_deliveryFee + _platformFee).toStringAsFixed(2)}",
                         isTotal: true,
                         color: themeColor,
@@ -679,20 +862,39 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
                 ),
                 const SizedBox(height: 35),
               ],
-              
+
               Container(
                 width: double.infinity,
                 height: 56,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: themeColor.withOpacity(0.25), blurRadius: 16, offset: const Offset(0, 6))]
+                  boxShadow: [
+                    BoxShadow(
+                      color: themeColor.withOpacity(0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
                 child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: themeColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: themeColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   onPressed: _isSubmitting ? null : _submitForm,
-                  child: _isSubmitting 
-                    ? const CircularProgressIndicator(color: Colors.white) 
-                    : const Text("CONFIRM LAUNDRY PICKUP", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white, letterSpacing: 0.8)),
+                  child: _isSubmitting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "CONFIRM LAUNDRY PICKUP",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -703,7 +905,13 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
     );
   }
 
-  Widget _buildPriceRow(String label, String value, {bool isTotal = false, bool isMuted = false, Color? color}) {
+  Widget _buildPriceRow(
+    String label,
+    String value, {
+    bool isTotal = false,
+    bool isMuted = false,
+    Color? color,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -711,7 +919,9 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
           label,
           style: TextStyle(
             fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.bold : (isMuted ? FontWeight.normal : FontWeight.w500),
+            fontWeight: isTotal
+                ? FontWeight.bold
+                : (isMuted ? FontWeight.normal : FontWeight.w500),
             color: isMuted ? Colors.grey : const Color(0xFF222222),
           ),
         ),
@@ -730,24 +940,49 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF222222), letterSpacing: 0.3)),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: Color(0xFF222222),
+          letterSpacing: 0.3,
+        ),
+      ),
     );
   }
 
-  Widget _buildSectionContainer({required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _buildSectionContainer({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+  }) {
     return Container(
       width: double.infinity,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
   }
 
-  Widget _buildField(TextEditingController controller, String label, IconData icon, Color focusColor, {int maxLines = 1, TextInputType keyboardType = TextInputType.text, String? hintText}) {
+  Widget _buildField(
+    TextEditingController controller,
+    String label,
+    IconData icon,
+    Color focusColor, {
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    String? hintText,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -757,29 +992,49 @@ class _LaundryServiceFormState extends State<LaundryServiceForm> {
         style: const TextStyle(fontSize: 15, color: Color(0xFF222222)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
+          labelStyle: const TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
           hintText: hintText,
           prefixIcon: Icon(icon, size: 22, color: Colors.grey.shade500),
           filled: true,
           fillColor: const Color(0xFFFAFAFC),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: focusColor, width: 1.8)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200, width: 1)),
-          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.red.shade400, width: 1)),
-          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.8)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: focusColor, width: 1.8),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 1.8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
         validator: (val) {
           if (label.contains("Optional")) return null;
           if (val == null || val.isEmpty) return "Field cannot be empty";
-          
+
           // Safeguard check for Pickup Time field
           if (label.contains("Pickup Time") && _selectedTime != null) {
-            final int totalMins = _selectedTime!.hour * 60 + _selectedTime!.minute;
+            final int totalMins =
+                _selectedTime!.hour * 60 + _selectedTime!.minute;
             if (totalMins < (9 * 60) || totalMins > (21 * 60)) {
               return "Time must be between 9:00 AM and 9:00 PM";
             }
           }
-          
+
           return null;
         },
       ),

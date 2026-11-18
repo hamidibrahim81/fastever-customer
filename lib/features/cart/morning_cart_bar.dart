@@ -26,7 +26,7 @@ class MorningCartBar extends StatelessWidget {
 
     // ✅ Total item count (Sum of all quantities)
     final int totalItems = _getTotalQuantity(cart.items);
-    
+
     // Total Amount formatted
     final String totalAmount = cart.totalAmount.toStringAsFixed(0);
 
@@ -42,12 +42,12 @@ class MorningCartBar extends StatelessWidget {
             );
           },
           child: Container(
-            height: 58, 
+            height: 58,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.deepOrange.shade700, 
+              color: Colors.deepOrange.shade700,
               // ✅ Professional design with slightly sharper corners
-              borderRadius: BorderRadius.circular(8), 
+              borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.3),
@@ -61,7 +61,10 @@ class MorningCartBar extends StatelessWidget {
               children: [
                 // 1. Item Count Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(4),
@@ -75,7 +78,7 @@ class MorningCartBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 // 2. Price and View Cart CTA
                 Row(
                   children: [
@@ -98,11 +101,7 @@ class MorningCartBar extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(width: 12),
-                    Container(
-                      height: 24,
-                      width: 1,
-                      color: Colors.white24,
-                    ),
+                    Container(height: 24, width: 1, color: Colors.white24),
                     const SizedBox(width: 12),
                     const Text(
                       "VIEW CART",
@@ -114,7 +113,11 @@ class MorningCartBar extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ],
                 ),
               ],

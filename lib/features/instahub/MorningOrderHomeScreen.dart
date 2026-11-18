@@ -38,7 +38,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
   DateTime? _lastPressed;
   final Duration _doublePressDuration = const Duration(milliseconds: 2000);
 
-  final PageController _adsPageController = PageController(viewportFraction: 1.0);
+  final PageController _adsPageController = PageController(
+    viewportFraction: 1.0,
+  );
   int _currentAdsPage = 0;
   Timer? _adsTimer;
 
@@ -61,13 +63,21 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
   static const Color _bgColor = Color(0xFFF8F9FD);
 
   final List<Map<String, dynamic>> categories = [
-    {"name": "Fruits & Vegetables", "image": "assets/icons/fv.jpeg", "tag": "fv"},
+    {
+      "name": "Fruits & Vegetables",
+      "image": "assets/icons/fv.jpeg",
+      "tag": "fv",
+    },
     {"name": "Dairy & Eggs", "image": "assets/icons/de.jpeg", "tag": "de"},
     {"name": "Meat & Seafood", "image": "assets/icons/ms.jpeg", "tag": "ms"},
     {"name": "Grocery & Staples", "image": "assets/icons/gs.jpeg", "tag": "gs"},
     {"name": "Bakery & Snacks", "image": "assets/icons/bs.jpeg", "tag": "bs"},
     {"name": "Beverages", "image": "assets/icons/b.jpeg", "tag": "b"},
-    {"name": "Household Essentials", "image": "assets/icons/he.jpeg", "tag": "he"},
+    {
+      "name": "Household Essentials",
+      "image": "assets/icons/he.jpeg",
+      "tag": "he",
+    },
     {"name": "Baby & Kids", "image": "assets/icons/bk.jpeg", "tag": "bk"},
     {"name": "Pet Care", "image": "assets/icons/pc.jpeg", "tag": "pc"},
   ];
@@ -146,14 +156,17 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
       return false;
     }
     final now = DateTime.now();
-    if (_lastPressed == null || now.difference(_lastPressed!) > _doublePressDuration) {
+    if (_lastPressed == null ||
+        now.difference(_lastPressed!) > _doublePressDuration) {
       _lastPressed = now;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Press back again to exit", style: GoogleFonts.inter()),
           backgroundColor: Colors.black,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       return false;
@@ -210,7 +223,11 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
             elevation: 0,
             centerTitle: true,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               onPressed: () {
                 GlobalLoader.run(
                   duration: const Duration(milliseconds: 1800),
@@ -231,7 +248,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
                       if (!mounted) return;
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationScreen(),
+                        ),
                       );
                     },
                   );
@@ -240,14 +259,17 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
               IconButton(
                 icon: const Icon(Icons.account_circle_outlined, size: 28),
                 onPressed: () {
-                  if (!requireLoginGlobal("Please login to access profile")) return;
+                  if (!requireLoginGlobal("Please login to access profile"))
+                    return;
                   GlobalLoader.run(
                     duration: const Duration(milliseconds: 1800),
                     task: () async {
                       if (!mounted) return;
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const ProfileScreen2()),
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileScreen2(),
+                        ),
                       );
                     },
                   );
@@ -354,9 +376,13 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
                           child: Image.asset(
                             cat["image"],
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Center(
-                              child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Center(
+                                  child: Icon(
+                                    Icons.shopping_bag_outlined,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -396,7 +422,8 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
           .where('active', isEqualTo: true)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+          return const SizedBox.shrink();
         final adsDocs = snapshot.data!.docs;
 
         return Container(
@@ -405,7 +432,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
           child: PageView.builder(
             controller: _adsPageController,
             itemBuilder: (context, index) {
-              final ad = adsDocs[index % adsDocs.length].data() as Map<String, dynamic>;
+              final ad =
+                  adsDocs[index % adsDocs.length].data()
+                      as Map<String, dynamic>;
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -428,7 +457,10 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
                       placeholder: (_, __) => Container(color: Colors.white10),
                       errorWidget: (_, __, ___) => Container(
                         color: Colors.white10,
-                        child: const Icon(Icons.broken_image, color: Colors.white54),
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.white54,
+                        ),
                       ),
                     ),
                   ),
@@ -451,7 +483,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
             if (!mounted) return;
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MorningOrdersListScreen()),
+              MaterialPageRoute(
+                builder: (context) => const MorningOrdersListScreen(),
+              ),
             );
           },
         );
@@ -506,8 +540,15 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
         style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           hintText: "Search milk, eggs, bread, apple, atta...",
-          hintStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 14),
-          prefixIcon: const Icon(Icons.search_rounded, color: _accentOrange, size: 24),
+          hintStyle: GoogleFonts.inter(
+            color: Colors.grey.shade400,
+            fontSize: 14,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: _accentOrange,
+            size: 24,
+          ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear_rounded, color: Colors.grey),
@@ -529,7 +570,9 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
       {"label": "✨ All Items", "tag": "all"},
       {"label": "🔥 Daily Essentials", "tag": "tops"},
       {"label": "🏷️ Value Deals", "tag": "bo"},
-      ...categories.map((c) => {"label": c["name"].toString(), "tag": c["tag"].toString()}),
+      ...categories.map(
+        (c) => {"label": c["name"].toString(), "tag": c["tag"].toString()},
+      ),
     ];
 
     return SizedBox(
@@ -582,7 +625,10 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
         alignment: Alignment.center,
         child: Text(
           "No items found in this section",
-          style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.w600),
+          style: GoogleFonts.inter(
+            color: Colors.grey,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       );
     }
@@ -602,9 +648,7 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
         ),
         itemBuilder: (context, index) {
           final doc = docs[index];
-          return _MorningItemCard(
-            item: {...doc.data()!, 'id': doc.id},
-          );
+          return _MorningItemCard(item: {...doc.data()!, 'id': doc.id});
         },
       ),
     );
@@ -615,16 +659,23 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
 
     final filtered = _cachedDocs.where((doc) {
       final data = doc.data() ?? {};
-      final name = (data['name'] ?? data['productName'] ?? '').toString().toLowerCase();
+      final name = (data['name'] ?? data['productName'] ?? '')
+          .toString()
+          .toLowerCase();
       final category = (data['category'] ?? '').toString().toLowerCase();
-      final tags = (data['tags'] is List ? List<dynamic>.from(data['tags']) : []).join(' ').toLowerCase();
+      final tags =
+          (data['tags'] is List ? List<dynamic>.from(data['tags']) : [])
+              .join(' ')
+              .toLowerCase();
 
       if (name.startsWith(query)) return true;
 
       final nameWords = name.split(RegExp(r'\s+'));
       if (nameWords.any((w) => w.startsWith(query))) return true;
 
-      return name.contains(query) || category.contains(query) || tags.contains(query);
+      return name.contains(query) ||
+          category.contains(query) ||
+          tags.contains(query);
     }).toList();
 
     if (filtered.isEmpty) {
@@ -667,7 +718,11 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
             children: [
               Text(
                 "₹${actualPrice.toInt()}",
-                style: GoogleFonts.inter(color: const Color(0xFF00E676), fontWeight: FontWeight.w800, fontSize: 14),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF00E676),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
               ),
               if (hasDiscount) ...[
                 const SizedBox(width: 6),
@@ -691,7 +746,8 @@ class _MorningOrderHomeScreenState extends State<MorningOrderHomeScreen>
                 return _JumboMorningSelector(
                   quantity: qty,
                   onAdd: () {
-                    if (!requireLoginGlobal("Please login to add items")) return;
+                    if (!requireLoginGlobal("Please login to add items"))
+                      return;
                     cart.addItem(
                       id: filtered[index].id,
                       name: item['name'],
@@ -721,8 +777,11 @@ class _MorningItemCard extends StatelessWidget {
     final offerPrice = (item['offerPrice'] as num?)?.toDouble();
     final actualPrice = offerPrice ?? price;
     final String itemId = item['id'];
-    final bool hasDiscount = offerPrice != null && offerPrice < price && price > 0;
-    final int discountPercent = hasDiscount ? (((price - offerPrice) / price) * 100).round() : 0;
+    final bool hasDiscount =
+        offerPrice != null && offerPrice < price && price > 0;
+    final int discountPercent = hasDiscount
+        ? (((price - offerPrice) / price) * 100).round()
+        : 0;
 
     return Consumer<MorningCartProvider>(
       builder: (context, cart, _) {
@@ -762,9 +821,13 @@ class _MorningItemCard extends StatelessWidget {
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
-                            placeholder: (_, __) => Container(color: Colors.grey.shade100),
+                            placeholder: (_, __) =>
+                                Container(color: Colors.grey.shade100),
                             errorWidget: (context, url, error) => const Center(
-                              child: Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                              child: Icon(
+                                Icons.image_not_supported_outlined,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                         ),
@@ -775,7 +838,10 @@ class _MorningItemCard extends StatelessWidget {
                         top: 14,
                         left: 14,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF00E676),
                             borderRadius: BorderRadius.circular(6),
@@ -802,7 +868,11 @@ class _MorningItemCard extends StatelessWidget {
                       item['name'] ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, height: 1.2),
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        height: 1.2,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -835,7 +905,8 @@ class _MorningItemCard extends StatelessWidget {
                     _JumboMorningSelector(
                       quantity: qty,
                       onAdd: () {
-                        if (!requireLoginGlobal("Please login to add items")) return;
+                        if (!requireLoginGlobal("Please login to add items"))
+                          return;
                         cart.addItem(
                           id: itemId,
                           name: item['name'],
@@ -918,7 +989,11 @@ class _JumboMorningSelector extends StatelessWidget {
                     child: InkWell(
                       onTap: onRemove,
                       child: const Center(
-                        child: Icon(Icons.remove_rounded, color: Colors.white, size: 20),
+                        child: Icon(
+                          Icons.remove_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -934,7 +1009,11 @@ class _JumboMorningSelector extends StatelessWidget {
                     child: InkWell(
                       onTap: onAdd,
                       child: const Center(
-                        child: Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),

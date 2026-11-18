@@ -19,16 +19,16 @@ android {
     namespace = "com.fastever.customer"
     compileSdk = flutter.compileSdkVersion
 
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     // 2. Configure the signing process
@@ -52,10 +52,7 @@ android {
 
     buildTypes {
         getByName("release") {
-            // ✅ NOW USING THE RELEASE KEY
             signingConfig = signingConfigs.getByName("release")
-            
-            // ✅ PERFORMANCE OPTIMIZATIONS FOR PLAY STORE
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -68,5 +65,5 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }

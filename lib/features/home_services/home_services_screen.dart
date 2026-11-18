@@ -24,7 +24,7 @@ class HomeServicesScreen extends StatelessWidget {
         "subtitle": "Wiring, repairs, switches & fan installations",
         "icon": Icons.electric_bolt_rounded,
         "color": const Color(0xFFFFB300),
-        "tag": "Instant"
+        "tag": "Instant",
       },
       {
         "key": "plumber",
@@ -32,7 +32,7 @@ class HomeServicesScreen extends StatelessWidget {
         "subtitle": "Leakages, pipes, taps & bathroom fittings",
         "icon": Icons.water_drop_rounded,
         "color": const Color(0xFF2196F3),
-        "tag": "Expert"
+        "tag": "Expert",
       },
       {
         "key": "house_cleaning",
@@ -40,7 +40,7 @@ class HomeServicesScreen extends StatelessWidget {
         "subtitle": "Deep home, office, kitchen & flat cleaning",
         "icon": Icons.cleaning_services_rounded,
         "color": _accentPink,
-        "tag": "Popular"
+        "tag": "Popular",
       },
       {
         "key": "ac_service",
@@ -48,7 +48,7 @@ class HomeServicesScreen extends StatelessWidget {
         "subtitle": "Cooling repair, gas refill & servicing",
         "icon": Icons.ac_unit_rounded,
         "color": const Color(0xFF00BCD4),
-        "tag": "Certified"
+        "tag": "Certified",
       },
       {
         "key": "appliance_repair",
@@ -56,7 +56,7 @@ class HomeServicesScreen extends StatelessWidget {
         "subtitle": "Fridge, TV, washing machine & microwave fixes",
         "icon": Icons.home_repair_service_rounded,
         "color": const Color(0xFF4CAF50),
-        "tag": "Quick Fix"
+        "tag": "Quick Fix",
       },
       {
         "key": "home_shifting",
@@ -64,7 +64,7 @@ class HomeServicesScreen extends StatelessWidget {
         "subtitle": "Packers, movers & safe logistics help",
         "icon": Icons.local_shipping_rounded,
         "color": const Color(0xFF9C27B0),
-        "tag": "Safe Transit"
+        "tag": "Safe Transit",
       },
     ];
 
@@ -75,23 +75,33 @@ class HomeServicesScreen extends StatelessWidget {
         elevation: 6,
         shadowColor: Colors.black.withOpacity(0.3),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(24),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Home Services",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
         actions: [
           // 🔔 Notification Bell Icon Integration
           IconButton(
-            icon: const Icon(Icons.notifications_rounded, color: Colors.white, size: 24),
+            icon: const Icon(
+              Icons.notifications_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const NotificationScreen()),
@@ -110,7 +120,8 @@ class HomeServicesScreen extends StatelessWidget {
           // Extract service status map safely
           Map<String, dynamic> serviceStatusMap = {};
           if (snapshot.hasData && snapshot.data!.exists) {
-            serviceStatusMap = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+            serviceStatusMap =
+                snapshot.data!.data() as Map<String, dynamic>? ?? {};
           }
 
           return CustomScrollView(
@@ -154,7 +165,11 @@ class HomeServicesScreen extends StatelessWidget {
                             SizedBox(height: 6),
                             Text(
                               "Verified local professionals ready to help with your home maintenance.",
-                              style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.3),
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
                             ),
                           ],
                         ),
@@ -166,7 +181,11 @@ class HomeServicesScreen extends StatelessWidget {
                           color: _accentPink.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.verified_user_rounded, color: _accentPink, size: 28),
+                        child: const Icon(
+                          Icons.verified_user_rounded,
+                          color: _accentPink,
+                          size: 28,
+                        ),
                       ),
                     ],
                   ),
@@ -191,31 +210,31 @@ class HomeServicesScreen extends StatelessWidget {
 
               // SERVICES LIST (Fixed 'slivers' to 'sliver')
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 4,
+                ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final item = services[index];
-                      final String serviceKey = item["key"];
-                      
-                      // Check status from Firestore. Default to true if missing.
-                      final bool isEnabled = serviceStatusMap[serviceKey] ?? true;
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final item = services[index];
+                    final String serviceKey = item["key"];
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 14.0),
-                        child: _buildServiceCard(
-                          context: context,
-                          title: item["title"],
-                          subtitle: item["subtitle"],
-                          icon: item["icon"],
-                          iconColor: item["color"],
-                          tag: item["tag"],
-                          isEnabled: isEnabled,
-                        ),
-                      );
-                    },
-                    childCount: services.length,
-                  ),
+                    // Check status from Firestore. Default to true if missing.
+                    final bool isEnabled = serviceStatusMap[serviceKey] ?? true;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14.0),
+                      child: _buildServiceCard(
+                        context: context,
+                        title: item["title"],
+                        subtitle: item["subtitle"],
+                        icon: item["icon"],
+                        iconColor: item["color"],
+                        tag: item["tag"],
+                        isEnabled: isEnabled,
+                      ),
+                    );
+                  }, childCount: services.length),
                 ),
               ),
 
@@ -243,7 +262,9 @@ class HomeServicesScreen extends StatelessWidget {
           // 🚫 Show message when service is turned off/under maintenance
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Currently we are unable to provide $title service. Under Maintenance."),
+              content: Text(
+                "Currently we are unable to provide $title service. Under Maintenance.",
+              ),
               backgroundColor: Colors.redAccent,
               behavior: SnackBarBehavior.floating,
             ),
@@ -252,7 +273,8 @@ class HomeServicesScreen extends StatelessWidget {
         }
 
         // Auth Guard check
-        if (!requireLoginGlobal("Please login to book a $title service")) return;
+        if (!requireLoginGlobal("Please login to book a $title service"))
+          return;
 
         // Navigates and explicitly passes the chosen service type string
         Navigator.push(
@@ -270,8 +292,8 @@ class HomeServicesScreen extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: isEnabled 
-                  ? const Color(0xFFE2E8F0).withOpacity(0.6) 
+              color: isEnabled
+                  ? const Color(0xFFE2E8F0).withOpacity(0.6)
                   : Colors.redAccent.withOpacity(0.3),
             ),
             boxShadow: [
@@ -279,7 +301,7 @@ class HomeServicesScreen extends StatelessWidget {
                 color: Colors.black.withOpacity(0.025),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
           ),
           child: Row(
@@ -289,7 +311,9 @@ class HomeServicesScreen extends StatelessWidget {
                 height: 56,
                 width: 56,
                 decoration: BoxDecoration(
-                  color: (isEnabled ? iconColor : Colors.grey).withOpacity(0.12),
+                  color: (isEnabled ? iconColor : Colors.grey).withOpacity(
+                    0.12,
+                  ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
@@ -316,9 +340,13 @@ class HomeServicesScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: (isEnabled ? iconColor : Colors.grey).withOpacity(0.1),
+                            color: (isEnabled ? iconColor : Colors.grey)
+                                .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -334,10 +362,14 @@ class HomeServicesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      isEnabled ? subtitle : "Temporarily unavailable. Please check back later.",
+                      isEnabled
+                          ? subtitle
+                          : "Temporarily unavailable. Please check back later.",
                       style: TextStyle(
                         fontSize: 12,
-                        color: isEnabled ? const Color(0xFF64748B) : Colors.red.shade300,
+                        color: isEnabled
+                            ? const Color(0xFF64748B)
+                            : Colors.red.shade300,
                         fontWeight: FontWeight.w500,
                         height: 1.25,
                       ),
@@ -355,7 +387,9 @@ class HomeServicesScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isEnabled ? Icons.arrow_forward_ios_rounded : Icons.lock_outline_rounded,
+                  isEnabled
+                      ? Icons.arrow_forward_ios_rounded
+                      : Icons.lock_outline_rounded,
                   size: 14,
                   color: isEnabled ? _primaryDark : Colors.redAccent,
                 ),

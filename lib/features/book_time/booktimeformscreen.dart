@@ -66,14 +66,14 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
   List<Map<String, dynamic>> _generateTimeSlots() {
     List<Map<String, dynamic>> slots = [];
     int start = 10 * 60; // 10:00 AM
-    int end = 21 * 60;   // 9:00 PM
+    int end = 21 * 60; // 9:00 PM
 
     while (start < end) {
       int next = start + 30;
-      
+
       String startLabel = _formatMinutes(start);
       String endLabel = _formatMinutes(next);
-      
+
       slots.add({
         'label': "$startLabel to $endLabel",
         'start_minutes': start,
@@ -96,7 +96,7 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
   // 🔍 Fetch active (non-cancelled) booked blocks from Firestore for the chosen date
   Future<void> _updateReservedSlots() async {
     if (_dateController.text.isEmpty) return;
-    
+
     try {
       final QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('salons')
@@ -135,7 +135,11 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: SalonColors.accent, onPrimary: Colors.white, onSurface: Color(0xFF222222)),
+            colorScheme: const ColorScheme.light(
+              primary: SalonColors.accent,
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF222222),
+            ),
           ),
           child: child!,
         );
@@ -156,7 +160,9 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
   void _showSlotPicker() async {
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select an appointment date first.")),
+        const SnackBar(
+          content: Text("Please select an appointment date first."),
+        ),
       );
       return;
     }
@@ -180,7 +186,11 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
             children: [
               const Text(
                 "Select Available Time Slot",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: SalonColors.primary),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: SalonColors.primary,
+                ),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -190,13 +200,17 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                     final slot = slots[index];
                     final int startMins = slot['start_minutes'];
                     final int endMins = slot['end_minutes'];
-                    final bool isSelected = _selectedSlotString == slot['label'];
+                    final bool isSelected =
+                        _selectedSlotString == slot['label'];
 
                     bool isAlreadyBooked = false;
                     for (var reserved in _reservedSlotsOnSelectedDate) {
-                      if ((startMins >= reserved['start']! && startMins < reserved['end']!) ||
-                          (endMins > reserved['start']! && endMins <= reserved['end']!) ||
-                          (startMins <= reserved['start']! && endMins >= reserved['end']!)) {
+                      if ((startMins >= reserved['start']! &&
+                              startMins < reserved['end']!) ||
+                          (endMins > reserved['start']! &&
+                              endMins <= reserved['end']!) ||
+                          (startMins <= reserved['start']! &&
+                              endMins >= reserved['end']!)) {
                         isAlreadyBooked = true;
                         break;
                       }
@@ -212,14 +226,21 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                       textColor = Colors.grey.shade400;
                       borderColor = Colors.grey.shade200;
                       trailingWidget = const Text(
-                        "Booked", 
-                        style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                        "Booked",
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       );
                     } else if (isSelected) {
                       containerBg = SalonColors.accent;
                       textColor = Colors.white;
                       borderColor = SalonColors.accent;
-                      trailingWidget = const Icon(Icons.check_circle, color: Colors.white);
+                      trailingWidget = const Icon(
+                        Icons.check_circle,
+                        color: Colors.white,
+                      );
                     } else {
                       containerBg = const Color(0xFFFAFAFC);
                       textColor = SalonColors.primary;
@@ -236,24 +257,30 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                           border: Border.all(color: borderColor, width: 1),
                         ),
                         child: ListTile(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           enabled: !isAlreadyBooked,
                           title: Text(
                             slot['label'],
                             style: TextStyle(
-                              fontWeight: (isSelected || isAlreadyBooked) ? FontWeight.bold : FontWeight.w500,
+                              fontWeight: (isSelected || isAlreadyBooked)
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
                               color: textColor,
                             ),
                           ),
                           trailing: trailingWidget,
-                          onTap: isAlreadyBooked ? null : () {
-                            setState(() {
-                              _selectedSlotString = slot['label'];
-                              _selectedStartMinutes = startMins;
-                              _selectedEndMinutes = endMins;
-                            });
-                            Navigator.pop(context);
-                          },
+                          onTap: isAlreadyBooked
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _selectedSlotString = slot['label'];
+                                    _selectedStartMinutes = startMins;
+                                    _selectedEndMinutes = endMins;
+                                  });
+                                  Navigator.pop(context);
+                                },
                         ),
                       ),
                     );
@@ -275,7 +302,9 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
 
     if (chosenServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please choose at least one grooming service option.")),
+        const SnackBar(
+          content: Text("Please choose at least one grooming service option."),
+        ),
       );
       return;
     }
@@ -284,14 +313,20 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
 
     if (!formValid || _selectedSlotString == null || _selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all required inputs and select a time slot.")),
+        const SnackBar(
+          content: Text(
+            "Please fill all required inputs and select a time slot.",
+          ),
+        ),
       );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Authentication required.")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Authentication required.")));
       return;
     }
 
@@ -301,12 +336,15 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
       await _updateReservedSlots();
-      
+
       bool isConflict = false;
       for (var reserved in _reservedSlotsOnSelectedDate) {
-        if ((_selectedStartMinutes! >= reserved['start']! && _selectedStartMinutes! < reserved['end']!) ||
-            (_selectedEndMinutes! > reserved['start']! && _selectedEndMinutes! <= reserved['end']!) ||
-            (_selectedStartMinutes! <= reserved['start']! && _selectedEndMinutes! >= reserved['end']!)) {
+        if ((_selectedStartMinutes! >= reserved['start']! &&
+                _selectedStartMinutes! < reserved['end']!) ||
+            (_selectedEndMinutes! > reserved['start']! &&
+                _selectedEndMinutes! <= reserved['end']!) ||
+            (_selectedStartMinutes! <= reserved['start']! &&
+                _selectedEndMinutes! >= reserved['end']!)) {
           isConflict = true;
           break;
         }
@@ -318,17 +356,22 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
           const SnackBar(
             content: Text(
               "This specific time block is already reserved. Please select another slot!",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            backgroundColor: Color(0xFFD32F2F), 
-            duration: Duration(seconds: 2), 
+            backgroundColor: Color(0xFFD32F2F),
+            duration: Duration(seconds: 2),
           ),
         );
         setState(() => _isSubmitting = false);
         return;
       }
 
-      final DocumentReference globalBookingRef = firestore.collection('booking_salon_service').doc();
+      final DocumentReference globalBookingRef = firestore
+          .collection('booking_salon_service')
+          .doc();
       final String orderId = globalBookingRef.id;
 
       final DocumentReference salonSubcollectionRef = firestore
@@ -345,7 +388,7 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
 
       final Map<String, dynamic> bookingPayload = {
         'order_id': orderId,
-        'salon_id': widget.salonId, 
+        'salon_id': widget.salonId,
         'salon_name': widget.salonName,
         'name': _nameController.text.trim(),
         'contact': _contactController.text.trim(),
@@ -373,7 +416,9 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Column(
@@ -381,19 +426,36 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(color: Color(0xFFFEF2F2), shape: BoxShape.circle),
-                  child: const Icon(Icons.check_circle_rounded, color: SalonColors.accent, size: 55),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFEF2F2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: SalonColors.accent,
+                    size: 55,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   "Booking Confirmed!",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF222222)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: Color(0xFF222222),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 const Text(
                   "Your booking of time is successfully registered! Please arrive at your selected slot timing for a premium hassle-free experience.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF1F2937), fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.1, height: 1.4),
+                  style: TextStyle(
+                    color: Color(0xFF1F2937),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.1,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -407,26 +469,51 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                     children: [
                       const Text(
                         "Need Support or Assistance?",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.phone_rounded, size: 14, color: SalonColors.accent),
+                          Icon(
+                            Icons.phone_rounded,
+                            size: 14,
+                            color: SalonColors.accent,
+                          ),
                           SizedBox(width: 6),
-                          Text("+918921752969", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
+                          Text(
+                            "+918921752969",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.mail_outline_rounded, size: 14, color: SalonColors.accent),
+                          Icon(
+                            Icons.mail_outline_rounded,
+                            size: 14,
+                            color: SalonColors.accent,
+                          ),
                           SizedBox(width: 6),
-                          Text("bloohostgroup.official@gmail.com", style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                          Text(
+                            "bloohostgroup.official@gmail.com",
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -437,13 +524,21 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF111827),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () {
-                      Navigator.pop(context); 
-                      Navigator.pop(context); 
+                      Navigator.pop(context);
+                      Navigator.pop(context);
                     },
-                    child: const Text("OK", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -452,7 +547,9 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Booking failed: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Booking failed: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -469,7 +566,11 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
         centerTitle: true,
         title: Text(
           widget.salonName,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -490,8 +591,12 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                         service,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: isChecked ? FontWeight.bold : FontWeight.w500,
-                          color: isChecked ? SalonColors.accent : const Color(0xFF222222),
+                          fontWeight: isChecked
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: isChecked
+                              ? SalonColors.accent
+                              : const Color(0xFF222222),
                         ),
                       ),
                       value: isChecked,
@@ -500,7 +605,9 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       onChanged: (bool? val) {
-                        setState(() => _servicesSelectionMap[service] = val ?? false);
+                        setState(
+                          () => _servicesSelectionMap[service] = val ?? false,
+                        );
                       },
                     );
                   }).toList(),
@@ -511,9 +618,20 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
               _buildSectionContainer(
                 child: Column(
                   children: [
-                    _buildField(_nameController, "Your Name *", Icons.person_outline_rounded, SalonColors.accent),
+                    _buildField(
+                      _nameController,
+                      "Your Name *",
+                      Icons.person_outline_rounded,
+                      SalonColors.accent,
+                    ),
                     const SizedBox(height: 4),
-                    _buildField(_contactController, "Contact Number *", Icons.phone_android_rounded, SalonColors.accent, keyboardType: TextInputType.phone),
+                    _buildField(
+                      _contactController,
+                      "Contact Number *",
+                      Icons.phone_android_rounded,
+                      SalonColors.accent,
+                      keyboardType: TextInputType.phone,
+                    ),
                   ],
                 ),
               ),
@@ -526,7 +644,12 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                       child: InkWell(
                         onTap: _selectDate,
                         child: IgnorePointer(
-                          child: _buildField(_dateController, "Appointment Date *", Icons.calendar_month_rounded, SalonColors.accent),
+                          child: _buildField(
+                            _dateController,
+                            "Appointment Date *",
+                            Icons.calendar_month_rounded,
+                            SalonColors.accent,
+                          ),
                         ),
                       ),
                     ),
@@ -535,23 +658,37 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                       child: InkWell(
                         onTap: _showSlotPicker,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 18,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFAFAFC),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200, width: 1),
+                            border: Border.all(
+                              color: Colors.grey.shade200,
+                              width: 1,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.access_time_rounded, size: 22, color: Colors.grey.shade500),
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 22,
+                                color: Colors.grey.shade500,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   _selectedSlotString ?? "Select Slot *",
                                   style: TextStyle(
-                                    fontSize: 14, 
-                                    color: _selectedSlotString != null ? const Color(0xFF111827) : Colors.grey,
-                                    fontWeight: _selectedSlotString != null ? FontWeight.w600 : FontWeight.w500,
+                                    fontSize: 14,
+                                    color: _selectedSlotString != null
+                                        ? const Color(0xFF111827)
+                                        : Colors.grey,
+                                    fontWeight: _selectedSlotString != null
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -567,7 +704,13 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
               const SizedBox(height: 22),
               _buildSectionHeader("Additional Instructions"),
               _buildSectionContainer(
-                child: _buildField(_commentController, "Add comments or preferences details (Optional)", Icons.chat_bubble_outline_rounded, SalonColors.accent, maxLines: 3),
+                child: _buildField(
+                  _commentController,
+                  "Add comments or preferences details (Optional)",
+                  Icons.chat_bubble_outline_rounded,
+                  SalonColors.accent,
+                  maxLines: 3,
+                ),
               ),
               const SizedBox(height: 35),
               Container(
@@ -576,17 +719,31 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: SalonColors.accent.withOpacity(0.25), blurRadius: 16, offset: const Offset(0, 6))
+                    BoxShadow(
+                      color: SalonColors.accent.withOpacity(0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
                   ],
                 ),
                 child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: SalonColors.accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: SalonColors.accent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   onPressed: _isSubmitting ? null : _submitBooking,
                   child: _isSubmitting
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           "CONFIRM SALON APPOINTMENT",
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white, letterSpacing: 0.5),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                 ),
               ),
@@ -601,24 +758,48 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF111827), letterSpacing: 0.3)),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: Color(0xFF111827),
+          letterSpacing: 0.3,
+        ),
+      ),
     );
   }
 
-  Widget _buildSectionContainer({required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _buildSectionContainer({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+  }) {
     return Container(
       width: double.infinity,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
   }
 
-  Widget _buildField(TextEditingController controller, String label, IconData icon, Color focusColor, {int maxLines = 1, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildField(
+    TextEditingController controller,
+    String label,
+    IconData icon,
+    Color focusColor, {
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -628,15 +809,34 @@ class _SalonBookingFormState extends State<SalonBookingForm> {
         style: const TextStyle(fontSize: 15, color: Color(0xFF111827)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
+          labelStyle: const TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
           prefixIcon: Icon(icon, size: 22, color: Colors.grey.shade500),
           filled: true,
           fillColor: const Color(0xFFFAFAFC),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: focusColor, width: 1.8)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200, width: 1)),
-          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.red.shade400, width: 1)),
-          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red, width: 1.8)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: focusColor, width: 1.8),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 1.8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
         validator: (val) {
           if (label.contains("Optional")) return null;

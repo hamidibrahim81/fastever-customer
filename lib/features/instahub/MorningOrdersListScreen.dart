@@ -15,13 +15,23 @@ class MorningOrdersListScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text("My Morning Orders", 
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black)),
+        title: Text(
+          "My Morning Orders",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.black,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -36,7 +46,9 @@ class MorningOrdersListScreen extends StatelessWidget {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.deepOrange));
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.deepOrange),
+                  );
                 }
 
                 if (snapshot.hasError) {
@@ -48,10 +60,19 @@ class MorningOrdersListScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey),
+                        const Icon(
+                          Icons.inventory_2_outlined,
+                          size: 80,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(height: 16),
-                        Text("No morning orders yet", 
-                          style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey)),
+                        Text(
+                          "No morning orders yet",
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -74,12 +95,12 @@ class MorningOrdersListScreen extends StatelessWidget {
 
   Widget _buildOrderCard(Map<String, dynamic> order, String docId) {
     // Mapping data from your Firestore Screenshot
-    final String deliveryTime = order['deliveryTime'] ?? 'Slot not set'; 
+    final String deliveryTime = order['deliveryTime'] ?? 'Slot not set';
     final double totalAmount = (order['total'] ?? 0).toDouble();
     final List items = order['items'] as List? ?? [];
     final String address = order['address'] ?? 'No address found';
     final String status = order['status'] ?? 'booked';
-    
+
     // Formatting Timestamp
     String dateStr = "Recently";
     if (order['timestamp'] != null) {
@@ -93,7 +114,9 @@ class MorningOrdersListScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,9 +130,17 @@ class MorningOrdersListScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Order #${docId.substring(0, 8).toUpperCase()}", 
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    Text(dateStr, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text(
+                      "Order #${docId.substring(0, 8).toUpperCase()}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      dateStr,
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
                   ],
                 ),
                 _buildStatusChip(status),
@@ -117,7 +148,7 @@ class MorningOrdersListScreen extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          
+
           // Items List with Base64 Image support
           ListView.builder(
             shrinkWrap: true,
@@ -126,17 +157,27 @@ class MorningOrdersListScreen extends StatelessWidget {
             itemBuilder: (context, i) {
               final item = items[i] as Map<String, dynamic>;
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 leading: _buildItemImage(item['image']), // Base64 decode logic
-                title: Text(item['name'] ?? 'Item', 
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                subtitle: Text("Qty: ${item['quantity']} | Price: ₹${item['price']}"),
+                title: Text(
+                  item['name'] ?? 'Item',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  "Qty: ${item['quantity']} | Price: ₹${item['price']}",
+                ),
               );
             },
           ),
-          
+
           const Divider(height: 1),
-          
+
           // Delivery Details
           Padding(
             padding: const EdgeInsets.all(12),
@@ -146,17 +187,32 @@ class MorningOrdersListScreen extends StatelessWidget {
                   children: [
                     const Icon(Icons.alarm, size: 16, color: Colors.deepOrange),
                     const SizedBox(width: 8),
-                    Text("Slot: $deliveryTime", style: const TextStyle(fontSize: 13)),
+                    Text(
+                      "Slot: $deliveryTime",
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 16, color: Colors.blue),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: Colors.blue,
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(address, 
-                      style: const TextStyle(fontSize: 12, color: Colors.grey), 
-                      maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Expanded(
+                      child: Text(
+                        address,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -170,9 +226,18 @@ class MorningOrdersListScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Total Paid", style: TextStyle(fontWeight: FontWeight.w500)),
-                Text("₹${totalAmount.toStringAsFixed(2)}", 
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                const Text(
+                  "Total Paid",
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  "₹${totalAmount.toStringAsFixed(2)}",
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepOrange,
+                  ),
+                ),
               ],
             ),
           ),
@@ -183,13 +248,15 @@ class MorningOrdersListScreen extends StatelessWidget {
 
   // ✅ 100% READY: Helper to handle Base64 Image from screenshot
   Widget _buildItemImage(String? imageStr) {
-    if (imageStr == null || imageStr.isEmpty) return const Icon(Icons.image, size: 40);
-    
+    if (imageStr == null || imageStr.isEmpty)
+      return const Icon(Icons.image, size: 40);
+
     try {
       if (imageStr.startsWith('data:image')) {
         final base64Str = imageStr.split(',')[1];
         return Container(
-          width: 45, height: 45,
+          width: 45,
+          height: 45,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade200),
             borderRadius: BorderRadius.zero, // Sharp square
@@ -206,9 +273,18 @@ class MorningOrdersListScreen extends StatelessWidget {
   Widget _buildStatusChip(String status) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(6)),
-      child: Text(status.toUpperCase(), 
-        style: TextStyle(color: Colors.green.shade700, fontSize: 10, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: Colors.green.shade700,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

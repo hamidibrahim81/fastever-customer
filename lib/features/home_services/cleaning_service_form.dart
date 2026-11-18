@@ -4,10 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 // Ensure this path matches your project structure
-import '../food/cart/ManageAddressScreen.dart'; 
+import '../food/cart/ManageAddressScreen.dart';
 
 class CleaningServiceForm extends StatefulWidget {
-  final String serviceType; 
+  final String serviceType;
 
   const CleaningServiceForm({super.key, required this.serviceType});
 
@@ -17,18 +17,19 @@ class CleaningServiceForm extends StatefulWidget {
 
 class _CleaningServiceFormState extends State<CleaningServiceForm> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
-  final TextEditingController _issueDescriptionController = TextEditingController(); 
+  final TextEditingController _issueDescriptionController =
+      TextEditingController();
   final TextEditingController _landmarkController = TextEditingController();
   final TextEditingController _otherController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
 
   // Location & Meta data states
-  String? _selectedAddress; 
+  String? _selectedAddress;
   double? _latitude;
   double? _longitude;
   String _selectedType = 'House';
@@ -54,13 +55,20 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
   // UI Theme color assignment
   Color _getServiceColor() {
     switch (widget.serviceType) {
-      case "Electrician": return const Color(0xFFFFB300);
-      case "Plumber": return const Color(0xFF2196F3);
-      case "House Cleaning": return const Color(0xFFFD3C68);
-      case "AC Service": return const Color(0xFF00BCD4);
-      case "Appliance Repair": return const Color(0xFF4CAF50);
-      case "Home Shifting": return const Color(0xFF9C27B0);
-      default: return const Color(0xFFFD3C68);
+      case "Electrician":
+        return const Color(0xFFFFB300);
+      case "Plumber":
+        return const Color(0xFF2196F3);
+      case "House Cleaning":
+        return const Color(0xFFFD3C68);
+      case "AC Service":
+        return const Color(0xFF00BCD4);
+      case "Appliance Repair":
+        return const Color(0xFF4CAF50);
+      case "Home Shifting":
+        return const Color(0xFF9C27B0);
+      default:
+        return const Color(0xFFFD3C68);
     }
   }
 
@@ -70,37 +78,43 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
       case "Electrician":
         return {
           "label": "Electrical issue or requirements *",
-          "hint": "E.g., short circuit in kitchen, ceiling fan installation, full house wiring check up..."
+          "hint":
+              "E.g., short circuit in kitchen, ceiling fan installation, full house wiring check up...",
         };
       case "Plumber":
         return {
           "label": "Plumbing issue or requirements *",
-          "hint": "E.g., bathroom pipe leakage, new basin tap installation, low water pressure..."
+          "hint":
+              "E.g., bathroom pipe leakage, new basin tap installation, low water pressure...",
         };
       case "House Cleaning":
         return {
           "label": "Cleaning requirements & time needed *",
-          "hint": "E.g., deep kitchen cleaning, 3 BHK flat full wash, looking for 4 hours service package..."
+          "hint":
+              "E.g., deep kitchen cleaning, 3 BHK flat full wash, looking for 4 hours service package...",
         };
       case "AC Service":
         return {
           "label": "AC problems or service details *",
-          "hint": "E.g., AC not cooling, gas refill needed, deep master filter cleaning service..."
+          "hint":
+              "E.g., AC not cooling, gas refill needed, deep master filter cleaning service...",
         };
       case "Appliance Repair":
         return {
           "label": "Appliance issue details *",
-          "hint": "E.g., Refrigerator not cooling, Washing machine error code, Microwave breakdown..."
+          "hint":
+              "E.g., Refrigerator not cooling, Washing machine error code, Microwave breakdown...",
         };
       case "Home Shifting":
         return {
           "label": "Shifting details & inventory volume *",
-          "hint": "E.g., Shifting 2 BHK household furniture to sector 4, packing support needed..."
+          "hint":
+              "E.g., Shifting 2 BHK household furniture to sector 4, packing support needed...",
         };
       default:
         return {
           "label": "Job description & details *",
-          "hint": "Provide details about the professional task requested..."
+          "hint": "Provide details about the professional task requested...",
         };
     }
   }
@@ -108,9 +122,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
   Future<void> _pickAddress() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const ManageAddressScreen(), 
-      ),
+      MaterialPageRoute(builder: (context) => const ManageAddressScreen()),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -123,7 +135,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     } else if (result != null && result is String) {
       setState(() {
         _selectedAddress = result;
-        _latitude = 0.0; 
+        _latitude = 0.0;
         _longitude = 0.0;
         _addressTouchedAndEmpty = false;
       });
@@ -180,14 +192,16 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
 
     if (picked != null) {
       final double pickedDouble = picked.hour + (picked.minute / 60.0);
-      const double minTime = 9.0;  // 9:00 AM
+      const double minTime = 9.0; // 9:00 AM
       const double maxTime = 17.0; // 5:00 PM
 
       if (pickedDouble < minTime || pickedDouble > maxTime) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Service available only between 9:00 AM and 5:00 PM."),
+            content: Text(
+              "Service available only between 9:00 AM and 5:00 PM.",
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -203,13 +217,15 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
 
   Future<void> _submitForm() async {
     final bool isFormValid = _formKey.currentState!.validate();
-    
+
     if (_selectedAddress == null || _selectedAddress!.isEmpty) {
       setState(() {
         _addressTouchedAndEmpty = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a service delivery address.")),
+        const SnackBar(
+          content: Text("Please select a service delivery address."),
+        ),
       );
       return;
     }
@@ -220,7 +236,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      
+
       String scheduledDateTimeString = "";
       if (_selectedDate != null && _selectedTime != null) {
         final combinedDateTime = DateTime(
@@ -242,8 +258,10 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
         'longitude': _longitude ?? 0.0,
         'issue_description': _issueDescriptionController.text.trim(),
         'property_type': _selectedType,
-        'landmark': _landmarkController.text.trim(), 
-        'other_details': _selectedType == 'Other' ? _otherController.text.trim() : '', 
+        'landmark': _landmarkController.text.trim(),
+        'other_details': _selectedType == 'Other'
+            ? _otherController.text.trim()
+            : '',
         'userId': user?.uid ?? 'anonymous',
         'status': 'Pending',
         'scheduled_date': _dateController.text,
@@ -260,7 +278,9 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
         builder: (context) => AlertDialog(
           backgroundColor: Colors.white,
           elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Column(
@@ -272,24 +292,42 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                     color: Colors.green.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 55),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.green,
+                    size: 55,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "Request Successful!", 
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF222222)),
+                  "Request Successful!",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: Color(0xFF222222),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  "We will contact you within 2 hours.", 
-                  textAlign: TextAlign.center, 
-                  style: TextStyle(color: Colors.grey.shade800, fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.2),
+                  "We will contact you within 2 hours.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade800,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "ഞങ്ങൾ 2 മണിക്കൂറിനുള്ളിൽ നിങ്ങളെ ബന്ധപ്പെടും.", 
-                  textAlign: TextAlign.center, 
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4, fontWeight: FontWeight.normal),
+                  "ഞങ്ങൾ 2 മണിക്കൂറിനുള്ളിൽ നിങ്ങളെ ബന്ധപ്പെടും.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                    height: 1.4,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 SizedBox(
@@ -298,14 +336,22 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF222222),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () {
-                      Navigator.pop(context); 
-                      Navigator.pop(context); 
+                      Navigator.pop(context);
+                      Navigator.pop(context);
                     },
-                    child: const Text("OK", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -314,9 +360,9 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submission failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Submission failed: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -336,7 +382,11 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
         centerTitle: true,
         title: Text(
           "Book ${widget.serviceType}",
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -352,9 +402,20 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
               _buildSectionContainer(
                 child: Column(
                   children: [
-                    _buildField(_nameController, "Your Name *", Icons.person_outline_rounded, themeColor),
+                    _buildField(
+                      _nameController,
+                      "Your Name *",
+                      Icons.person_outline_rounded,
+                      themeColor,
+                    ),
                     const SizedBox(height: 4),
-                    _buildField(_contactController, "Contact Number *", Icons.phone_android_rounded, themeColor, keyboardType: TextInputType.phone),
+                    _buildField(
+                      _contactController,
+                      "Contact Number *",
+                      Icons.phone_android_rounded,
+                      themeColor,
+                      keyboardType: TextInputType.phone,
+                    ),
                   ],
                 ),
               ),
@@ -370,9 +431,9 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                         onTap: _selectDate,
                         child: IgnorePointer(
                           child: _buildField(
-                            _dateController, 
-                            "Preferred Date *", 
-                            Icons.calendar_month_rounded, 
+                            _dateController,
+                            "Preferred Date *",
+                            Icons.calendar_month_rounded,
                             themeColor,
                           ),
                         ),
@@ -384,9 +445,9 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                         onTap: _selectTime,
                         child: IgnorePointer(
                           child: _buildField(
-                            _timeController, 
-                            "Preferred Time *", 
-                            Icons.access_time_rounded, 
+                            _timeController,
+                            "Preferred Time *",
+                            Icons.access_time_rounded,
                             themeColor,
                           ),
                         ),
@@ -413,15 +474,17 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                color: _addressTouchedAndEmpty 
-                                    ? Colors.red.withOpacity(0.1) 
+                                color: _addressTouchedAndEmpty
+                                    ? Colors.red.withOpacity(0.1)
                                     : themeColor.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
-                              padding: const EdgeInsets.all(12), 
+                              padding: const EdgeInsets.all(12),
                               child: Icon(
-                                Icons.location_on_rounded, 
-                                color: _addressTouchedAndEmpty ? Colors.red.shade700 : themeColor, 
+                                Icons.location_on_rounded,
+                                color: _addressTouchedAndEmpty
+                                    ? Colors.red.shade700
+                                    : themeColor,
                                 size: 26,
                               ),
                             ),
@@ -431,22 +494,29 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _selectedAddress != null ? "Selected Delivery Address" : "Select saved address *",
+                                    _selectedAddress != null
+                                        ? "Selected Delivery Address"
+                                        : "Select saved address *",
                                     style: TextStyle(
-                                      fontSize: 14, 
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: _addressTouchedAndEmpty 
-                                          ? Colors.red.shade700 
-                                          : (_selectedAddress != null ? themeColor : Colors.grey.shade800),
+                                      color: _addressTouchedAndEmpty
+                                          ? Colors.red.shade700
+                                          : (_selectedAddress != null
+                                                ? themeColor
+                                                : Colors.grey.shade800),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _selectedAddress ?? "Tap to import your address details",
+                                    _selectedAddress ??
+                                        "Tap to import your address details",
                                     style: TextStyle(
-                                      fontSize: 13, 
-                                      color: _selectedAddress != null ? Colors.black87 : Colors.grey.shade500,
-                                      height: 1.3
+                                      fontSize: 13,
+                                      color: _selectedAddress != null
+                                          ? Colors.black87
+                                          : Colors.grey.shade500,
+                                      height: 1.3,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -454,7 +524,11 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
                           ],
                         ),
                       ),
@@ -464,7 +538,11 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                         padding: EdgeInsets.only(left: 16, bottom: 14),
                         child: Text(
                           "Service delivery address is mandatory *",
-                          style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -473,7 +551,12 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
               ),
               const SizedBox(height: 16),
               _buildSectionContainer(
-                child: _buildField(_landmarkController, "Landmark / Building Floor (Optional)", Icons.domain_rounded, themeColor),
+                child: _buildField(
+                  _landmarkController,
+                  "Landmark / Building Floor (Optional)",
+                  Icons.domain_rounded,
+                  themeColor,
+                ),
               ),
               const SizedBox(height: 22),
 
@@ -484,51 +567,67 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildField(
-                      _issueDescriptionController, 
-                      dynamicStrings["label"] ?? "Specifications *", 
-                      Icons.assignment_outlined, 
+                      _issueDescriptionController,
+                      dynamicStrings["label"] ?? "Specifications *",
+                      Icons.assignment_outlined,
                       themeColor,
                       maxLines: 4,
                       hintText: dynamicStrings["hint"],
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "Property Type Setup", 
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey.shade800),
+                      "Property Type Setup",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.grey.shade800,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
-                      children: ['House', 'Flat', 'Office', 'Other'].map((type) {
+                      children: ['House', 'Flat', 'Office', 'Other'].map((
+                        type,
+                      ) {
                         bool isSel = _selectedType == type;
                         return ChoiceChip(
                           label: Text(type),
                           selected: isSel,
-                          onSelected: (val) => setState(() => _selectedType = type),
+                          onSelected: (val) =>
+                              setState(() => _selectedType = type),
                           selectedColor: themeColor.withOpacity(0.15),
                           checkmarkColor: themeColor,
                           elevation: 0,
                           pressElevation: 0,
-                          side: BorderSide(color: isSel ? themeColor : Colors.grey.shade300),
+                          side: BorderSide(
+                            color: isSel ? themeColor : Colors.grey.shade300,
+                          ),
                           labelStyle: TextStyle(
-                            color: isSel ? themeColor : Colors.grey.shade800, 
-                            fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 13
+                            color: isSel ? themeColor : Colors.grey.shade800,
+                            fontWeight: isSel
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 13,
                           ),
                         );
                       }).toList(),
                     ),
                     if (_selectedType == 'Other') ...[
                       const SizedBox(height: 14),
-                      _buildField(_otherController, "Describe specific workspace (Optional)", Icons.edit_note_rounded, themeColor),
+                      _buildField(
+                        _otherController,
+                        "Describe specific workspace (Optional)",
+                        Icons.edit_note_rounded,
+                        themeColor,
+                      ),
                     ],
                   ],
                 ),
               ),
 
               const SizedBox(height: 35),
-              
+
               // PREMIUM ELEVATED ACTION DISPATCH BUTTON
               Container(
                 width: double.infinity,
@@ -540,21 +639,28 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
                       color: themeColor.withOpacity(0.25),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
-                    )
-                  ]
+                    ),
+                  ],
                 ),
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: themeColor, 
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: themeColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   onPressed: _isSubmitting ? null : _submitForm,
-                  child: _isSubmitting 
-                    ? const CircularProgressIndicator(color: Colors.white) 
-                    : Text(
-                        "DISPATCH ${widget.serviceType.toUpperCase()}", 
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white, letterSpacing: 0.8),
-                      ),
+                  child: _isSubmitting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          "DISPATCH ${widget.serviceType.toUpperCase()}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -570,14 +676,22 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
-        title, 
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF222222), letterSpacing: 0.3),
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: Color(0xFF222222),
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
 
   // Card Wrapper Layout
-  Widget _buildSectionContainer({required Widget child, EdgeInsetsGeometry? padding}) {
+  Widget _buildSectionContainer({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+  }) {
     return Container(
       width: double.infinity,
       padding: padding ?? const EdgeInsets.all(16),
@@ -589,7 +703,7 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
             color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: child,
@@ -598,11 +712,11 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
 
   // Styled Text Fields
   Widget _buildField(
-    TextEditingController controller, 
-    String label, 
-    IconData icon, 
+    TextEditingController controller,
+    String label,
+    IconData icon,
     Color focusColor, {
-    int maxLines = 1, 
+    int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
     String? hintText,
   }) {
@@ -615,7 +729,11 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
         style: const TextStyle(fontSize: 15, color: Color(0xFF222222)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500),
+          labelStyle: const TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
           hintText: hintText,
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
           prefixIcon: Icon(icon, size: 22, color: Colors.grey.shade500),
@@ -637,7 +755,10 @@ class _CleaningServiceFormState extends State<CleaningServiceForm> {
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.red, width: 1.8),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
         validator: (val) {
           if (label.contains("Optional")) return null;

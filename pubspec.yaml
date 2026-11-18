@@ -2,7 +2,7 @@ name: fastevergo_v1
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.4+18
+version: 1.0.5+13
 
 environment:
   sdk: ^3.8.1
@@ -23,7 +23,7 @@ dependencies:
   lottie: ^3.0.0
   shimmer: ^3.0.0
   cached_network_image: ^3.3.1
-  google_maps_flutter: ^2.6.0
+  google_maps_flutter: ^2.18.1
   location: ^8.0.1
   google_maps_webservice: ^0.0.20-nullsafety.5
   http: ^1.1.0
@@ -75,12 +75,25 @@ flutter:
     - assets/images/momos.jpeg
     - assets/images/shake.jpeg
     - assets/images/icecream.jpeg
+
+
+    - assets/images/mnd.jpeg
+    - assets/images/alfaham.jpeg
+    - assets/images/meals.jpeg
+    - assets/images/shawaya.jpeg
+    - assets/images/breakfast.jpeg
+    - assets/images/vegspecials.jpeg
+    - assets/images/seafoods.jpeg
+
+
+
     - assets/images/juice.jpeg
     - assets/images/chinese.jpeg
     - assets/images/bigd1.jpeg
     - assets/images/bigd2.jpeg
     - assets/images/combod1.jpeg
     - assets/images/combod2.jpeg
+    - assets/images/chatbot.png
 
     # animations
     - assets/animations/order_success.json

@@ -8,16 +8,15 @@ import '../notification/notificationscreen.dart';
 class TouristBusBookingFormScreen extends StatefulWidget {
   final Map<String, dynamic> selectedBus;
 
-  const TouristBusBookingFormScreen({
-    super.key,
-    required this.selectedBus,
-  });
+  const TouristBusBookingFormScreen({super.key, required this.selectedBus});
 
   @override
-  State<TouristBusBookingFormScreen> createState() => _TouristBusBookingFormScreenState();
+  State<TouristBusBookingFormScreen> createState() =>
+      _TouristBusBookingFormScreenState();
 }
 
-class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScreen> {
+class _TouristBusBookingFormScreenState
+    extends State<TouristBusBookingFormScreen> {
   static const Color primaryColor = Color(0xFF111827);
   static const Color accentColor = Color(0xFFFF4D6D);
   static const Color backgroundColor = Color(0xFFF7F8FA);
@@ -52,7 +51,10 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
       }
 
       try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (doc.exists) {
           final data = doc.data();
           if (data != null) {
@@ -117,7 +119,9 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
 
   Future<void> _openWhatsApp(String phoneNumber) async {
     final cleanPhone = phoneNumber.replaceAll('+', '').replaceAll(' ', '');
-    final uri = Uri.parse("https://wa.me/$cleanPhone?text=Hi,%20I%20have%20an%20inquiry%20regarding%20my%20bus%20booking.");
+    final uri = Uri.parse(
+      "https://wa.me/$cleanPhone?text=Hi,%20I%20have%20an%20inquiry%20regarding%20my%20bus%20booking.",
+    );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -125,7 +129,9 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
 
   Future<String> _fetchSupportPhone() async {
     try {
-      final snap = await FirebaseFirestore.instance.collection('customer_supprt').get();
+      final snap = await FirebaseFirestore.instance
+          .collection('customer_supprt')
+          .get();
       if (snap.docs.isNotEmpty) {
         final data = snap.docs.first.data();
         return data['support_call']?.toString() ?? "+918921752969";
@@ -180,7 +186,9 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             title: const Column(
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.green, size: 54),
@@ -201,7 +209,11 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                 Text(
                   "Your request for ${widget.selectedBus['title']} has been placed successfully.",
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: textDark, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: textDark,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(
@@ -213,7 +225,11 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.access_time_filled_rounded, color: Color(0xFF2563EB), size: 20),
+                      Icon(
+                        Icons.access_time_filled_rounded,
+                        color: Color(0xFF2563EB),
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -241,11 +257,19 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF16A34A),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                         icon: const Icon(Icons.phone_rounded, size: 16),
-                        label: const Text("Call Us", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        label: const Text(
+                          "Call Us",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         onPressed: () => _makeCall(supportPhone),
                       ),
                     ),
@@ -255,11 +279,19 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF25D366),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                         icon: const Icon(Icons.chat_rounded, size: 16),
-                        label: const Text("WhatsApp", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        label: const Text(
+                          "WhatsApp",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         onPressed: () => _openWhatsApp(supportPhone),
                       ),
                     ),
@@ -273,13 +305,21 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                 child: FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () {
                     Navigator.pop(ctx);
                     Navigator.pop(context);
                   },
-                  child: const Text("Done", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "Done",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -310,9 +350,7 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
         elevation: 6,
         shadowColor: Colors.black.withOpacity(0.3),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(24),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
@@ -327,10 +365,7 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
           ),
         ),
         centerTitle: true,
-        actions: const [
-          NotificationBellIconButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [NotificationBellIconButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -386,7 +421,10 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                             const SizedBox(height: 2),
                             Text(
                               "Location: ${(bus['location'] ?? 'Available').toString().toUpperCase()}",
-                              style: const TextStyle(fontSize: 12, color: textLight),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: textLight,
+                              ),
                             ),
                           ],
                         ),
@@ -429,14 +467,25 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                       TextFormField(
                         controller: _nameController,
                         style: const TextStyle(fontSize: 14, color: textDark),
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter your name' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Please enter your name'
+                            : null,
                         decoration: InputDecoration(
                           labelText: "Full Name",
-                          prefixIcon: const Icon(Icons.person_outline_rounded, color: primaryColor),
+                          prefixIcon: const Icon(
+                            Icons.person_outline_rounded,
+                            color: primaryColor,
+                          ),
                           filled: true,
                           fillColor: backgroundColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
 
@@ -448,17 +497,28 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                         keyboardType: TextInputType.phone,
                         style: const TextStyle(fontSize: 14, color: textDark),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Please enter phone number';
-                          if (v.trim().length < 10) return 'Enter a valid phone number';
+                          if (v == null || v.trim().isEmpty)
+                            return 'Please enter phone number';
+                          if (v.trim().length < 10)
+                            return 'Enter a valid phone number';
                           return null;
                         },
                         decoration: InputDecoration(
                           labelText: "Phone Number",
-                          prefixIcon: const Icon(Icons.phone_outlined, color: primaryColor),
+                          prefixIcon: const Icon(
+                            Icons.phone_outlined,
+                            color: primaryColor,
+                          ),
                           filled: true,
                           fillColor: backgroundColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
 
@@ -468,14 +528,25 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                       TextFormField(
                         controller: _whereToGoController,
                         style: const TextStyle(fontSize: 14, color: textDark),
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter destination' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Please enter destination'
+                            : null,
                         decoration: InputDecoration(
                           labelText: "Where to Go",
-                          prefixIcon: const Icon(Icons.location_on_rounded, color: accentColor),
+                          prefixIcon: const Icon(
+                            Icons.location_on_rounded,
+                            color: accentColor,
+                          ),
                           filled: true,
                           fillColor: backgroundColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
 
@@ -487,15 +558,29 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                         readOnly: true,
                         onTap: _selectPickupDate,
                         style: const TextStyle(fontSize: 14, color: textDark),
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please select pickup date' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Please select pickup date'
+                            : null,
                         decoration: InputDecoration(
                           labelText: "Pickup Date",
-                          prefixIcon: const Icon(Icons.calendar_month_rounded, color: primaryColor),
-                          suffixIcon: const Icon(Icons.arrow_drop_down_rounded, color: textLight),
+                          prefixIcon: const Icon(
+                            Icons.calendar_month_rounded,
+                            color: primaryColor,
+                          ),
+                          suffixIcon: const Icon(
+                            Icons.arrow_drop_down_rounded,
+                            color: textLight,
+                          ),
                           filled: true,
                           fillColor: backgroundColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
 
@@ -508,17 +593,30 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                         style: const TextStyle(fontSize: 14, color: textDark),
                         decoration: InputDecoration(
                           labelText: "Comments / Special Requirements",
-                          hintText: "E.g., Number of passengers, luggage details, or time preferences",
-                          hintStyle: const TextStyle(fontSize: 12, color: textLight),
+                          hintText:
+                              "E.g., Number of passengers, luggage details, or time preferences",
+                          hintStyle: const TextStyle(
+                            fontSize: 12,
+                            color: textLight,
+                          ),
                           alignLabelWithHint: true,
                           prefixIcon: const Padding(
                             padding: EdgeInsets.only(bottom: 40),
-                            child: Icon(Icons.chat_bubble_outline_rounded, color: primaryColor),
+                            child: Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              color: primaryColor,
+                            ),
                           ),
                           filled: true,
                           fillColor: backgroundColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ],
@@ -537,18 +635,26 @@ class _TouristBusBookingFormScreenState extends State<TouristBusBookingFormScree
                       elevation: 4,
                       shadowColor: primaryColor.withOpacity(0.3),
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                     ),
                     onPressed: _isSubmitting ? null : _submitBooking,
                     child: _isSubmitting
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
                           )
                         : const Text(
                             "Confirm Bus Request ➔",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   ),
                 ),

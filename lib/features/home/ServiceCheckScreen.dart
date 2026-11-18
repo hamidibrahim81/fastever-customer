@@ -45,7 +45,8 @@ class _ServiceCheckScreenState extends State<ServiceCheckScreen> {
         if (permission == LocationPermission.denied) {
           setState(() {
             _isLoading = false;
-            _message = "Location permission denied. KEEVO needs this to find services near you.";
+            _message =
+                "Location permission denied. KEEVO needs this to find services near you.";
           });
           return;
         }
@@ -54,18 +55,21 @@ class _ServiceCheckScreenState extends State<ServiceCheckScreen> {
       if (permission == LocationPermission.deniedForever) {
         setState(() {
           _isLoading = false;
-          _message = "Location permissions are permanently denied. Please enable them in your phone settings.";
+          _message =
+              "Location permissions are permanently denied. Please enable them in your phone settings.";
         });
         return;
       }
 
       // 3. Get Current Position
       _currentPosition = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
       // 4. Fetch and Verify Service Areas
-      final serviceAreas =
-          await FirebaseFirestore.instance.collection('service_areas').get();
+      final serviceAreas = await FirebaseFirestore.instance
+          .collection('service_areas')
+          .get();
 
       bool insideArea = false;
       for (var doc in serviceAreas.docs) {
@@ -99,7 +103,8 @@ class _ServiceCheckScreenState extends State<ServiceCheckScreen> {
         setState(() {
           _isLoading = false;
           _isInServiceArea = false;
-          _message = "KEEVO isn't available in your location yet. We're expanding fast!";
+          _message =
+              "KEEVO isn't available in your location yet. We're expanding fast!";
         });
       }
     } catch (e) {
@@ -113,11 +118,10 @@ class _ServiceCheckScreenState extends State<ServiceCheckScreen> {
 
   double _calculateDistance(lat1, lon1, lat2, lon2) {
     const p = 0.017453292519943295; // PI / 180
-    final a = 0.5 -
+    final a =
+        0.5 -
         cos((lat2 - lat1) * p) / 2 +
-        cos(lat1 * p) *
-            cos(lat2 * p) *
-            (1 - cos((lon2 - lon1) * p)) / 2;
+        cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2;
     return 12742 * asin(sqrt(a)); // Distance in km
   }
 
@@ -159,7 +163,10 @@ class _ServiceCheckScreenState extends State<ServiceCheckScreen> {
                     child: Text(
                       _message,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 18, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -170,9 +177,12 @@ class _ServiceCheckScreenState extends State<ServiceCheckScreen> {
                         backgroundColor: const Color(0xFFFD3C68),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 14),
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: _changeLocationManually,
                       label: const Text("Change Location Manually"),
@@ -180,7 +190,10 @@ class _ServiceCheckScreenState extends State<ServiceCheckScreen> {
                   if (!_isInServiceArea)
                     TextButton(
                       onPressed: () => _checkLocationService(),
-                      child: const Text("Retry Location Check", style: TextStyle(color: Color(0xFFFD3C68))),
+                      child: const Text(
+                        "Retry Location Check",
+                        style: TextStyle(color: Color(0xFFFD3C68)),
+                      ),
                     ),
                 ],
               ),

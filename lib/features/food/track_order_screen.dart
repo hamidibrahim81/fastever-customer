@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui; // Added for precise image scaling
-import 'package:flutter/services.dart'; // Added for byte loading
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,7 +10,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as maps;
 
 class TrackOrderScreen extends StatefulWidget {
   final String orderId;
-
   const TrackOrderScreen({super.key, required this.orderId});
 
   @override
@@ -18,269 +17,407 @@ class TrackOrderScreen extends StatefulWidget {
 }
 
 class _TrackOrderScreenState extends State<TrackOrderScreen> {
-  Timer? _timer;
-  Timer? _animTimer;
-
-  maps.GoogleMapController? _mapController;
-  final Set<maps.Marker> _markers = {};
-  final Set<maps.Polyline> _polylines = {};
-
-  bool _isMapReady = false;
-
-  GeoPoint? _lastDriverGeo;
-  maps.LatLng? _animatedDriverLatLng;
-  maps.LatLng? _destLatLng;
-
-  double _driverRotation = 0.0;
-  
-  // Default fallback marker instantly prepared so it never disappears
+  static const _orange = Color(0xFFFF6B00);
+  static const _dark = Color(0xFF111827);
+  static const _staleAfter = Duration(minutes: 2);
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _orderSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _deliverySub;
+  Timer? _clock;
+  Timer? _animation;
+  maps.GoogleMapController? _controller;
   maps.BitmapDescriptor _scooterIcon = maps.BitmapDescriptor.defaultMarkerWithHue(maps.BitmapDescriptor.hueOrange);
+  Map<String, dynamic> _order = {};
+  Map<String, dynamic> _delivery = {};
+  bool _loading = true;
+  String? _error;
+  String? _assignedPartnerId;
+  bool _mapReady = false;
+  bool _cameraInitialized = false;
+  bool _userMovedCamera = false;
+  maps.LatLng? _driver;
+  maps.LatLng? _displayedDriver;
+  maps.LatLng? _destination;
+  DateTime? _driverUpdatedAt;
+  double _bearingDegrees = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadCustomMarker();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _loadMarker();
+    _listenToOrder();
+    _clock = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) setState(() {});
     });
   }
 
-  // ✅ FIXED: High-accuracy pixel bytes resize helper method to fix huge sizing/ghosting issues
-  Future<void> _loadCustomMarker() async {
-    try {
-      // 120 width/height provides a crisp, standardized pin size matching the target standard destination indicator
-      final Uint8List markerIcon = await _getBytesFromAsset('assets/images/scooter_pin.png', 120);
-      setState(() {
-        _scooterIcon = maps.BitmapDescriptor.fromBytes(markerIcon);
-      });
-    } catch (e) {
-      // Safe fallback mechanism if image file cannot be resolved or parsed
-      _scooterIcon = maps.BitmapDescriptor.defaultMarkerWithHue(maps.BitmapDescriptor.hueOrange);
+  void _listenToOrder() {
+    _orderSub = FirebaseFirestore.instance
+        .collection('order_status').doc(widget.orderId).snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
+      if (!snapshot.exists) {
+        setState(() { _loading = false; _error = 'Order tracking is not available yet.'; });
+        return;
+      }
+      final data = snapshot.data() ?? <String, dynamic>{};
+      final partnerId = _string(data['deliveryPartnerId'] ?? data['driverId'] ??
+          _asMap(data['deliveryPartner'])['id'] ?? _asMap(data['delivery'])['partnerId']);
+      if (_assignedPartnerId != partnerId) {
+        _assignedPartnerId = partnerId;
+        _delivery = {};
+        _deliverySub?.cancel();
+        _deliverySub = null;
+        // This is an order-scoped read, not a global partner position.
+        // It only works if the delivery app updates this document.
+        if (partnerId.isNotEmpty) {
+          _deliverySub = FirebaseFirestore.instance
+              .collection('delivery_partner_orders').doc(widget.orderId)
+              .snapshots().listen((s) {
+            if (!mounted) return;
+            setState(() => _delivery = s.data() ?? {});
+            _processLocation();
+          }, onError: (Object e) { debugPrint('Delivery tracking read: $e'); });
+        }
+      }
+      setState(() { _order = data; _loading = false; _error = null; });
+      _processLocation();
+    }, onError: (Object e) {
+      if (mounted) setState(() { _loading = false; _error = 'Unable to load tracking. Please try again.'; });
+      debugPrint('Order tracking read: $e');
+    });
+  }
+
+  static Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return {};
+  }
+
+  static String _string(dynamic value) => value?.toString().trim() ?? '';
+  static double? _number(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(_string(value));
+  }
+
+  static maps.LatLng? _coordinate(dynamic value) {
+    if (value is GeoPoint) return _valid(value.latitude, value.longitude);
+    if (value is Map) {
+      final map = _asMap(value);
+      if (map['geoPoint'] != null) {
+        final nested = _coordinate(map['geoPoint']);
+        if (nested != null) return nested;
+      }
+      final lat = _number(map['latitude'] ?? map['lat']);
+      final lng = _number(map['longitude'] ?? map['lng'] ?? map['lon']);
+      if (lat != null && lng != null) return _valid(lat, lng);
+    }
+    return null;
+  }
+
+  static maps.LatLng? _valid(double lat, double lng) {
+    if (!lat.isFinite || !lng.isFinite || lat.abs() > 90 || lng.abs() > 180 ||
+        (lat == 0 && lng == 0)) return null;
+    return maps.LatLng(lat, lng);
+  }
+
+  static DateTime? _date(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value < 100000000000 ? value * 1000 : value);
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  // Use a location's own timestamp, never the order's updatedAt timestamp.
+  static DateTime? _locationTime(Map<String, dynamic> source) {
+    final nested = _asMap(source['driverLocation']);
+    final partner = _asMap(source['deliveryPartner']);
+    final location = _asMap(source['partnerLocation']);
+    for (final candidate in [
+      source['driverLocationUpdatedAt'], source['locationUpdatedAt'],
+      source['lastLocationUpdate'], source['lastLocationUpdatedAt'],
+      source['gpsUpdatedAt'], nested['updatedAt'], nested['timestamp'],
+      location['updatedAt'], location['timestamp'], partner['locationUpdatedAt'],
+    ]) {
+      final date = _date(candidate);
+      if (date != null) return date;
+    }
+    return null;
+  }
+
+  maps.LatLng? _extractDriver(Map<String, dynamic> source) {
+    final partner = _asMap(source['deliveryPartner']);
+    final delivery = _asMap(source['delivery']);
+    for (final value in [
+      source['driverLocation'], source['deliveryPartnerLocation'],
+      source['partnerLocation'], source['currentLocation'],
+      partner['location'], partner['currentLocation'],
+      delivery['driverLocation'], delivery['partnerLocation'],
+    ]) {
+      final point = _coordinate(value);
+      if (point != null) return point;
+    }
+    final lat = _number(source['driverLatitude'] ?? source['partnerLatitude']);
+    final lng = _number(source['driverLongitude'] ?? source['partnerLongitude']);
+    return lat == null || lng == null ? null : _valid(lat, lng);
+  }
+
+  maps.LatLng? _extractDestination() {
+    for (final value in [
+      _order['destinationLocation'], _order['location'],
+      _asMap(_order['customer'])['location'],
+      _asMap(_order['delivery'])['destinationLocation'],
+    ]) {
+      final point = _coordinate(value);
+      if (point != null) return point;
+    }
+    final lat = _number(_order['deliveryLatitude']);
+    final lng = _number(_order['deliveryLongitude']);
+    return lat == null || lng == null ? null : _valid(lat, lng);
+  }
+
+  void _processLocation() {
+    if (!mounted) return;
+    final destination = _extractDestination();
+    // Prefer master order_status. Use order-scoped delivery record only as fallback.
+    final primary = _extractDriver(_order);
+    final secondary = _extractDriver(_delivery);
+    final next = primary ?? secondary;
+    final source = primary != null ? _order : _delivery;
+    final time = next == null ? null : _locationTime(source);
+    final old = _driver;
+    setState(() { _destination = destination; _driverUpdatedAt = time; _driver = next; });
+    if (next == null) {
+      _animation?.cancel();
+      _displayedDriver = null;
+      return;
+    }
+    if (old == null || _displayedDriver == null) {
+      _displayedDriver = next;
+      _focusIfNeeded();
+    } else if (_distanceMeters(old, next) > 1) {
+      // Do not animate large GPS jumps; they are often inaccurate fixes.
+      if (_distanceMeters(old, next) > 300) {
+        _animation?.cancel();
+        _displayedDriver = next;
+        if (mounted) setState(() {});
+      } else {
+        _animateTo(next);
+      }
     }
   }
 
-  // ✅ Helper framework utility to scale PNG directly onto the engine graphics pipeline layer
-  Future<Uint8List> _getBytesFromAsset(String path, int width) async {
-    ByteData data = await rootBundle.load(path);
-    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(), targetWidth: width);
-    ui.FrameInfo fi = await codec.getNextFrame();
-    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+  static double _distanceMeters(maps.LatLng a, maps.LatLng b) {
+    const r = 6371000.0;
+    final p1 = a.latitude * math.pi / 180;
+    final p2 = b.latitude * math.pi / 180;
+    final dp = (b.latitude - a.latitude) * math.pi / 180;
+    final dl = (b.longitude - a.longitude) * math.pi / 180;
+    final h = math.sin(dp / 2) * math.sin(dp / 2) +
+        math.cos(p1) * math.cos(p2) * math.sin(dl / 2) * math.sin(dl / 2);
+    return 2 * r * math.asin(math.sqrt(h.clamp(0.0, 1.0)));
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _animTimer?.cancel();
-    _mapController?.dispose();
-    super.dispose();
-  }
-
-  // ================= MAP HANDLING LOGIC =================
-
-  double _bearing(maps.LatLng a, maps.LatLng b) {
-    final lat1 = a.latitude * math.pi / 180;
-    final lon1 = a.longitude * math.pi / 180;
-    final lat2 = b.latitude * math.pi / 180;
-    final lon2 = b.longitude * math.pi / 180;
-
-    final dLon = lon2 - lon1;
-    final y = math.sin(dLon) * math.cos(lat2);
-    final x = math.cos(lat1) * math.sin(lat2) -
-        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
-
+  static double _bearing(maps.LatLng a, maps.LatLng b) {
+    final p1 = a.latitude * math.pi / 180;
+    final p2 = b.latitude * math.pi / 180;
+    final dl = (b.longitude - a.longitude) * math.pi / 180;
+    final y = math.sin(dl) * math.cos(p2);
+    final x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl);
     return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
   }
 
-  void _animateDriverTo(maps.LatLng next) {
-    final start = _animatedDriverLatLng ?? next;
-    _animTimer?.cancel();
-
-    const steps = 40;
-    int current = 0;
-    _driverRotation = _bearing(start, next);
-
-    _animTimer = Timer.periodic(const Duration(milliseconds: 50), (t) {
-      current++;
-      double f = current / steps;
-
-      final lat = start.latitude + (next.latitude - start.latitude) * f;
-      final lng = start.longitude + (next.longitude - start.longitude) * f;
-
-      final pos = maps.LatLng(lat, lng);
-      _animatedDriverLatLng = pos;
-      _updateMarkers(pos);
-
-      if (mounted) setState(() {});
-      if (current >= steps) t.cancel();
+  void _animateTo(maps.LatLng target) {
+    _animation?.cancel();
+    final start = _displayedDriver ?? target;
+    _bearingDegrees = _bearing(start, target);
+    const frames = 20;
+    var frame = 0;
+    _animation = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+      if (!mounted) { timer.cancel(); return; }
+      frame++;
+      final t = (frame / frames).clamp(0.0, 1.0);
+      final smooth = t * t * (3 - 2 * t);
+      setState(() => _displayedDriver = maps.LatLng(
+        start.latitude + (target.latitude - start.latitude) * smooth,
+        start.longitude + (target.longitude - start.longitude) * smooth,
+      ));
+      if (frame >= frames) timer.cancel();
     });
   }
 
-  void _updateMarkers(maps.LatLng driver) {
-    _markers.removeWhere((m) => m.markerId.value == 'driver');
-    _markers.add(
-      maps.Marker(
-        markerId: const maps.MarkerId('driver'),
-        position: driver,
-        rotation: _driverRotation,
-        flat: true,
-        anchor: const Offset(0.5, 0.5), // ✅ FIXED: Keeps center pivot lock so icon stays attached when zooming
-        icon: _scooterIcon, 
-      ),
-    );
+  bool get _freshLocation => _driver != null && _driverUpdatedAt != null &&
+      DateTime.now().difference(_driverUpdatedAt!) <= _staleAfter &&
+      !DateTime.now().isBefore(_driverUpdatedAt!.subtract(const Duration(seconds: 30)));
 
-    if (_destLatLng != null) {
-      _markers.removeWhere((m) => m.markerId.value == 'dest');
-      _markers.add(
-        maps.Marker(
-          markerId: const maps.MarkerId('dest'),
-          position: _destLatLng!,
-          anchor: const Offset(0.5, 1.0), // Classic bottom drop pinpoint anchor balance
-          icon: maps.BitmapDescriptor.defaultMarkerWithHue(maps.BitmapDescriptor.hueRed),
-        ),
-      );
-
-      _polylines.clear();
-      _polylines.add(
-        maps.Polyline(
-          polylineId: const maps.PolylineId("route"),
-          points: [driver, _destLatLng!],
-          width: 6,
-          color: Colors.orange,
-          jointType: maps.JointType.round,
-        ),
-      );
-    }
+  Future<void> _loadMarker() async {
+    try {
+      final bytes = await rootBundle.load('assets/images/scooter_pin.png');
+      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List(), targetWidth: 110);
+      final frame = await codec.getNextFrame();
+      final png = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+      frame.image.dispose();
+      codec.dispose();
+      if (!mounted || png == null) return;
+      setState(() => _scooterIcon = maps.BitmapDescriptor.fromBytes(png.buffer.asUint8List()));
+    } catch (e) { debugPrint('Scooter icon fallback: $e'); }
   }
 
-  void _moveCamera(maps.LatLng pos) {
-    if (_mapController == null) return;
-    _mapController!.animateCamera(maps.CameraUpdate.newLatLngZoom(pos, 15.5));
-  }
-
-  String _getDynamicTime(Map<String, dynamic> data) {
-    final String status = (data['status'] ?? 'pending').toLowerCase().trim();
-    if (status == 'delivered') return "Delivered";
-
-    if (status == 'out_for_delivery' || status == 'on_the_way' || status == 'picked') {
-      if (data['deliveryPartnerETA'] != null) {
-        int transit = int.tryParse(data['deliveryPartnerETA'].toString()) ?? 12;
-        return transit <= 1 ? "1 min" : "$transit mins";
+  void _focusIfNeeded() {
+    if (!_mapReady || _controller == null || _cameraInitialized || _userMovedCamera) return;
+    final driver = _displayedDriver;
+    final destination = _destination;
+    if (driver == null && destination == null) return;
+    _cameraInitialized = true;
+    if (driver != null && destination != null) {
+      final sw = maps.LatLng(math.min(driver.latitude, destination.latitude), math.min(driver.longitude, destination.longitude));
+      final ne = maps.LatLng(math.max(driver.latitude, destination.latitude), math.max(driver.longitude, destination.longitude));
+      if (_distanceMeters(driver, destination) < 50) {
+        _controller!.animateCamera(maps.CameraUpdate.newLatLngZoom(driver, 16));
+      } else {
+        _controller!.animateCamera(maps.CameraUpdate.newLatLngBounds(maps.LatLngBounds(southwest: sw, northeast: ne), 70));
       }
-      return "12 mins";
-    }
-
-    final created = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
-    final elapsedMins = DateTime.now().difference(created).inMinutes;
-
-    int baseRemainingMins = 40;
-
-    if (status == 'accepted') {
-      baseRemainingMins = 35;
-    } else if (status.contains('preparing')) {
-      baseRemainingMins = 30;
-    } else if (status == 'ready') {
-      baseRemainingMins = 25;
-    } else if (status == 'partner_accepted') {
-      baseRemainingMins = 20;
-    } else if (status == 'arrived_at_pickup') {
-      baseRemainingMins = 15;
-    }
-
-    int finalRemaining = baseRemainingMins - elapsedMins;
-    return finalRemaining <= 0 ? "Shortly" : "$finalRemaining Mins";
-  }
-
-  String _prettyStatus(String status) {
-    final s = status.toLowerCase().trim();
-    switch (s) {
-      case 'pending': return "Order Placed";
-      case 'accepted': return "Order Confirmed";
-      case 'ready': return "Food is Ready";
-      case 'partner_accepted': return "Driver Assigned";
-      case 'arrived_at_pickup': return "Driver at Restaurant";
-      case 'out_for_delivery': 
-      case 'on_the_way':
-      case 'picked': return "Out For Delivery";
-      case 'delivered': return "Delivered";
-      default: return status.toUpperCase().replaceAll('_', ' ');
+    } else {
+      _controller!.animateCamera(maps.CameraUpdate.newLatLngZoom(driver ?? destination!, 15));
     }
   }
 
-  // ================= TIMELINE UI =================
+  String get _status => _string(_order['status']).isEmpty ? 'pending' : _string(_order['status']).toLowerCase();
+  bool get _finished => ['delivered', 'cancelled', 'canceled'].contains(_status);
 
-  Widget _buildTimelineStep(String label, bool isDone, bool isCurrent) {
-    Color itemColor = isCurrent ? Colors.orange : (isDone ? Colors.black87 : Colors.grey.shade300);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: isCurrent ? 24 : 16,
-          height: isCurrent ? 24 : 16,
-          decoration: BoxDecoration(
-            color: isCurrent ? Colors.white : itemColor,
-            shape: BoxShape.circle,
-            border: isCurrent ? Border.all(color: Colors.orange, width: 6) : null,
-            boxShadow: isCurrent ? [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 10)] : null,
-          ),
-          child: !isCurrent && isDone 
-              ? const Icon(Icons.check, color: Colors.white, size: 10) 
-              : const SizedBox.shrink(),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: (isCurrent || isDone) ? FontWeight.w800 : FontWeight.w500,
-            color: isCurrent ? Colors.orange : (isDone ? Colors.black87 : Colors.grey.shade400),
-          ),
-        ),
-      ],
-    );
+  String _prettyStatus() {
+    switch (_status) {
+      case 'pending': return 'Order Placed';
+      case 'accepted': case 'confirmed': return 'Order Confirmed';
+      case 'preparing': return 'Preparing Your Order';
+      case 'ready': return 'Food is Ready';
+      case 'partner_accepted': case 'assigned': return 'Delivery Partner Assigned';
+      case 'arrived_at_pickup': return 'Partner at Restaurant';
+      case 'out_for_delivery': case 'on_the_way': case 'picked': return 'Out for Delivery';
+      case 'delivered': return 'Delivered';
+      case 'cancelled': case 'canceled': return 'Order Cancelled';
+      default: return _status.replaceAll('_', ' ').toUpperCase();
+    }
   }
 
-  Widget _buildTimelineDivider(bool isDone) {
-    return Expanded(
-      child: Container(
-        height: 3,
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: isDone ? Colors.orange : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
+  String _etaLabel() {
+    if (_status == 'delivered') return 'Delivered';
+    if (_status == 'cancelled' || _status == 'canceled') return 'Cancelled';
+    final value = _order['deliveryPartnerETA'] ?? _order['estimatedMinutes'];
+    final eta = int.tryParse(_string(value));
+    if (eta != null && eta > 0 && eta <= 240) return '$eta min estimated';
+    return 'ETA updating';
   }
 
-  Widget _statusShower(String status) {
-    final s = status.toLowerCase().trim();
-    int idx = 0;
-    
-    if (s == 'accepted') idx = 1;
-    if (s == 'ready') idx = 2;
-    if (s == 'partner_accepted' || s == 'arrived_at_pickup') idx = 3;
-    if (s == 'out_for_delivery' || s == 'on_the_way' || s == 'picked') idx = 4;
-    if (s == 'delivered') idx = 5;
+  int get _step {
+    switch (_status) {
+      case 'accepted': case 'confirmed': case 'preparing': return 1;
+      case 'ready': return 2;
+      case 'partner_accepted': case 'assigned': case 'arrived_at_pickup': return 3;
+      case 'out_for_delivery': case 'on_the_way': case 'picked': return 4;
+      case 'delivered': return 5;
+      default: return 0;
+    }
+  }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          _buildTimelineStep("Placed", idx >= 0, idx == 0),
-          _buildTimelineDivider(idx >= 1),
-          _buildTimelineStep("Kitchen", idx >= 1, idx == 1 || idx == 2),
-          _buildTimelineDivider(idx >= 3),
-          _buildTimelineStep("Pickup", idx >= 3, idx == 3),
-          _buildTimelineDivider(idx >= 4),
-          _buildTimelineStep("On Way", idx >= 4, idx == 4),
+  Widget _timeline() {
+    const labels = ['Placed', 'Kitchen', 'Pickup', 'On Way'];
+    final current = _step;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(children: [
+        for (var i = 0; i < labels.length; i++) ...[
+          if (i > 0) Expanded(child: Container(height: 3, color: current >= i ? _orange : Colors.grey.shade200)),
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 18, height: 18, decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: current > i ? _dark : (current == i ? _orange : Colors.grey.shade300),
+            ), child: current > i ? const Icon(Icons.check, size: 12, color: Colors.white) : null),
+            const SizedBox(height: 6),
+            Text(labels[i], style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+              color: current >= i ? _dark : Colors.grey)),
+          ]),
         ],
-      ),
+      ]),
+    );
+  }
+
+  Set<maps.Marker> _markers() {
+    final result = <maps.Marker>{};
+    if (_destination != null) {
+      result.add(maps.Marker(markerId: const maps.MarkerId('destination'), position: _destination!,
+        infoWindow: const maps.InfoWindow(title: 'Delivery address'),
+        icon: maps.BitmapDescriptor.defaultMarkerWithHue(maps.BitmapDescriptor.hueRed)));
+    }
+    if (_displayedDriver != null && !_finished) {
+      result.add(maps.Marker(markerId: const maps.MarkerId('partner'), position: _displayedDriver!,
+        icon: _scooterIcon, flat: true, anchor: const Offset(0.5, 0.5),
+        rotation: _bearingDegrees,
+        infoWindow: maps.InfoWindow(title: 'Delivery partner', snippet: _freshLocation ? 'Live GPS update' : 'Last reported position')));
+    }
+    return result;
+  }
+
+  Widget _map() {
+    final initial = _displayedDriver ?? _destination;
+    if (initial == null) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        SizedBox(height: 120, child: Lottie.asset('assets/animations/waiting.json',
+          errorBuilder: (_, __, ___) => const Icon(Icons.location_searching, size: 64, color: _orange))),
+        const SizedBox(height: 12),
+        const Text('Waiting for tracking coordinates', style: TextStyle(color: Colors.black54)),
+      ]));
+    }
+    return maps.GoogleMap(
+      initialCameraPosition: maps.CameraPosition(target: initial, zoom: 15),
+      onMapCreated: (controller) {
+        _controller = controller;
+        _mapReady = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _focusIfNeeded(); });
+      },
+      onCameraMoveStarted: () { _userMovedCamera = true; },
+      markers: _markers(),
+      // No fabricated straight-line route. Road routing requires Directions/Routes API.
+      polylines: const <maps.Polyline>{},
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+    );
+  }
+
+  String get _trackingMessage {
+    if (_finished) return _prettyStatus();
+    if (_driver == null) return 'Waiting for partner GPS location';
+    if (_driverUpdatedAt == null) return 'Location received - freshness unverified';
+    if (!_freshLocation) return 'Partner location is not updating';
+    return 'Partner location updating';
+  }
+
+  Widget _partnerCard() {
+    final partner = _asMap(_order['deliveryPartner']);
+    final name = _string(_order['driverName'] ?? _order['deliveryPartnerName'] ?? partner['name'] ?? _delivery['deliveryPartnerName']);
+    final phone = _string(_order['driverPhone'] ?? _order['deliveryPartnerPhone'] ?? partner['phone'] ?? _delivery['deliveryPartnerPhone']);
+    if (name.isEmpty && phone.isEmpty && _driver == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 22),
+      decoration: const BoxDecoration(color: Color(0xFF1A1A1A), borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+      child: SafeArea(top: false, child: Row(children: [
+        const CircleAvatar(radius: 24, backgroundColor: Colors.white12, child: Icon(Icons.delivery_dining, color: _orange)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(name.isEmpty ? 'Delivery Partner' : name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: 4),
+          Text(_trackingMessage, style: TextStyle(color: _freshLocation ? Colors.greenAccent : Colors.white70, fontSize: 12)),
+          if (_driverUpdatedAt != null) Text('GPS: ${_driverUpdatedAt!.toLocal().hour.toString().padLeft(2, '0')}:${_driverUpdatedAt!.toLocal().minute.toString().padLeft(2, '0')}',
+            style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        ])),
+        if (phone.isNotEmpty) IconButton(
+          onPressed: () async {
+            final uri = Uri(scheme: 'tel', path: phone);
+            if (await canLaunchUrl(uri)) await launchUrl(uri);
+          },
+          icon: const Icon(Icons.phone, color: Colors.greenAccent),
+        ),
+      ])),
     );
   }
 
@@ -288,192 +425,44 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Track Your Order", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.3)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('order_status')
-            .doc(widget.orderId)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: Colors.orange));
-          }
-
-          final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-          final status = data['status'] ?? 'processing';
-          final timeLabel = _getDynamicTime(data);
-
-          GeoPoint? driverLoc = data['driverLocation'];
-          final dest = data['destinationLocation'];
-
-          if (dest != null) {
-            _destLatLng = maps.LatLng(dest.latitude, dest.longitude);
-          }
-
-          if (driverLoc != null && _isMapReady) {
-            final next = maps.LatLng(driverLoc.latitude, driverLoc.longitude);
-            if (_lastDriverGeo == null ||
-                _lastDriverGeo!.latitude != driverLoc.latitude ||
-                _lastDriverGeo!.longitude != driverLoc.longitude) {
-              _lastDriverGeo = driverLoc;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _animateDriverTo(next);
-                _moveCamera(next);
-              });
-            }
-          }
-
-          return Column(
-            children: [
-              _header(timeLabel, status),
-              _statusShower(status),
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15)],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: _map(driverLoc),
-                ),
-              ),
-              _driverCard(data),
-            ],
-          );
-        },
-      ),
+      appBar: AppBar(title: const Text('Track Your Order', style: TextStyle(fontWeight: FontWeight.w800)),
+        backgroundColor: Colors.white, foregroundColor: _dark, centerTitle: true, elevation: 0,
+        actions: [IconButton(tooltip: 'Recenter map', onPressed: () {
+          _cameraInitialized = false;
+          _userMovedCamera = false;
+          _focusIfNeeded();
+        }, icon: const Icon(Icons.my_location))]),
+      body: _loading ? const Center(child: CircularProgressIndicator(color: _orange))
+        : _error != null ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error!, textAlign: TextAlign.center)))
+        : Column(children: [
+            Padding(padding: const EdgeInsets.fromLTRB(12, 12, 12, 2), child: Column(children: [
+              Text(_prettyStatus().toUpperCase(), style: const TextStyle(color: _orange, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              const SizedBox(height: 3),
+              Text(_etaLabel(), style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: _dark)),
+            ])),
+            _timeline(),
+            if (_driver != null && !_freshLocation && !_finished)
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), child: Row(children: [
+                const Icon(Icons.info_outline, color: Colors.deepOrange, size: 17),
+                const SizedBox(width: 8),
+                Expanded(child: Text(_trackingMessage, style: const TextStyle(fontSize: 12, color: Colors.deepOrange))),
+              ])),
+            Expanded(child: Container(margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.black12)),
+              child: _map())),
+            _partnerCard(),
+          ]),
     );
   }
 
-  Widget _header(String time, String status) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        children: [
-          Text(
-            _prettyStatus(status).toUpperCase(),
-            style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            time,
-            style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: -1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _map(GeoPoint? driverLoc) {
-    if (driverLoc == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 160,
-              child: Lottie.asset(
-                'assets/animations/waiting.json',
-                errorBuilder: (context, error, stackTrace) => 
-                    const CircularProgressIndicator(color: Colors.orange),
-              ),
-            ),
-            Text("Preparing setup details...", style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
-    }
-
-    final initial = maps.LatLng(driverLoc.latitude, driverLoc.longitude);
-
-    return maps.GoogleMap(
-      initialCameraPosition: maps.CameraPosition(target: initial, zoom: 15.5),
-      onMapCreated: (c) {
-        _mapController = c;
-        _isMapReady = true;
-        if (_lastDriverGeo != null) {
-          _updateMarkers(maps.LatLng(_lastDriverGeo!.latitude, _lastDriverGeo!.longitude));
-        }
-      },
-      markers: _markers,
-      polylines: _polylines,
-      myLocationButtonEnabled: false,
-      zoomControlsEnabled: false,
-    );
-  }
-
-  Widget _driverCard(Map<String, dynamic> data) {
-    final name = data['driverName'] ?? data['deliveryPartnerName'] ?? "Delivery Partner";
-    final phone = data['driverPhone'] ?? data['deliveryPartnerPhone'] ?? "";
-
-    if (name == "Delivery Partner" && phone == "") return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, -4))],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10))),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange.withOpacity(0.5), width: 2)),
-                child: const CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Colors.white10,
-                  child: Icon(Icons.person, color: Colors.orange, size: 24),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white)),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Container(width: 7, height: 7, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
-                        const SizedBox(width: 6),
-                        const Text("Active Now", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (phone.isNotEmpty)
-                GestureDetector(
-                  onTap: () => launchUrl(Uri.parse('tel:$phone')),
-                  child: Container(
-                    height: 46,
-                    width: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
-                    ),
-                    child: const Icon(Icons.phone_forwarded_rounded, color: Colors.green, size: 18),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
+  @override
+  void dispose() {
+    _orderSub?.cancel();
+    _deliverySub?.cancel();
+    _clock?.cancel();
+    _animation?.cancel();
+    _controller?.dispose();
+    super.dispose();
   }
 }

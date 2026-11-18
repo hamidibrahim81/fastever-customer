@@ -19,16 +19,26 @@ class MorningCategoryScreen extends StatelessWidget {
   // LOGIC PRESERVED 100%
   String _getTag(String categoryName) {
     switch (categoryName.trim()) {
-      case "Fruits & Vegetables": return "fv";
-      case "Dairy & Eggs": return "de";
-      case "Meat & Seafood": return "ms";
-      case "Grocery & Staples": return "gs";
-      case "Bakery & Snacks": return "bs";
-      case "Beverages": return "b";
-      case "Household Essentials": return "he";
-      case "Baby & Kids": return "bk";
-      case "Pet Care": return "pc";
-      default: return "";
+      case "Fruits & Vegetables":
+        return "fv";
+      case "Dairy & Eggs":
+        return "de";
+      case "Meat & Seafood":
+        return "ms";
+      case "Grocery & Staples":
+        return "gs";
+      case "Bakery & Snacks":
+        return "bs";
+      case "Beverages":
+        return "b";
+      case "Household Essentials":
+        return "he";
+      case "Baby & Kids":
+        return "bk";
+      case "Pet Care":
+        return "pc";
+      default:
+        return "";
     }
   }
 
@@ -56,7 +66,10 @@ class MorningCategoryScreen extends StatelessWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Added to cart!", style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        content: Text(
+          "Added to cart!",
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(milliseconds: 700),
@@ -75,7 +88,11 @@ class MorningCategoryScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           categoryName.toUpperCase(),
-          style: GoogleFonts.montserrat(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1),
+          style: GoogleFonts.montserrat(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: 1,
+          ),
         ),
         backgroundColor: morningRed,
         foregroundColor: Colors.white,
@@ -92,14 +109,19 @@ class MorningCategoryScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: morningRed));
+            return const Center(
+              child: CircularProgressIndicator(color: morningRed),
+            );
           }
           if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
-              child: Text("No items available.", style: GoogleFonts.inter(color: Colors.grey)),
+              child: Text(
+                "No items available.",
+                style: GoogleFonts.inter(color: Colors.grey),
+              ),
             );
           }
 
@@ -111,12 +133,13 @@ class MorningCategoryScreen extends StatelessWidget {
                 builder: (context, cartProvider, _) {
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.62, // Adjusted for Jumbo Button
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.62, // Adjusted for Jumbo Button
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index].data() as Map<String, dynamic>;
@@ -195,7 +218,10 @@ class MorningCategoryScreen extends StatelessWidget {
                       imageUrl: item["image"] ?? "",
                       fit: BoxFit.contain,
                       width: 100,
-                      errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey),
+                      errorWidget: (_, __, ___) => const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                   if (offerPrice < price)
@@ -203,14 +229,21 @@ class MorningCategoryScreen extends StatelessWidget {
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFD32F2F),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           "OFFER",
-                          style: GoogleFonts.montserrat(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900),
+                          style: GoogleFonts.montserrat(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ),
@@ -218,7 +251,7 @@ class MorningCategoryScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // INFO SECTION
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
@@ -227,38 +260,58 @@ class MorningCategoryScreen extends StatelessWidget {
               children: [
                 Text(
                   item["name"] ?? "",
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, height: 1.2),
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    height: 1.2,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   item["weight"] ?? "-",
-                  style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade500),
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Text("₹${offerPrice.toInt()}",
-                        style: GoogleFonts.montserrat(fontWeight: FontWeight.w900, fontSize: 17)),
+                    Text(
+                      "₹${offerPrice.toInt()}",
+                      style: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                      ),
+                    ),
                     if (offerPrice < price) ...[
                       const SizedBox(width: 4),
-                      Text("₹${price.toInt()}",
-                          style: GoogleFonts.inter(fontSize: 11, color: Colors.grey, decoration: TextDecoration.lineThrough)),
-                    ]
+                      Text(
+                        "₹${price.toInt()}",
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 12),
-                
+
                 // JUMBO SELECTOR
                 _JumboMorningSelector(
                   quantity: quantity,
                   onAdd: () => _addToCart(context, item, itemId, cartProvider),
                   onRemove: () {
-                    if (!requireLoginGlobal("Login required to update items")) return;
+                    if (!requireLoginGlobal("Login required to update items"))
+                      return;
                     cartProvider.reduceQuantity(itemId);
                   },
-                  onIncrement: () => _addToCart(context, item, itemId, cartProvider),
+                  onIncrement: () =>
+                      _addToCart(context, item, itemId, cartProvider),
                 ),
               ],
             ),
@@ -281,16 +334,25 @@ class MorningCategoryScreen extends StatelessWidget {
           right: 16,
           child: GestureDetector(
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const MorningCartScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MorningCartScreen()),
+              );
             },
             child: Container(
               height: 60,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [themeColor, themeColor.withOpacity(0.8)]),
+                gradient: LinearGradient(
+                  colors: [themeColor, themeColor.withOpacity(0.8)],
+                ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(color: themeColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+                  BoxShadow(
+                    color: themeColor.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
                 ],
               ),
               child: Row(
@@ -300,17 +362,39 @@ class MorningCategoryScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("${cartProvider.items.length} ITEM(S)",
-                          style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800)),
-                      Text("₹${cartProvider.totalAmount.toStringAsFixed(0)}",
-                          style: GoogleFonts.montserrat(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                      Text(
+                        "${cartProvider.items.length} ITEM(S)",
+                        style: GoogleFonts.montserrat(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        "₹${cartProvider.totalAmount.toStringAsFixed(0)}",
+                        style: GoogleFonts.montserrat(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ],
                   ),
                   Row(
                     children: [
-                      Text("VIEW CART", style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)),
+                      Text(
+                        "VIEW CART",
+                        style: GoogleFonts.montserrat(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+                      const Icon(
+                        Icons.shopping_cart_outlined,
+                        color: Colors.white,
+                      ),
                     ],
                   ),
                 ],
@@ -330,7 +414,12 @@ class _JumboMorningSelector extends StatelessWidget {
   final VoidCallback onRemove;
   final VoidCallback onIncrement;
 
-  const _JumboMorningSelector({required this.quantity, required this.onAdd, required this.onRemove, required this.onIncrement});
+  const _JumboMorningSelector({
+    required this.quantity,
+    required this.onAdd,
+    required this.onRemove,
+    required this.onIncrement,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -344,31 +433,68 @@ class _JumboMorningSelector extends StatelessWidget {
                 width: double.infinity,
                 height: 44, // Jumbo Height
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)]),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)],
+                  ),
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Center(
-                  child: Text("ADD", style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)),
+                  child: Text(
+                    "ADD",
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
             )
           : Container(
               height: 44,
-              decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: InkWell(
                       onTap: onRemove,
-                      child: const Center(child: Icon(Icons.remove_rounded, color: Colors.white, size: 22)),
+                      child: const Center(
+                        child: Icon(
+                          Icons.remove_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
-                  Text('$quantity', style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                  Text(
+                    '$quantity',
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
                   Expanded(
                     child: InkWell(
                       onTap: onIncrement,
-                      child: const Center(child: Icon(Icons.add_rounded, color: Colors.white, size: 22)),
+                      child: const Center(
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
                 ],

@@ -23,20 +23,29 @@ class CategoryScreen extends StatefulWidget {
 
 class _CategoryScreenState extends State<CategoryScreen>
     with SingleTickerProviderStateMixin {
-  
   String _getTag(String categoryName) {
     final normalized = categoryName.trim().toLowerCase();
     switch (normalized) {
-      case "fruits & vegetables": return "fv";
-      case "dairy & eggs": return "de";
-      case "meat & seafood": return "ms";
-      case "grocery & staples": return "gs";
-      case "bakery & snacks": return "bs";
-      case "beverages": return "b";
-      case "household essentials": return "he";
-      case "baby & kids": return "bk";
-      case "pet care": return "pc";
-      default: return "";
+      case "fruits & vegetables":
+        return "fv";
+      case "dairy & eggs":
+        return "de";
+      case "meat & seafood":
+        return "ms";
+      case "grocery & staples":
+        return "gs";
+      case "bakery & snacks":
+        return "bs";
+      case "beverages":
+        return "b";
+      case "household essentials":
+        return "he";
+      case "baby & kids":
+        return "bk";
+      case "pet care":
+        return "pc";
+      default:
+        return "";
     }
   }
 
@@ -77,7 +86,10 @@ class _CategoryScreenState extends State<CategoryScreen>
           ? Center(
               child: Text(
                 "Category tag not found for: ${widget.categoryName}",
-                style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             )
           : StreamBuilder<QuerySnapshot>(
@@ -89,7 +101,8 @@ class _CategoryScreenState extends State<CategoryScreen>
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.orange)),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                    ),
                   );
                 }
                 if (snapshot.hasError) {
@@ -100,11 +113,18 @@ class _CategoryScreenState extends State<CategoryScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade300),
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 64,
+                          color: Colors.grey.shade300,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           "No items found in ${widget.categoryName}",
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -117,16 +137,18 @@ class _CategoryScreenState extends State<CategoryScreen>
                   children: [
                     GridView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.72, 
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.72,
+                          ),
                       itemCount: items.length,
                       itemBuilder: (context, index) {
-                        final item = items[index].data() as Map<String, dynamic>;
-                        
+                        final item =
+                            items[index].data() as Map<String, dynamic>;
+
                         return TweenAnimationBuilder(
                           duration: Duration(milliseconds: 400 + (index * 50)),
                           tween: Tween<double>(begin: 0, end: 1),
@@ -183,11 +205,11 @@ class _ItemCardState extends State<_ItemCard> {
   void _loadInitialCartState() {
     final cart = Provider.of<InstahubCartProvider>(context, listen: false);
     final itemId = widget.item["id"] ?? widget.item["name"];
-    final cartItem = cart.getItem(itemId); 
+    final cartItem = cart.getItem(itemId);
 
     if (cartItem != null) {
       setState(() {
-        quantity = cartItem.quantity; 
+        quantity = cartItem.quantity;
       });
     }
   }
@@ -208,7 +230,7 @@ class _ItemCardState extends State<_ItemCard> {
                 color: Colors.orange.withOpacity(0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
             border: Border.all(color: Colors.orange.shade100),
           ),
@@ -238,10 +260,10 @@ class _ItemCardState extends State<_ItemCard> {
       cart.updateItem(
         id: itemId,
         name: item["name"],
-        price: basePrice, 
+        price: basePrice,
         restaurantId: storeId,
         image: item["image"],
-        quantity: newQuantity, 
+        quantity: newQuantity,
       );
     } else {
       cart.removeItem(itemId);
@@ -276,15 +298,22 @@ class _ItemCardState extends State<_ItemCard> {
             child: Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                   child: CachedNetworkImage(
                     imageUrl: item["image"] ?? "",
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: Colors.grey.shade100),
+                    placeholder: (_, __) =>
+                        Container(color: Colors.grey.shade100),
                     errorWidget: (_, __, ___) => Container(
                       color: Colors.grey.shade100,
-                      child: const Icon(Icons.fastfood, size: 40, color: Colors.grey),
+                      child: const Icon(
+                        Icons.fastfood,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                 ),
@@ -297,11 +326,16 @@ class _ItemCardState extends State<_ItemCard> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.7),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withOpacity(0.5)),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.5),
+                          ),
                         ),
                         child: Text(
                           "₹${basePrice.toInt()}",
@@ -336,7 +370,7 @@ class _ItemCardState extends State<_ItemCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
-                
+
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   transitionBuilder: (child, animation) => FadeTransition(
@@ -360,13 +394,19 @@ class _ItemCardState extends State<_ItemCard> {
                             onPressed: () => _updateCartItem(newQuantity: 1),
                             child: const Text(
                               "ADD",
-                              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
+                              ),
                             ),
                           ),
                         )
                       : Container(
                           key: const ValueKey('qty_ctrl'),
-                          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 2,
+                            horizontal: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.orange.shade50,
                             borderRadius: BorderRadius.circular(12),

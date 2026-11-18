@@ -23,18 +23,23 @@ class AddressWidget extends StatelessWidget {
 
         return Card(
           margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 4,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Delivery Address:",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text(
+                  "Delivery Address:",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
                 const SizedBox(height: 8),
                 Text(address['line1']),
-                if (address['line2'] != null && address['line2'].toString().isNotEmpty)
+                if (address['line2'] != null &&
+                    address['line2'].toString().isNotEmpty)
                   Text(address['line2']),
                 Text("${address['city']} - ${address['pincode']}"),
                 const SizedBox(height: 12),

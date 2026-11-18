@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,12 +13,8 @@ import 'RestaurantMenuScreen.dart';
 import 'cart/cart_bar.dart';
 import 'active_order_bottom_bar.dart';
 
-// ============================================================
-// FASTever - OFFER SCREEN
-// Stable cart listeners, optimized images, scheduled offers
-// ============================================================
-
 const Color _brandColor = Color(0xFF1A1E43);
+const Color _backgroundColor = Color(0xFFF8F8F8);
 
 double parseDouble(dynamic value, {double defaultValue = 0.0}) {
   if (value is num) return value.toDouble();
@@ -45,7 +40,11 @@ class OfferScreen extends StatefulWidget {
   final String title;
   final String offerTag;
 
-  const OfferScreen({super.key, required this.title, required this.offerTag});
+  const OfferScreen({
+    super.key,
+    required this.title,
+    required this.offerTag,
+  });
 
   @override
   State<OfferScreen> createState() => _OfferScreenState();
@@ -53,6 +52,10 @@ class OfferScreen extends StatefulWidget {
 
 class _OfferScreenState extends State<OfferScreen> {
   late Stream<QuerySnapshot<Map<String, dynamic>>> _offerStream;
+  Timer? _loadingWatchdog;
+  bool _loadingTimedOut = false;
+  int _visibleCount = 25;
+  static const int _pageSize = 25;
 
   @override
   void initState() {
@@ -61,6 +64,12 @@ class _OfferScreenState extends State<OfferScreen> {
   }
 
   void _initializeStream() {
+    _loadingWatchdog?.cancel();
+    _loadingTimedOut = false;
+    _visibleCount = _pageSize;
+    _loadingWatchdog = Timer(const Duration(seconds: 18), () {
+      if (mounted) setState(() => _loadingTimedOut = true);
+    });
     _offerStream = FirebaseFirestore.instance
         .collectionGroup('menu')
         .where('tags', arrayContains: widget.offerTag)
@@ -77,9 +86,15 @@ class _OfferScreenState extends State<OfferScreen> {
   }
 
   @override
+  void dispose() {
+    _loadingWatchdog?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
         title: Text(
           widget.title,
@@ -96,99 +111,218 @@ class _OfferScreenState extends State<OfferScreen> {
         iconTheme: const IconThemeData(color: _brandColor),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFEEEEEE), height: 1),
+          child: Container(
+            color: const Color(0xFFEEEEEE),
+            height: 1,
+          ),
         ),
       ),
       bottomNavigationBar: const ActiveOrderBottomBar(),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _offerStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return ListView.builder(
-              itemCount: 5,
-              padding: const EdgeInsets.only(bottom: 100, top: 8),
-              itemBuilder: (context, index) {
-                return _buildShimmerItemCard();
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _offerStream,
+          builder: (context, snapshot) {
+            // Always handle errors before loading.
+            if (snapshot.hasError) {
+              _loadingWatchdog?.cancel();
+              debugPrint(
+                'FASTever OFFER FIRESTORE ERROR: ${snapshot.error}',
+              );
+
+              return _buildErrorState();
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return _loadingTimedOut
+                  ? _buildErrorState()
+                  : _buildLoadingState();
+            }
+
+            if (snapshot.hasData) _loadingWatchdog?.cancel();
+
+            if (snapshot.connectionState == ConnectionState.none) {
+              return _buildErrorState();
+            }
+
+            final documents = snapshot.data?.docs ?? [];
+
+            if (documents.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            final visibleCount = documents.length < _visibleCount
+                ? documents.length
+                : _visibleCount;
+
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: ListView.builder(
+                    key: PageStorageKey(
+                      'fastever_offers_${widget.offerTag}',
+                    ),
+                    padding: const EdgeInsets.fromLTRB(
+                      0,
+                      8,
+                      0,
+                      110,
+                    ),
+                    itemCount: visibleCount +
+                        (visibleCount < documents.length ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == visibleCount) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 14),
+                          child: OutlinedButton(
+                            onPressed: () => setState(() {
+                              _visibleCount += _pageSize;
+                            }),
+                            child: const Text('Load More Offers'),
+                          ),
+                        );
+                      }
+                      final document = documents[index];
+
+                      return _OfferItemCard(
+                        key: ValueKey(document.reference.path),
+                        itemDoc: document,
+                      );
+                    },
+                  ),
+                ),
+                const Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: CartBar(),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: 5,
+      padding: const EdgeInsets.only(
+        bottom: 100,
+        top: 8,
+      ),
+      itemBuilder: (context, index) {
+        return _buildShimmerItemCard();
+      },
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 48,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Unable to load offers',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _brandColor,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Please check your internet connection and try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _initializeStream();
+                });
               },
-            );
-          }
-
-          if (snapshot.hasError) {
-            debugPrint('FASTever offers Firestore error: ${snapshot.error}');
-
-            return const Center(
-              child: Text(
-                'Error loading offers.',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _brandColor,
+                foregroundColor: Colors.white,
               ),
-            );
-          }
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          final offerItems = snapshot.data?.docs ?? [];
-
-          if (offerItems.isEmpty) {
-            return const Center(
-              child: Text(
-                'No offers found.',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.local_offer_outlined,
+              size: 55,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'No offers found.',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
               ),
-            );
-          }
-
-          return Stack(
-            children: [
-              ListView.builder(
-                key: PageStorageKey('fastever_offers_${widget.offerTag}'),
-                itemCount: offerItems.length,
-
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                itemBuilder: (context, index) {
-                  final itemDoc = offerItems[index];
-
-                  return _OfferItemCard(
-                    key: ValueKey(itemDoc.reference.path),
-                    itemDoc: itemDoc,
-                  );
-                },
-              ),
-              const Positioned(bottom: 0, left: 0, right: 0, child: CartBar()),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildShimmerItemCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 8,
+      ),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF0F0F0)),
+        border: Border.all(
+          color: const Color(0xFFF0F0F0),
+        ),
       ),
       child: Shimmer.fromColors(
         baseColor: Colors.grey.shade200,
         highlightColor: Colors.grey.shade50,
         child: Row(
           children: [
-            const SizedBox(
+            Container(
               width: 90,
               height: 90,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             const SizedBox(width: 12),
@@ -202,9 +336,17 @@ class _OfferScreenState extends State<OfferScreen> {
                     color: Colors.white,
                   ),
                   const SizedBox(height: 8),
-                  Container(width: 100, height: 14, color: Colors.white),
+                  Container(
+                    width: 100,
+                    height: 14,
+                    color: Colors.white,
+                  ),
                   const SizedBox(height: 8),
-                  Container(width: 80, height: 14, color: Colors.white),
+                  Container(
+                    width: 80,
+                    height: 14,
+                    color: Colors.white,
+                  ),
                 ],
               ),
             ),
@@ -222,7 +364,10 @@ class _OfferScreenState extends State<OfferScreen> {
 class _OfferItemCard extends StatefulWidget {
   final DocumentSnapshot<Map<String, dynamic>> itemDoc;
 
-  const _OfferItemCard({super.key, required this.itemDoc});
+  const _OfferItemCard({
+    super.key,
+    required this.itemDoc,
+  });
 
   @override
   State<_OfferItemCard> createState() => _OfferItemCardState();
@@ -241,30 +386,33 @@ class _OfferItemCardState extends State<_OfferItemCard>
   bool isAvailable = false;
   String status = 'open';
 
-  // Cart provider retained while widget is active.
   CartProvider? _cartProvider;
 
-  // Scheduled offer timer state.
   Timer? _offerTimer;
 
   bool _timerEnabled = false;
+
   DateTime? _offerStartAt;
   DateTime? _offerEndAt;
 
   Duration _timeRemaining = Duration.zero;
+
   String _timerStatus = '';
   String? _timerDescription;
 
-  // Prevent stale async restaurant requests.
   int _restaurantRequestVersion = 0;
 
-  bool get _offerIsWaiting => _timerEnabled && _timerStatus == 'starts';
+  bool get _offerIsWaiting =>
+      _timerEnabled && _timerStatus == 'starts';
 
-  bool get _offerIsActive => _timerEnabled && _timerStatus == 'active';
+  bool get _offerIsActive =>
+      _timerEnabled && _timerStatus == 'active';
 
-  bool get _offerIsEnded => _timerEnabled && _timerStatus == 'ended';
+  bool get _offerIsEnded =>
+      _timerEnabled && _timerStatus == 'ended';
 
-  String get _restaurantId => widget.itemDoc.reference.parent.parent?.id ?? '';
+  String get _restaurantId =>
+      widget.itemDoc.reference.parent.parent?.id ?? '';
 
   @override
   void initState() {
@@ -277,19 +425,22 @@ class _OfferItemCardState extends State<_OfferItemCard>
   }
 
   // ==========================================================
-  // SAFE PROVIDER LIFECYCLE
+  // PROVIDER
   // ==========================================================
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    final newCartProvider = Provider.of<CartProvider>(context, listen: false);
+    final newProvider = Provider.of<CartProvider>(
+      context,
+      listen: false,
+    );
 
-    if (!identical(_cartProvider, newCartProvider)) {
+    if (!identical(_cartProvider, newProvider)) {
       _cartProvider?.removeListener(_updateQuantityFromCart);
 
-      _cartProvider = newCartProvider;
+      _cartProvider = newProvider;
 
       _cartProvider?.addListener(_updateQuantityFromCart);
     }
@@ -302,11 +453,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
 
     if (cart == null) return;
 
-    final newQuantity = cart.getQuantity(widget.itemDoc.id);
-
-    if (newQuantity != quantity) {
-      quantity = newQuantity;
-    }
+    quantity = cart.getQuantity(widget.itemDoc.id);
   }
 
   void _updateQuantityFromCart() {
@@ -326,7 +473,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
   }
 
   // ==========================================================
-  // FIRESTORE ITEM UPDATES
+  // WIDGET UPDATE
   // ==========================================================
 
   @override
@@ -336,31 +483,42 @@ class _OfferItemCardState extends State<_OfferItemCard>
     final oldPath = oldWidget.itemDoc.reference.path;
     final newPath = widget.itemDoc.reference.path;
 
-    final itemChanged = oldPath != newPath;
+    if (oldPath != newPath) {
+      _restaurantRequestVersion++;
 
-    if (oldWidget.itemDoc != widget.itemDoc) {
+      restaurantName = null;
+      restaurantRating = null;
+      status = 'open';
+
       _loadItemData();
-
-      if (itemChanged) {
-        restaurantName = null;
-        restaurantRating = null;
-        status = 'open';
-
-        _fetchRestaurantInfo();
-      }
-
+      _fetchRestaurantInfo();
       _syncCartQuantity();
+    } else if (oldWidget.itemDoc.data() != widget.itemDoc.data()) {
+      _loadItemData();
     }
   }
 
   void _loadItemData() {
-    itemData = widget.itemDoc.data() ?? {};
+    try {
+      itemData = widget.itemDoc.data() ?? {};
 
-    imageUrl = itemData['imageUrl']?.toString() ?? '';
+      imageUrl = itemData['imageUrl']?.toString().trim() ?? '';
 
-    isAvailable = parseInt(itemData['stock'], defaultValue: 0) > 0;
+      isAvailable = parseInt(
+            itemData['stock'],
+            defaultValue: 0,
+          ) >
+          0;
 
-    _setupOfferTimer();
+      _setupOfferTimer();
+    } catch (e, stack) {
+      debugPrint('FASTever offer item data error: $e');
+      debugPrintStack(stackTrace: stack);
+
+      itemData = {};
+      imageUrl = '';
+      isAvailable = false;
+    }
   }
 
   // ==========================================================
@@ -385,17 +543,14 @@ class _OfferItemCardState extends State<_OfferItemCard>
     _offerTimer?.cancel();
     _offerTimer = null;
 
-    // IMPORTANT:
-    // Never look up Provider through context inside dispose().
     _cartProvider?.removeListener(_updateQuantityFromCart);
-
     _cartProvider = null;
 
     super.dispose();
   }
 
   // ==========================================================
-  // SCHEDULED OFFER TIMER
+  // OFFER TIMER
   // ==========================================================
 
   void _setupOfferTimer() {
@@ -404,7 +559,8 @@ class _OfferItemCardState extends State<_OfferItemCard>
 
     _timerEnabled = itemData['offerTimerEnabled'] == true;
 
-    _timerDescription = itemData['offerTimerDescription']?.toString();
+    _timerDescription =
+        itemData['offerTimerDescription']?.toString();
 
     _offerStartAt = null;
     _offerEndAt = null;
@@ -436,8 +592,6 @@ class _OfferItemCardState extends State<_OfferItemCard>
       return;
     }
 
-    // Calculate initial state without calling setState
-    // during initState or didUpdateWidget.
     _calculateTimerState();
 
     if (_timerStatus != 'ended') {
@@ -453,13 +607,15 @@ class _OfferItemCardState extends State<_OfferItemCard>
 
     final now = DateTime.now();
 
-    if (_offerStartAt != null && now.isBefore(_offerStartAt!)) {
+    if (_offerStartAt != null &&
+        now.isBefore(_offerStartAt!)) {
       _timerStatus = 'starts';
       _timeRemaining = _offerStartAt!.difference(now);
       return;
     }
 
-    if (_offerEndAt != null && now.isBefore(_offerEndAt!)) {
+    if (_offerEndAt != null &&
+        now.isBefore(_offerEndAt!)) {
       _timerStatus = 'active';
       _timeRemaining = _offerEndAt!.difference(now);
       return;
@@ -473,12 +629,12 @@ class _OfferItemCardState extends State<_OfferItemCard>
     if (!mounted || !_timerEnabled) return;
 
     final oldStatus = _timerStatus;
-    final oldRemainingSeconds = _timeRemaining.inSeconds;
+    final oldRemaining = _timeRemaining.inSeconds;
 
     _calculateTimerState();
 
     if (_timerStatus != oldStatus ||
-        _timeRemaining.inSeconds != oldRemainingSeconds) {
+        _timeRemaining.inSeconds != oldRemaining) {
       setState(() {});
     }
 
@@ -502,53 +658,58 @@ class _OfferItemCardState extends State<_OfferItemCard>
   }
 
   String _formatDuration(Duration duration) {
-    final safeDuration = duration.isNegative ? Duration.zero : duration;
+    final safe = duration.isNegative ? Duration.zero : duration;
 
-    final hours = safeDuration.inHours;
-    final minutes = safeDuration.inMinutes.remainder(60);
-    final seconds = safeDuration.inSeconds.remainder(60);
+    final hours = safe.inHours;
+    final minutes = safe.inMinutes.remainder(60);
+    final seconds = safe.inSeconds.remainder(60);
 
-    final minuteText = minutes.toString().padLeft(2, '0');
-    final secondText = seconds.toString().padLeft(2, '0');
+    final mm = minutes.toString().padLeft(2, '0');
+    final ss = seconds.toString().padLeft(2, '0');
 
     if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:'
-          '$minuteText:$secondText';
+      return '${hours.toString().padLeft(2, '0')}:$mm:$ss';
     }
 
-    return '$minuteText:$secondText';
+    return '$mm:$ss';
   }
 
   // ==========================================================
-  // RESTAURANT DETAILS
+  // RESTAURANT INFORMATION
   // ==========================================================
 
   Future<void> _fetchRestaurantInfo() async {
     final requestVersion = ++_restaurantRequestVersion;
 
-    final restaurantDocRef = widget.itemDoc.reference.parent.parent;
+    final restaurantRef =
+        widget.itemDoc.reference.parent.parent;
 
-    if (restaurantDocRef == null) return;
+    if (restaurantRef == null) return;
 
     try {
-      final restaurantSnapshot = await restaurantDocRef.get();
+      final snapshot = await restaurantRef.get();
 
-      if (!mounted || requestVersion != _restaurantRequestVersion) {
+      if (!mounted ||
+          requestVersion != _restaurantRequestVersion) {
         return;
       }
 
-      final restaurantData = restaurantSnapshot.data() ?? {};
+      final data = snapshot.data() ?? {};
 
       setState(() {
         restaurantName =
-            restaurantData['name']?.toString() ?? 'Unknown Restaurant';
+            data['name']?.toString() ?? 'Unknown Restaurant';
 
-        restaurantRating = parseDouble(restaurantData['rating']);
+        restaurantRating = parseDouble(data['rating']);
 
-        status = restaurantData['status']?.toString() ?? 'open';
+        status = data['status']?.toString() ?? 'open';
       });
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('FASTever restaurant information error: $e');
+      debugPrintStack(stackTrace: stack);
+
+      // Do not crash or hide the food item if restaurant
+      // information cannot be retrieved.
     }
   }
 
@@ -559,7 +720,9 @@ class _OfferItemCardState extends State<_OfferItemCard>
   void _changeQuantity(int newQuantity) {
     if (!mounted) return;
 
-    if (!requireLoginGlobal('Please login to add items to cart')) {
+    if (!requireLoginGlobal(
+      'Please login to add items to cart',
+    )) {
       return;
     }
 
@@ -569,7 +732,10 @@ class _OfferItemCardState extends State<_OfferItemCard>
       return;
     }
 
-    final stockAvailable = parseInt(itemData['stock'], defaultValue: 0);
+    final stockAvailable = parseInt(
+      itemData['stock'],
+      defaultValue: 0,
+    );
 
     if (newQuantity > stockAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -604,7 +770,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
   }
 
   // ==========================================================
-  // ADD / REMOVE QUANTITY CONTROLS
+  // QUANTITY SELECTOR
   // ==========================================================
 
   Widget _buildQuantitySelector() {
@@ -621,7 +787,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -634,7 +800,11 @@ class _OfferItemCardState extends State<_OfferItemCard>
               onTap: () => _changeQuantity(quantity - 1),
               child: const Padding(
                 padding: EdgeInsets.all(6),
-                child: Icon(Icons.remove, size: 16, color: Colors.white),
+                child: Icon(
+                  Icons.remove,
+                  size: 16,
+                  color: Colors.white,
+                ),
               ),
             ),
             Text(
@@ -649,7 +819,11 @@ class _OfferItemCardState extends State<_OfferItemCard>
               onTap: () => _changeQuantity(quantity + 1),
               child: const Padding(
                 padding: EdgeInsets.all(6),
-                child: Icon(Icons.add, size: 16, color: Colors.white),
+                child: Icon(
+                  Icons.add,
+                  size: 16,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
@@ -684,7 +858,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
   }
 
   // ==========================================================
-  // OFFER COUNTDOWN OVERLAY
+  // TIMER OVERLAY
   // ==========================================================
 
   Widget _buildOfferTimerOverlay() {
@@ -698,17 +872,20 @@ class _OfferItemCardState extends State<_OfferItemCard>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          color: Colors.white.withOpacity(0.58),
+          color: Colors.white.withValues(alpha: 0.58),
           child: Center(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.85),
+                color: Colors.black.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -744,14 +921,13 @@ class _OfferItemCardState extends State<_OfferItemCard>
                       Text(
                         _timerDescription!.trim(),
                         textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFFFF4848),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ],
@@ -765,7 +941,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
   }
 
   // ==========================================================
-  // FOOD IMAGE - MEMORY OPTIMIZED
+  // FOOD IMAGE
   // ==========================================================
 
   Widget _buildFoodImage() {
@@ -775,8 +951,14 @@ class _OfferItemCardState extends State<_OfferItemCard>
           borderRadius: BorderRadius.circular(12),
           child: ColorFiltered(
             colorFilter: isAvailable
-                ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
-                : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
+                ? const ColorFilter.mode(
+                    Colors.transparent,
+                    BlendMode.multiply,
+                  )
+                : const ColorFilter.mode(
+                    Colors.grey,
+                    BlendMode.saturation,
+                  ),
             child: imageUrl.isEmpty
                 ? _buildImageFallback()
                 : CachedNetworkImage(
@@ -784,17 +966,14 @@ class _OfferItemCardState extends State<_OfferItemCard>
                     width: 90,
                     height: 90,
                     fit: BoxFit.cover,
-
-                    // Decode near the actual display size
-                    // rather than keeping full-resolution images.
                     memCacheWidth: 270,
                     memCacheHeight: 270,
                     maxWidthDiskCache: 540,
                     maxHeightDiskCache: 540,
-
-                    fadeInDuration: const Duration(milliseconds: 120),
+                    fadeInDuration: const Duration(
+                      milliseconds: 120,
+                    ),
                     fadeOutDuration: Duration.zero,
-
                     placeholder: (context, url) {
                       return Container(
                         width: 90,
@@ -810,6 +989,9 @@ class _OfferItemCardState extends State<_OfferItemCard>
                       );
                     },
                     errorWidget: (context, url, error) {
+                      debugPrint(
+                        'FASTever offer image error: $error',
+                      );
                       return _buildImageFallback();
                     },
                   ),
@@ -843,12 +1025,16 @@ class _OfferItemCardState extends State<_OfferItemCard>
       width: 90,
       height: 90,
       color: Colors.grey.shade100,
-      child: const Icon(Icons.fastfood, size: 40, color: Colors.grey),
+      child: const Icon(
+        Icons.fastfood,
+        size: 40,
+        color: Colors.grey,
+      ),
     );
   }
 
   // ==========================================================
-  // OFFER CARD MAIN UI
+  // OFFER CARD UI
   // ==========================================================
 
   @override
@@ -885,7 +1071,6 @@ class _OfferItemCardState extends State<_OfferItemCard>
                 ),
                 const SizedBox(height: 6),
 
-                // Restaurant name and rating
                 if (restaurantName != null &&
                     restaurantName!.isNotEmpty &&
                     restaurantName != 'Unknown Restaurant')
@@ -903,25 +1088,23 @@ class _OfferItemCardState extends State<_OfferItemCard>
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (restaurantRating != null && restaurantRating! > 0)
-                        Row(
-                          children: [
-                            const SizedBox(width: 6),
-                            const Icon(
-                              Icons.star_rounded,
-                              color: Color(0xFF2E7D32),
-                              size: 14,
-                            ),
-                            Text(
-                              restaurantRating!.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF2E7D32),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                      if (restaurantRating != null &&
+                          restaurantRating! > 0) ...[
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFF2E7D32),
+                          size: 14,
                         ),
+                        Text(
+                          restaurantRating!.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF2E7D32),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
 
@@ -946,7 +1129,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
                   runSpacing: 4,
                   children: [
                     Text(
-                      '₹${parseDouble(itemData['price']).toStringAsFixed(0)}',
+                      '\u20B9${parseDouble(itemData['price']).toStringAsFixed(0)}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -962,7 +1145,9 @@ class _OfferItemCardState extends State<_OfferItemCard>
                         decoration: BoxDecoration(
                           color: Colors.red.shade50,
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.red.shade200),
+                          border: Border.all(
+                            color: Colors.red.shade200,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -987,7 +1172,8 @@ class _OfferItemCardState extends State<_OfferItemCard>
                   ],
                 ),
 
-                if (description != null && description.trim().isNotEmpty) ...[
+                if (description != null &&
+                    description.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   _ExpandableItemDescription(
                     text: description.trim(),
@@ -999,7 +1185,9 @@ class _OfferItemCardState extends State<_OfferItemCard>
               ],
             ),
           ),
+
           const SizedBox(width: 12),
+
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1013,7 +1201,10 @@ class _OfferItemCardState extends State<_OfferItemCard>
     );
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 8,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1024,7 +1215,9 @@ class _OfferItemCardState extends State<_OfferItemCard>
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: const Color(0xFFF0F0F0)),
+        border: Border.all(
+          color: const Color(0xFFF0F0F0),
+        ),
       ),
       child: Stack(
         children: [
@@ -1036,17 +1229,13 @@ class _OfferItemCardState extends State<_OfferItemCard>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      RestaurantMenuScreen(restaurantId: _restaurantId),
+                  builder: (_) => RestaurantMenuScreen(
+                    restaurantId: _restaurantId,
+                  ),
                 ),
               );
             },
-            child: shouldBlur
-                ? ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 2.2, sigmaY: 2.2),
-                    child: content,
-                  )
-                : content,
+            child: content,
           ),
           if (shouldBlur) _buildOfferTimerOverlay(),
         ],
@@ -1056,7 +1245,7 @@ class _OfferItemCardState extends State<_OfferItemCard>
 }
 
 // ============================================================
-// EXPANDABLE RED DESCRIPTION
+// EXPANDABLE ITEM DESCRIPTION
 // ============================================================
 
 class _ExpandableItemDescription extends StatefulWidget {
@@ -1083,7 +1272,9 @@ class _ExpandableItemDescriptionState
   bool _isExpanded = false;
 
   @override
-  void didUpdateWidget(covariant _ExpandableItemDescription oldWidget) {
+  void didUpdateWidget(
+    covariant _ExpandableItemDescription oldWidget,
+  ) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.text != widget.text) {
@@ -1100,18 +1291,24 @@ class _ExpandableItemDescriptionState
       backgroundColor: Colors.white,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
       ),
       builder: (ctx) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              20,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
@@ -1172,10 +1369,17 @@ class _ExpandableItemDescriptionState
         );
 
         final textPainter = TextPainter(
-          text: TextSpan(text: widget.text, style: textStyle),
+          text: TextSpan(
+            text: widget.text,
+            style: textStyle,
+          ),
           maxLines: widget.maxLines,
           textDirection: Directionality.of(context),
-        )..layout(maxWidth: constraints.maxWidth);
+        );
+
+        textPainter.layout(
+          maxWidth: constraints.maxWidth,
+        );
 
         final isOverflowing = textPainter.didExceedMaxLines;
 

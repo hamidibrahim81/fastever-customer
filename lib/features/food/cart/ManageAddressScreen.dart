@@ -59,7 +59,7 @@ class _ManageAddressScreenState extends State<ManageAddressScreen> {
           .collection('addresses')
           .doc(docId)
           .delete();
-      
+
       _fetchAddresses(); // Refresh list
     } catch (e) {
       debugPrint("Delete failed: $e");
@@ -97,13 +97,18 @@ class _ManageAddressScreenState extends State<ManageAddressScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Address Limit Reached", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text("FASTO allows up to 3 saved addresses. Please delete one to add a new location."),
+        title: const Text(
+          "Address Limit Reached",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "FASTO allows up to 3 saved addresses. Please delete one to add a new location.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("OK", style: TextStyle(color: Colors.orange)),
-          )
+          ),
         ],
       ),
     );
@@ -116,7 +121,10 @@ class _ManageAddressScreenState extends State<ManageAddressScreen> {
         title: const Text("Delete Address"),
         content: const Text("Are you sure you want to remove this address?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
@@ -144,7 +152,14 @@ class _ManageAddressScreenState extends State<ManageAddressScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text("My Addresses", style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "My Addresses",
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         elevation: 0.5,
@@ -153,64 +168,87 @@ class _ManageAddressScreenState extends State<ManageAddressScreen> {
         children: [
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.orange),
+                  )
                 : _addresses.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        itemCount: _addresses.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          var doc = _addresses[index];
-                          var data = doc.data() as Map<String, dynamic>;
-                          
-                          IconData icon = Icons.location_on;
-                          if (data['category'] == "Home") icon = Icons.home;
-                          if (data['category'] == "Office") icon = Icons.work;
+                ? _buildEmptyState()
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    itemCount: _addresses.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      var doc = _addresses[index];
+                      var data = doc.data() as Map<String, dynamic>;
 
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade200),
+                      IconData icon = Icons.location_on;
+                      if (data['category'] == "Home") icon = Icons.home;
+                      if (data['category'] == "Office") icon = Icons.work;
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.orange.withOpacity(0.1),
+                            child: Icon(icon, color: Colors.orange, size: 22),
+                          ),
+                          title: Text(
+                            data['category'] ?? "Saved Address",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
                             ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.orange.withOpacity(0.1),
-                                child: Icon(icon, color: Colors.orange, size: 22),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              data['full_display_address'] ??
+                                  "No address details",
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 13,
+                                height: 1.4,
                               ),
-                              title: Text(
-                                data['category'] ?? "Saved Address",
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  data['full_display_address'] ?? "No address details",
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
-                                ),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
-                                onPressed: () => _confirmDelete(doc.id),
-                              ),
-                              onTap: () => _selectAddress(data, doc.id),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                              size: 22,
+                            ),
+                            onPressed: () => _confirmDelete(doc.id),
+                          ),
+                          onTap: () => _selectAddress(data, doc.id),
+                        ),
+                      );
+                    },
+                  ),
           ),
-          
+
           // BOTTOM BUTTON
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
             ),
             child: SafeArea(
               child: ElevatedButton(
@@ -220,12 +258,20 @@ class _ManageAddressScreenState extends State<ManageAddressScreen> {
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 54),
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("ADD NEW ADDRESS", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                child: const Text(
+                  "ADD NEW ADDRESS",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -238,11 +284,20 @@ class _ManageAddressScreenState extends State<ManageAddressScreen> {
         children: [
           Icon(Icons.map_outlined, size: 70, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          const Text("No saved addresses", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)),
+          const Text(
+            "No saved addresses",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black54,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text("Add your home or office address for\nfaster checkout experience.", 
-               textAlign: TextAlign.center, 
-               style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+          Text(
+            "Add your home or office address for\nfaster checkout experience.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          ),
         ],
       ),
     );

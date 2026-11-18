@@ -27,49 +27,12 @@ num parseNum(dynamic value, {num defaultValue = 0}) {
   return defaultValue;
 }
 
-// ✅ NEW: Helper to safely parse Stock (int)
+// Helper to safely parse Stock (int)
 int parseInt(dynamic value, {int defaultValue = 0}) {
   if (value is int) return value;
   if (value is String) return int.tryParse(value) ?? defaultValue;
   if (value is double) return value.toInt();
   return defaultValue;
-}
-
-// A simple reusable widget for info chips
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final Color backgroundColor;
-
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-    this.backgroundColor = Colors.black45,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(color: color, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class RestaurantMenuScreen extends StatefulWidget {
@@ -88,12 +51,9 @@ class RestaurantMenuScreen extends StatefulWidget {
   State<RestaurantMenuScreen> createState() => _RestaurantMenuScreenState();
 }
 
-class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
-    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _RestaurantMenuScreenState extends State<RestaurantMenuScreen> {
   late Stream<DocumentSnapshot> _restaurantStream;
-  late TabController _tabController;
-  final _scrollController = ScrollController();
-
+  
   List<QueryDocumentSnapshot> _allMenuItems = [];
   List<QueryDocumentSnapshot> _processedMenuItems = [];
 
@@ -101,90 +61,98 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
   bool _isLoadingMore = false;
   bool _hasMoreItems = true;
   DocumentSnapshot? _lastDocument;
-  final int _documentLimit = 50;
+  
+  // Optimized document batch limit
+  final int _documentLimit = 40;
 
-  String? _filterType;
-  String? _sortBy;
+  // Active Filter & Sort State
+  String _selectedCategory = "all";
+  String _selectedDietFilter = "all"; // "all", "veg", "non-veg"
+  String _selectedSort = "default"; // "default", "price_asc", "price_desc", "rating", "popularity"
+
   bool _isRestaurantOpen = true;
 
-  @override
-  bool get wantKeepAlive => true;
+  final List<String> _categories = [
+    "all",
+    "Arabian",
+    "Indian",
+    "Biriyani",
+    "Shawarma",
+    "Snacks",
+    "Burger",
+    "Parotta",
+    "Fried Chicken",
+    "Tea & Coffee",
+    "Grills",
+    "Desserts",
+    "Cakes",
+    "Dosa",
+    "Momos",
+    "Shake",
+    "Icecream",
+    "Juice",
+    "Chinese",
+  ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-
     _restaurantStream = FirebaseFirestore.instance
         .collection("restaurants")
         .doc(widget.restaurantId)
         .snapshots();
 
     _loadInitialMenuData();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.hasClients &&
-        _scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        _hasMoreItems &&
-        !_isLoadingMore) {
-      _loadMoreMenuData();
-    }
   }
 
   void _applyFiltersAndSort() {
     List<QueryDocumentSnapshot> tempItems = List.from(_allMenuItems);
 
-    if (_filterType == "veg") {
+    // 1. Category Filtering
+    if (_selectedCategory != "all") {
+      tempItems = tempItems.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final tags = List<String>.from(data["tags"] ?? []);
+        return tags.contains(_selectedCategory.toLowerCase());
+      }).toList();
+    }
+
+    // 2. Veg / Non-Veg Filtering
+    if (_selectedDietFilter == "veg") {
       tempItems = tempItems
-          .where(
-            (doc) => (doc.data() as Map<String, dynamic>)["isVeg"] == true,
-          )
+          .where((doc) => (doc.data() as Map<String, dynamic>)["isVeg"] == true)
           .toList();
-    } else if (_filterType == "non-veg") {
+    } else if (_selectedDietFilter == "non-veg") {
       tempItems = tempItems
-          .where(
-            (doc) => (doc.data() as Map<String, dynamic>)["isVeg"] == false,
-          )
+          .where((doc) => (doc.data() as Map<String, dynamic>)["isVeg"] == false)
           .toList();
     }
 
-    if (_sortBy != null) {
-      switch (_sortBy) {
+    // 3. Sorting
+    if (_selectedSort != "default") {
+      switch (_selectedSort) {
         case "price_asc":
           tempItems.sort(
-            (a, b) => parseDouble(
-              (a.data() as Map<String, dynamic>)["price"],
-            ).compareTo(
-              parseDouble((b.data() as Map<String, dynamic>)["price"]),
-            ),
+            (a, b) => parseDouble((a.data() as Map<String, dynamic>)["price"])
+                .compareTo(
+                  parseDouble((b.data() as Map<String, dynamic>)["price"]),
+                ),
           );
           break;
         case "price_desc":
           tempItems.sort(
-            (a, b) => parseDouble(
-              (b.data() as Map<String, dynamic>)["price"],
-            ).compareTo(
-              parseDouble((a.data() as Map<String, dynamic>)["price"]),
-            ),
+            (a, b) => parseDouble((b.data() as Map<String, dynamic>)["price"])
+                .compareTo(
+                  parseDouble((a.data() as Map<String, dynamic>)["price"]),
+                ),
           );
           break;
         case "popularity":
           tempItems.sort(
-            (a, b) => parseNum(
-              (b.data() as Map<String, dynamic>)["popularity"],
-            ).compareTo(
-              parseNum((a.data() as Map<String, dynamic>)["popularity"]),
-            ),
+            (a, b) => parseNum((b.data() as Map<String, dynamic>)["popularity"])
+                .compareTo(
+                  parseNum((a.data() as Map<String, dynamic>)["popularity"]),
+                ),
           );
           break;
         case "rating":
@@ -197,9 +165,20 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
       }
     }
 
+    // 4. Stock Priority Sorting (In-Stock always first, Sold-Out strictly last)
+    final availableItems = tempItems.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return parseInt(data["stock"], defaultValue: 0) > 0;
+    }).toList();
+
+    final soldOutItems = tempItems.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return parseInt(data["stock"], defaultValue: 0) <= 0;
+    }).toList();
+
     if (mounted) {
       setState(() {
-        _processedMenuItems = tempItems;
+        _processedMenuItems = [...availableItems, ...soldOutItems];
       });
     }
   }
@@ -272,15 +251,11 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: const Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          ActiveOrderBottomBar(),
-          CartBar(),
-        ],
+        children: [ActiveOrderBottomBar(), CartBar()],
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: _restaurantStream,
@@ -289,8 +264,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           final name =
               data["name"] ?? widget.restaurantName ?? "Unnamed Restaurant";
-          final image =
-              (data["imageUrl"] ?? data["imageURL"] ?? "").toString();
+          final image = (data["imageUrl"] ?? data["imageURL"] ?? "").toString();
           final rating = data["rating"]?.toString() ?? "0.0";
           final cuisine = data["cuisine"] ?? "";
           final lat = parseDouble(data['latitude']);
@@ -300,7 +274,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverAppBar(
-                expandedHeight: 220,
+                expandedHeight: 200,
                 pinned: true,
                 elevation: 0,
                 backgroundColor: const Color(0xFF1A1E43),
@@ -319,6 +293,8 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                         ? CachedNetworkImage(
                             imageUrl: image,
                             fit: BoxFit.cover,
+                            memCacheWidth: 400,
+                            memCacheHeight: 400,
                             placeholder: (context, url) => Shimmer.fromColors(
                               baseColor: Colors.grey.shade300,
                               highlightColor: Colors.grey.shade100,
@@ -376,7 +352,10 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                           ),
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Text("•", style: TextStyle(color: Colors.grey)),
+                            child: Text(
+                              "•",
+                              style: TextStyle(color: Colors.grey),
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -418,46 +397,178 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const Divider(height: 30, color: Color(0xFFEEEEEE)),
-                    ],
-                  ),
-                ),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverAppBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    labelColor: const Color(0xFF1A1E43),
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: const Color(0xFF1A1E43),
-                    indicatorWeight: 3,
-                    labelStyle: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                    unselectedLabelStyle: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
-                    ),
-                    tabs: const [
-                      Tab(text: "All Items"),
-                      Tab(text: "Offers"),
-                      Tab(text: "Categories"),
+                      const Divider(height: 24, color: Color(0xFFEEEEEE)),
+                      
+                      // 🎛️ Interactive Filters & Sorting Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildFilterChoiceChip(
+                                    label: "All",
+                                    isSelected: _selectedDietFilter == "all",
+                                    onSelected: () {
+                                      setState(() => _selectedDietFilter = "all");
+                                      _applyFiltersAndSort();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildFilterChoiceChip(
+                                    label: "🌱 Veg",
+                                    isSelected: _selectedDietFilter == "veg",
+                                    onSelected: () {
+                                      setState(() => _selectedDietFilter = "veg");
+                                      _applyFiltersAndSort();
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildFilterChoiceChip(
+                                    label: "🍗 Non-Veg",
+                                    isSelected: _selectedDietFilter == "non-veg",
+                                    onSelected: () {
+                                      setState(() => _selectedDietFilter = "non-veg");
+                                      _applyFiltersAndSort();
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          PopupMenuButton<String>(
+                            onSelected: (value) {
+                              setState(() => _selectedSort = value);
+                              _applyFiltersAndSort();
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: "default", child: Text("Default Sorting")),
+                              const PopupMenuItem(value: "price_asc", child: Text("Price: Low to High")),
+                              const PopupMenuItem(value: "price_desc", child: Text("Price: High to Low")),
+                              const PopupMenuItem(value: "rating", child: Text("Highest Rated")),
+                              const PopupMenuItem(value: "popularity", child: Text("Most Popular")),
+                            ],
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F3F6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.sort_rounded, size: 16, color: Color(0xFF1A1E43)),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    "Sort",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: Color(0xFF1A1E43),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 🏷️ Category Horizontal Scroll Chips
+                      SizedBox(
+                        height: 38,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _categories.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final cat = _categories[index];
+                            final isSelected = _selectedCategory == cat;
+                            return ChoiceChip(
+                              label: Text(cat == "all" ? "🍽️ All Items" : cat),
+                              selected: isSelected,
+                              selectedColor: const Color(0xFF1A1E43),
+                              backgroundColor: const Color(0xFFF1F3F6),
+                              labelStyle: TextStyle(
+                                color: isSelected ? Colors.white : const Color(0xFF1A1E43),
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                              onSelected: (selected) {
+                                setState(() => _selectedCategory = cat);
+                                _applyFiltersAndSort();
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      const Divider(height: 24, color: Color(0xFFEEEEEE)),
                     ],
                   ),
                 ),
               ),
             ],
             body: _isRestaurantOpen
-                ? TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildFilteredMenuTab(),
-                      _buildOffersList(_allMenuItems, "bigdeal"),
-                      _buildCategoryTab(),
-                    ],
-                  )
+                ? (_isLoadingMenu
+                    ? _buildShimmerLoading()
+                    : _processedMenuItems.isEmpty
+                        ? _buildEmptyState("No dishes match your filters.")
+                        : ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 110, top: 4),
+                            itemCount: _processedMenuItems.length + (_hasMoreItems ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == _processedMenuItems.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                  child: Center(
+                                    child: _isLoadingMore
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF1A1E43),
+                                            ),
+                                          )
+                                        : ElevatedButton(
+                                            onPressed: _loadMoreMenuData,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF1A1E43),
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 24,
+                                                vertical: 12,
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              "Load More Dishes",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                );
+                              }
+
+                              final doc = _processedMenuItems[index];
+                              return Selector<CartProvider, int>(
+                                selector: (_, cart) => cart.getQuantity(doc.id),
+                                builder: (context, qty, _) => _buildMenuItemCard(
+                                  context,
+                                  doc.id,
+                                  doc.data() as Map<String, dynamic>,
+                                  qty,
+                                ),
+                              );
+                            },
+                          ))
                 : _buildClosedOverlayMessage(),
           );
         },
@@ -465,73 +576,29 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
     );
   }
 
-  Widget _buildCategoryTab() {
-    final List<String> categories = [
-      "Arabian",
-      "Indian",
-      "Biriyani",
-      "Shawarma",
-      "Snacks",
-      "Burger",
-      "Parotta",
-      "Fried Chicken",
-      "Tea & Coffee",
-      "Grills",
-      "Desserts",
-      "Cakes",
-      "Dosa",
-      "Momos",
-      "Shake",
-      "Icecream",
-      "Juice",
-      "Chinese",
-    ];
-    final Map<String, List<QueryDocumentSnapshot>> grouped = {};
-    for (var doc in _allMenuItems) {
-      final itemData = doc.data() as Map<String, dynamic>;
-      final itemTags = List<String>.from(itemData["tags"] ?? []);
-      for (var cat in categories) {
-        if (itemTags.contains(cat.toLowerCase())) {
-          grouped.putIfAbsent(cat, () => []).add(doc);
-        }
-      }
-    }
-
-    if (grouped.isEmpty) return _buildEmptyState("No categories found.");
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
-      itemCount: grouped.keys.length,
-      itemBuilder: (context, index) {
-        final categoryName = grouped.keys.elementAt(index);
-        final categoryItems = grouped[categoryName]!;
-        return Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            initiallyExpanded: index == 0,
-            title: Text(
-              categoryName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                color: Color(0xFF1A1E43),
-              ),
-            ),
-            children: categoryItems.map((doc) {
-              return Selector<CartProvider, int>(
-                selector: (_, cart) => cart.getQuantity(doc.id),
-                builder: (context, qty, _) => _buildMenuItemCard(
-                  context,
-                  doc.id,
-                  doc.data() as Map<String, dynamic>,
-                  qty,
-                  isCategoryItem: true,
-                ),
-              );
-            }).toList(),
+  Widget _buildFilterChoiceChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+  }) {
+    return InkWell(
+      onTap: onSelected,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1A1E43) : const Color(0xFFF1F3F6),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xFF1A1E43),
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            fontSize: 12,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -539,9 +606,8 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
     BuildContext context,
     String itemId,
     Map<String, dynamic> item,
-    int qty, {
-    bool isCategoryItem = false,
-  }) {
+    int qty,
+  ) {
     final imageUrl = item["imageUrl"] ?? "";
     final isVeg = item['isVeg'] == true;
     final name = item["name"] ?? "Unnamed Item";
@@ -582,7 +648,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Icon(
-                    isVeg ? Icons.circle : Icons.circle,
+                    Icons.circle,
                     color: isVeg ? Colors.green : Colors.red,
                     size: 8,
                   ),
@@ -606,15 +672,12 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                     color: Color(0xFF2E7D32),
                   ),
                 ),
-
-                // 🔴 OPTIONAL RED DESCRIPTION
                 if (description != null && description.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   _ExpandableItemDescription(
                     text: description.trim(),
                     itemName: name,
                     maxLines: 2,
-                    openDialogOnMore: false,
                   ),
                 ],
               ],
@@ -642,6 +705,8 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                         height: 90,
                         width: 90,
                         fit: BoxFit.cover,
+                        memCacheWidth: 200,
+                        memCacheHeight: 200,
                         placeholder: (context, url) => Shimmer.fromColors(
                           baseColor: Colors.grey.shade200,
                           highlightColor: Colors.grey.shade50,
@@ -765,7 +830,9 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
         width: 100,
         child: ElevatedButton(
           onPressed: () {
-            if (!requireLoginGlobal("Please login to add items to cart")) return;
+            if (!requireLoginGlobal("Please login to add items to cart")) {
+              return;
+            }
             cart.addItem(
               id: itemId,
               name: name,
@@ -828,7 +895,14 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
 
   Widget _buildEmptyState(String message) {
     return Center(
-      child: Text(message, style: const TextStyle(color: Colors.grey)),
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Text(
+          message,
+          style: const TextStyle(color: Colors.grey, fontSize: 15),
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 
@@ -838,72 +912,19 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
     );
   }
 
-  Widget _buildFilteredMenuTab() {
+  Widget _buildShimmerLoading() {
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
-      itemCount: _processedMenuItems.length,
-      itemBuilder: (context, index) {
-        final doc = _processedMenuItems[index];
-        return Selector<CartProvider, int>(
-          selector: (_, cart) => cart.getQuantity(doc.id),
-          builder: (context, qty, _) => _buildMenuItemCard(
-            context,
-            doc.id,
-            doc.data() as Map<String, dynamic>,
-            qty,
-          ),
-        );
-      },
+      itemCount: 6,
+      itemBuilder: (_, __) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey.shade200,
+          highlightColor: Colors.grey.shade50,
+          child: Container(height: 100, color: Colors.white),
+        ),
+      ),
     );
   }
-
-  Widget _buildOffersList(
-    List<QueryDocumentSnapshot> allItems,
-    String offerTag,
-  ) {
-    final offerItems = allItems.where((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      final tags = List<String>.from(data["tags"] ?? const []);
-      return tags.contains(offerTag);
-    }).toList();
-    if (offerItems.isEmpty) return _buildEmptyState("No offers available.");
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 100),
-      itemCount: offerItems.length,
-      itemBuilder: (context, index) {
-        final doc = offerItems[index];
-        return Selector<CartProvider, int>(
-          selector: (_, cart) => cart.getQuantity(doc.id),
-          builder: (context, qty, _) => _buildMenuItemCard(
-            context,
-            doc.id,
-            doc.data() as Map<String, dynamic>,
-            qty,
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  _SliverAppBarDelegate(this._tabBar);
-  final TabBar _tabBar;
-  @override
-  double get minExtent => _tabBar.preferredSize.height;
-  @override
-  double get maxExtent => _tabBar.preferredSize.height;
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Container(color: Colors.white, child: _tabBar);
-  }
-
-  @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) => false;
 }
 
 // ==========================================
@@ -913,15 +934,12 @@ class _ExpandableItemDescription extends StatefulWidget {
   final String text;
   final String? itemName;
   final int maxLines;
-  final bool openDialogOnMore;
 
   const _ExpandableItemDescription({
     required this.text,
     this.itemName,
     this.maxLines = 2,
-    this.openDialogOnMore = false,
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   State<_ExpandableItemDescription> createState() =>
@@ -931,61 +949,6 @@ class _ExpandableItemDescription extends StatefulWidget {
 class _ExpandableItemDescriptionState
     extends State<_ExpandableItemDescription> {
   bool _isExpanded = false;
-
-  void _showFullDescriptionModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.itemName ?? "Description",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1E43),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              Text(
-                widget.text,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.red.shade700,
-                  height: 1.4,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1024,20 +987,17 @@ class _ExpandableItemDescriptionState
                 fontWeight: FontWeight.w500,
               ),
               maxLines: _isExpanded ? null : widget.maxLines,
-              overflow:
-                  _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              overflow: _isExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
             ),
             if (isOverflowing) ...[
               const SizedBox(height: 2),
               InkWell(
                 onTap: () {
-                  if (widget.openDialogOnMore) {
-                    _showFullDescriptionModal(context);
-                  } else {
-                    setState(() {
-                      _isExpanded = !_isExpanded;
-                    });
-                  }
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
                 },
                 child: Text(
                   _isExpanded ? "View Less" : "View More",

@@ -79,10 +79,7 @@ class _ComboScreenState extends State<ComboScreen>
         iconTheme: const IconThemeData(color: Color(0xFF1A1E43)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: const Color(0xFFEEEEEE),
-            height: 1,
-          ),
+          child: Container(color: const Color(0xFFEEEEEE), height: 1),
         ),
       ),
       bottomNavigationBar: const ActiveOrderBottomBar(),
@@ -175,8 +172,10 @@ class _ComboScreenState extends State<ComboScreen>
                       data['restaurantId'] ??
                       doc.reference.parent.parent?.id ??
                       '';
-                  final int stockAvailable =
-                      parseInt(data['stock'], defaultValue: 0);
+                  final int stockAvailable = parseInt(
+                    data['stock'],
+                    defaultValue: 0,
+                  );
                   final String offerPriority = data['offerPriority'] ?? 'low';
                   final String? description = data['description']?.toString();
 
@@ -205,12 +204,7 @@ class _ComboScreenState extends State<ComboScreen>
           ),
 
           /// 🛒 Bottom Cart Bar
-          const Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: CartBar(),
-          ),
+          const Positioned(bottom: 0, left: 0, right: 0, child: CartBar()),
         ],
       ),
     );
@@ -463,8 +457,10 @@ class ComboCard extends StatelessWidget {
                       child: Selector<CartProvider, int>(
                         selector: (_, cart) => cart.getQuantity(id),
                         builder: (context, quantity, child) {
-                          final cartProvider =
-                              Provider.of<CartProvider>(context, listen: false);
+                          final cartProvider = Provider.of<CartProvider>(
+                            context,
+                            listen: false,
+                          );
 
                           if (stockAvailable <= 0) {
                             return Container(
@@ -510,7 +506,8 @@ class ComboCard extends StatelessWidget {
                                     onTap: () {
                                       if (!requireLoginGlobal(
                                         "Please login to update cart",
-                                      )) return;
+                                      ))
+                                        return;
                                       cartProvider.reduceQuantity(id);
                                     },
                                     child: const Icon(
@@ -531,7 +528,8 @@ class ComboCard extends StatelessWidget {
                                     onTap: () {
                                       if (!requireLoginGlobal(
                                         "Please login to update cart",
-                                      )) return;
+                                      ))
+                                        return;
                                       if (quantity >= stockAvailable) {
                                         ScaffoldMessenger.of(
                                           context,
@@ -580,7 +578,8 @@ class ComboCard extends StatelessWidget {
                               onPressed: () {
                                 if (!requireLoginGlobal(
                                   "Please login to add combo deals",
-                                )) return;
+                                ))
+                                  return;
                                 cartProvider.addItem(
                                   id: id,
                                   name: comboName,
@@ -795,8 +794,9 @@ class _ExpandableItemDescriptionState
                 fontWeight: FontWeight.w500,
               ),
               maxLines: _isExpanded ? null : widget.maxLines,
-              overflow:
-                  _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              overflow: _isExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
             ),
             if (isOverflowing) ...[
               const SizedBox(height: 2),

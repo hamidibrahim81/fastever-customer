@@ -23,8 +23,8 @@ class CartBar extends StatelessWidget {
               child: child,
             );
           },
-          child: cart.isEmpty 
-              ? const SizedBox.shrink() 
+          child: cart.isEmpty
+              ? const SizedBox.shrink()
               : _buildCartContainer(context, cart),
         );
       },
@@ -33,7 +33,9 @@ class CartBar extends StatelessWidget {
 
   // ✅ Extracted your original UI for consistent performance
   Widget _buildCartContainer(BuildContext context, CartProvider cart) {
-    final itemText = cart.totalItems == 1 ? '1 item' : '${cart.totalItems} items';
+    final itemText = cart.totalItems == 1
+        ? '1 item'
+        : '${cart.totalItems} items';
     final totalText = '₹${cart.totalAmount.toStringAsFixed(2)}';
 
     return SafeArea(
@@ -73,10 +75,7 @@ class CartBar extends StatelessWidget {
                   const SizedBox(height: 2),
                   const Text(
                     'Tap to view cart',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
@@ -86,7 +85,10 @@ class CartBar extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.orange,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -99,10 +101,7 @@ class CartBar extends StatelessWidget {
               },
               child: const Text(
                 'View Cart',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ),
           ],

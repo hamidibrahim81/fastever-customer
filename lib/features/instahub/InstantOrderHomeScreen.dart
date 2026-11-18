@@ -50,13 +50,21 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
   static const Color _bgColor = Color(0xFFF8F9FD);
 
   final List<Map<String, dynamic>> categories = [
-    {"name": "Fruits & Vegetables", "image": "assets/icons/fv.jpeg", "tag": "fv"},
+    {
+      "name": "Fruits & Vegetables",
+      "image": "assets/icons/fv.jpeg",
+      "tag": "fv",
+    },
     {"name": "Dairy & Eggs", "image": "assets/icons/de.jpeg", "tag": "de"},
     {"name": "Meat & seafood", "image": "assets/icons/ms.jpeg", "tag": "ms"},
     {"name": "Grocery & staples", "image": "assets/icons/gs.jpeg", "tag": "gs"},
     {"name": "Bakery & snacks", "image": "assets/icons/bs.jpeg", "tag": "bs"},
     {"name": "Beverages", "image": "assets/icons/b.jpeg", "tag": "b"},
-    {"name": "Household Essentials", "image": "assets/icons/he.jpeg", "tag": "he"},
+    {
+      "name": "Household Essentials",
+      "image": "assets/icons/he.jpeg",
+      "tag": "he",
+    },
     {"name": "Baby & kids", "image": "assets/icons/bk.jpeg", "tag": "bk"},
     {"name": "Pet Care", "image": "assets/icons/pc.jpeg", "tag": "pc"},
   ];
@@ -130,10 +138,15 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       _lastPressed = now;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Press back again to return to home", style: GoogleFonts.inter()),
+          content: Text(
+            "Press back again to return to home",
+            style: GoogleFonts.inter(),
+          ),
           backgroundColor: Colors.black,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     } else {
@@ -141,7 +154,9 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
         duration: const Duration(milliseconds: 1800),
         task: () async {
           if (!mounted) return;
-          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/home', (route) => false);
         },
       );
     }
@@ -155,7 +170,8 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
           : (data['tags'] is List ? List<dynamic>.from(data['tags']) : []);
 
       if (_selectedFilterTag == 'all') return true;
-      if (_selectedFilterTag == 'best_offer') return tags.contains('best_offer');
+      if (_selectedFilterTag == 'best_offer')
+        return tags.contains('best_offer');
       if (_selectedFilterTag == 'top_sell') return tags.contains('top_sell');
       return tags.contains(_selectedFilterTag);
     }).toList();
@@ -183,13 +199,19 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
             foregroundColor: Colors.white,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               onPressed: () {
                 GlobalLoader.run(
                   duration: const Duration(milliseconds: 1800),
                   task: () async {
                     if (!mounted) return;
-                    Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/home', (route) => false);
                   },
                 );
               },
@@ -204,7 +226,9 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                       if (!mounted) return;
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationScreen(),
+                        ),
                       );
                     },
                   );
@@ -213,14 +237,17 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
               IconButton(
                 icon: const Icon(Icons.person_outline_rounded, size: 28),
                 onPressed: () {
-                  if (!requireLoginGlobal("Please login to access profile")) return;
+                  if (!requireLoginGlobal("Please login to access profile"))
+                    return;
                   GlobalLoader.run(
                     duration: const Duration(milliseconds: 1800),
                     task: () async {
                       if (!mounted) return;
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen2()),
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen2(),
+                        ),
                       );
                     },
                   );
@@ -247,7 +274,8 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                       const SizedBox(height: 16),
                       _buildUnifiedItemsGrid(),
                       Consumer<InstahubCartProvider>(
-                        builder: (_, cart, __) => SizedBox(height: cart.isNotEmpty ? 120 : 60),
+                        builder: (_, cart, __) =>
+                            SizedBox(height: cart.isNotEmpty ? 120 : 60),
                       ),
                     ],
                   ],
@@ -340,7 +368,10 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return const Center(
-                                child: Icon(Icons.shopping_bag_outlined, color: Colors.grey),
+                                child: Icon(
+                                  Icons.shopping_bag_outlined,
+                                  color: Colors.grey,
+                                ),
                               );
                             },
                           ),
@@ -382,7 +413,8 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
           .where('active', isEqualTo: true)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+          return const SizedBox.shrink();
         final adsDocs = snapshot.data!.docs;
 
         _adsTimer ??= Timer.periodic(const Duration(seconds: 4), (timer) {
@@ -393,7 +425,9 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
           }
         });
 
-        final adData = adsDocs[_currentAdIndex % adsDocs.length].data() as Map<String, dynamic>;
+        final adData =
+            adsDocs[_currentAdIndex % adsDocs.length].data()
+                as Map<String, dynamic>;
 
         return SizedBox(
           width: double.infinity,
@@ -431,7 +465,9 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       {"label": "✨ All Items", "tag": "all"},
       {"label": "⚡ Top Selling", "tag": "top_sell"},
       {"label": "💸 Best Offers", "tag": "best_offer"},
-      ...categories.map((c) => {"label": c["name"].toString(), "tag": c["tag"].toString()}),
+      ...categories.map(
+        (c) => {"label": c["name"].toString(), "tag": c["tag"].toString()},
+      ),
     ];
 
     return SizedBox(
@@ -484,7 +520,10 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
         alignment: Alignment.center,
         child: Text(
           "No items found in this section",
-          style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.w600),
+          style: GoogleFonts.inter(
+            color: Colors.grey,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       );
     }
@@ -504,9 +543,7 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
         ),
         itemBuilder: (context, index) {
           final doc = docs[index];
-          return _HomeItemCard(
-            item: {...doc.data()!, 'id': doc.id},
-          );
+          return _HomeItemCard(item: {...doc.data()!, 'id': doc.id});
         },
       ),
     );
@@ -527,7 +564,9 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                 if (!mounted) return;
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const MorningOrderHomeScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const MorningOrderHomeScreen(),
+                  ),
                 );
               },
             );
@@ -547,7 +586,9 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
                 if (!mounted) return;
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const RequestItemListScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const RequestItemListScreen(),
+                  ),
                 );
               },
             );
@@ -634,8 +675,15 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
         style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           hintText: "Search milk, bread, snacks, apple, atta...",
-          hintStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 14),
-          prefixIcon: const Icon(Icons.search_rounded, color: Colors.orange, size: 24),
+          hintStyle: GoogleFonts.inter(
+            color: Colors.grey.shade400,
+            fontSize: 14,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: Colors.orange,
+            size: 24,
+          ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear_rounded, color: Colors.grey),
@@ -658,9 +706,14 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
     // Client-side fuzzy/case-insensitive prefix search
     final filtered = _cachedDocs.where((doc) {
       final data = doc.data() ?? {};
-      final name = (data['name'] ?? data['productName'] ?? '').toString().toLowerCase();
+      final name = (data['name'] ?? data['productName'] ?? '')
+          .toString()
+          .toLowerCase();
       final category = (data['category'] ?? '').toString().toLowerCase();
-      final tags = (data['tags'] is List ? List<dynamic>.from(data['tags']) : []).join(' ').toLowerCase();
+      final tags =
+          (data['tags'] is List ? List<dynamic>.from(data['tags']) : [])
+              .join(' ')
+              .toLowerCase();
 
       if (name.startsWith(query)) return true;
 
@@ -668,7 +721,9 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       final nameWords = name.split(RegExp(r'\s+'));
       if (nameWords.any((w) => w.startsWith(query))) return true;
 
-      return name.contains(query) || category.contains(query) || tags.contains(query);
+      return name.contains(query) ||
+          category.contains(query) ||
+          tags.contains(query);
     }).toList();
 
     if (filtered.isEmpty) {
@@ -689,10 +744,14 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
       itemBuilder: (context, index) {
         final item = filtered[index].data()!;
         final rawMrp = item["price"] ?? item["mrp"] ?? 0;
-        final rawOffer = item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
-        final double mrp = rawMrp is num ? rawMrp.toDouble() : double.tryParse(rawMrp.toString()) ?? 0.0;
-        final double sellingPrice =
-            rawOffer is num ? rawOffer.toDouble() : double.tryParse(rawOffer.toString()) ?? mrp;
+        final rawOffer =
+            item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
+        final double mrp = rawMrp is num
+            ? rawMrp.toDouble()
+            : double.tryParse(rawMrp.toString()) ?? 0.0;
+        final double sellingPrice = rawOffer is num
+            ? rawOffer.toDouble()
+            : double.tryParse(rawOffer.toString()) ?? mrp;
         final bool hasDiscount = mrp > sellingPrice && sellingPrice > 0;
 
         return ListTile(
@@ -713,7 +772,11 @@ class _InstantOrderHomeScreenState extends State<InstantOrderHomeScreen>
             children: [
               Text(
                 "₹${sellingPrice.toInt()}",
-                style: GoogleFonts.inter(color: _accentColor, fontWeight: FontWeight.w800, fontSize: 14),
+                style: GoogleFonts.inter(
+                  color: _accentColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
               ),
               if (hasDiscount) ...[
                 const SizedBox(width: 6),
@@ -761,14 +824,20 @@ class _HomeItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rawMrp = item["price"] ?? item["mrp"] ?? 0;
-    final rawOffer = item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
+    final rawOffer =
+        item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
 
-    final double mrp = rawMrp is num ? rawMrp.toDouble() : double.tryParse(rawMrp.toString()) ?? 0.0;
-    final double sellingPrice =
-        rawOffer is num ? rawOffer.toDouble() : double.tryParse(rawOffer.toString()) ?? mrp;
+    final double mrp = rawMrp is num
+        ? rawMrp.toDouble()
+        : double.tryParse(rawMrp.toString()) ?? 0.0;
+    final double sellingPrice = rawOffer is num
+        ? rawOffer.toDouble()
+        : double.tryParse(rawOffer.toString()) ?? mrp;
 
     final bool hasDiscount = mrp > sellingPrice && sellingPrice > 0;
-    final int discountPercent = hasDiscount ? (((mrp - sellingPrice) / mrp) * 100).round() : 0;
+    final int discountPercent = hasDiscount
+        ? (((mrp - sellingPrice) / mrp) * 100).round()
+        : 0;
 
     final stock = (item['stock'] ?? item['stockLevels'] as num?)?.toInt() ?? 0;
     final String itemId = item['id'] ?? item['name'] ?? 'item';
@@ -806,11 +875,13 @@ class _HomeItemCard extends StatelessWidget {
                         child: Hero(
                           tag: "item_$itemId",
                           child: CachedNetworkImage(
-                            imageUrl: item['image'] ?? item['remoteImageUrl'] ?? '',
+                            imageUrl:
+                                item['image'] ?? item['remoteImageUrl'] ?? '',
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
-                            placeholder: (_, __) => Container(color: Colors.grey.shade100),
+                            placeholder: (_, __) =>
+                                Container(color: Colors.grey.shade100),
                             errorWidget: (context, url, error) => const Center(
                               child: Icon(
                                 Icons.image_not_supported_outlined,
@@ -826,7 +897,10 @@ class _HomeItemCard extends StatelessWidget {
                         top: 14,
                         left: 14,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF00E676),
                             borderRadius: BorderRadius.circular(6),
@@ -891,7 +965,8 @@ class _HomeItemCard extends StatelessWidget {
                       _JumboQuantitySelector(
                         quantity: quantity,
                         onAdd: () {
-                          if (!requireLoginGlobal("Please login to add items")) return;
+                          if (!requireLoginGlobal("Please login to add items"))
+                            return;
                           cart.updateItem(
                             id: itemId,
                             name: item['name'] ?? item['productName'],
@@ -904,7 +979,10 @@ class _HomeItemCard extends StatelessWidget {
                         onRemove: () => cart.removeItem(itemId),
                         onUpdate: (newQty) {
                           if (newQty > quantity) {
-                            if (!requireLoginGlobal("Please login to update items")) return;
+                            if (!requireLoginGlobal(
+                              "Please login to update items",
+                            ))
+                              return;
                           }
                           cart.updateItem(
                             id: itemId,
@@ -1001,9 +1079,14 @@ class _JumboQuantitySelector extends StatelessWidget {
                 children: [
                   Expanded(
                     child: InkWell(
-                      onTap: () => quantity > 1 ? onUpdate(quantity - 1) : onRemove(),
+                      onTap: () =>
+                          quantity > 1 ? onUpdate(quantity - 1) : onRemove(),
                       child: const Center(
-                        child: Icon(Icons.remove_rounded, color: Colors.white, size: 20),
+                        child: Icon(
+                          Icons.remove_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -1019,7 +1102,11 @@ class _JumboQuantitySelector extends StatelessWidget {
                     child: InkWell(
                       onTap: onAdd,
                       child: const Center(
-                        child: Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -1038,10 +1125,14 @@ class _SearchAddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rawMrp = item["price"] ?? item["mrp"] ?? 0;
-    final rawOffer = item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
-    final double mrp = rawMrp is num ? rawMrp.toDouble() : double.tryParse(rawMrp.toString()) ?? 0.0;
-    final double sellingPrice =
-        rawOffer is num ? rawOffer.toDouble() : double.tryParse(rawOffer.toString()) ?? mrp;
+    final rawOffer =
+        item["offerPrice"] ?? item["offerSalePrice"] ?? item["price"] ?? 0;
+    final double mrp = rawMrp is num
+        ? rawMrp.toDouble()
+        : double.tryParse(rawMrp.toString()) ?? 0.0;
+    final double sellingPrice = rawOffer is num
+        ? rawOffer.toDouble()
+        : double.tryParse(rawOffer.toString()) ?? mrp;
     final String itemId = item['id'] ?? item['name'] ?? 'item';
 
     return Consumer<InstahubCartProvider>(

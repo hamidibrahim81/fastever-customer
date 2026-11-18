@@ -69,15 +69,15 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
     );
 
     // Attach pricing fields from Firestore
-    selectedRide['min_charge'] = pricingData[_selectedVehicleId]?['min_charge'] ?? 0;
-    selectedRide['per_km_charge'] = pricingData[_selectedVehicleId]?['per_km_charge'] ?? 0;
+    selectedRide['min_charge'] =
+        pricingData[_selectedVehicleId]?['min_charge'] ?? 0;
+    selectedRide['per_km_charge'] =
+        pricingData[_selectedVehicleId]?['per_km_charge'] ?? 0;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => RideBookingFormScreen(
-          selectedVehicle: selectedRide,
-        ),
+        builder: (_) => RideBookingFormScreen(selectedVehicle: selectedRide),
       ),
     );
   }
@@ -91,9 +91,7 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
         elevation: 6,
         shadowColor: Colors.black.withOpacity(0.3),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(24),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
@@ -108,14 +106,13 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
           ),
         ),
         centerTitle: true,
-        actions: const [
-          NotificationBellIconButton(),
-          SizedBox(width: 8),
-        ],
+        actions: const [NotificationBellIconButton(), SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('ride_pricing').snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('ride_pricing')
+              .snapshots(),
           builder: (context, snapshot) {
             Map<String, Map<String, dynamic>> pricingMap = {};
             if (snapshot.hasData) {
@@ -153,12 +150,13 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _gridRideTypes.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: 0.88,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.88,
+                        ),
                     itemBuilder: (context, index) {
                       final ride = _gridRideTypes[index];
                       final String vehicleId = ride['id'];
@@ -180,7 +178,9 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isSelected ? accentColor : Colors.black.withOpacity(0.06),
+                              color: isSelected
+                                  ? accentColor
+                                  : Colors.black.withOpacity(0.06),
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: [
@@ -204,7 +204,8 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                     child: Image.asset(
                                       ride['image'] as String,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                      errorBuilder: (_, __, ___) =>
+                                          const SizedBox.shrink(),
                                     ),
                                   ),
                                 ),
@@ -213,16 +214,20 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                 Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Container(
                                             padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(
-                                              color: (ride['color'] as Color).withOpacity(0.15),
+                                              color: (ride['color'] as Color)
+                                                  .withOpacity(0.15),
                                               shape: BoxShape.circle,
                                             ),
                                             child: Icon(
@@ -232,26 +237,35 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                             ),
                                           ),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: isSelected
-                                                  ? accentColor.withOpacity(0.15)
+                                                  ? accentColor.withOpacity(
+                                                      0.15,
+                                                    )
                                                   : backgroundColor,
-                                              borderRadius: BorderRadius.circular(6),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
                                             ),
                                             child: Text(
                                               ride['badge'] as String,
                                               style: TextStyle(
                                                 fontSize: 9,
                                                 fontWeight: FontWeight.bold,
-                                                color: isSelected ? accentColor : textLight,
+                                                color: isSelected
+                                                    ? accentColor
+                                                    : textLight,
                                               ),
                                             ),
-                                          )
+                                          ),
                                         ],
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             ride['title'] as String,
@@ -280,11 +294,17 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                             width: double.infinity,
                                             decoration: BoxDecoration(
                                               color: backgroundColor,
-                                              borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(color: Colors.black.withOpacity(0.03)),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: Colors.black.withOpacity(
+                                                  0.03,
+                                                ),
+                                              ),
                                             ),
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
                                                   "Min Charge: ₹$minCharge",
@@ -326,7 +346,9 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const TouristBusesScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const TouristBusesScreen(),
+                        ),
                       );
                     },
                     child: Container(
@@ -357,7 +379,8 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                 child: Image.asset(
                                   'assets/instahub/torist.jpeg',
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink(),
                                 ),
                               ),
                             ),
@@ -368,7 +391,9 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF457B9D).withOpacity(0.15),
+                                      color: const Color(
+                                        0xFF457B9D,
+                                      ).withOpacity(0.15),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
@@ -380,7 +405,8 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                   const SizedBox(width: 14),
                                   const Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
@@ -406,7 +432,10 @@ class _TakeRideScreenState extends State<TakeRideScreen> {
                                         SizedBox(height: 2),
                                         Text(
                                           "Luxury AC / Non-AC buses available for long tours & trips",
-                                          style: TextStyle(fontSize: 11, color: textLight),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: textLight,
+                                          ),
                                         ),
                                       ],
                                     ),
